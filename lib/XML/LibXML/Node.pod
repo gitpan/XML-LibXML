@@ -37,6 +37,8 @@ XML::LibXML::Node - "virtual" Base Class DOM-Nodes
   $node->insertBefore( $newNode, $refNode )
   $node->insertAfter( $newNode, $refNode )
   @nodes = $node->findnodes( $xpath_statement );
+  $result = $node->find( $xpath );
+  print $node->findvalue( $xpath );
   @children = $node->getChildnodes();
   @childnodes = $node->childNodes;
   $xmlstring = $node->toString();
@@ -213,7 +215,31 @@ last child of the parent node.
 
 =item B<findnodes>
 
-B<findnodes> performs the xpath statement on the current node and returns the result as an array.
+B<findnodes> performs the xpath statement on the current node and returns the result as an array. In scalar context returns a I<XML::LibXML::NodeList> object.
+
+=item B<find>
+
+B<find> performs the xpath expression using the current
+node as the context of the expression, and returns the result
+depending on what type of result the XPath expression had. For
+example, the XPath "1 * 3 + 52" results in a I<XML::LibXML::Number> object being returned. Other
+expressions might return a I<XML::LibXML::Boolean> object,
+or a I<XML::LibXML::Literal> object (a string). Each of
+those objects uses Perl's overload feature to "do the right thing"
+in different contexts.
+
+=item B<findvalue>
+
+B<findvalue> is exactly equivalent to:
+
+  
+$node->find( $xpath )->to_literal;
+
+
+That is, it returns the literal value of the results. This enables
+you to ensure that you get a string back from your search, allowing
+certain shortcuts. This could be used as the equivalent of
+<xsl:value-of select="some_xpath"/>.
 
 =item B<getChildnodes>
 
