@@ -1,4 +1,4 @@
-# $Id: 02parse.t,v 1.8 2002/05/20 11:01:28 phish Exp $
+# $Id: 02parse.t,v 1.11 2002/05/29 20:28:56 phish Exp $
 
 ##
 # this test checks the parsing capabilities of XML::LibXML
@@ -7,7 +7,7 @@
 use Test;
 use IO::File;
 
-BEGIN { plan tests => 40 };
+BEGIN { plan tests => 42 };
 use XML::LibXML;
 
 ##
@@ -15,6 +15,7 @@ use XML::LibXML;
 my $goodWFString = "<foobar/>";
 my $badWFString1 = "<foo>&</foo>";
 my $badWFString2 = "<foo>";
+my $badWFString3 = '<?xml version="1.0">';
 
 my $goodWBString = "foo<bar/>foo";
 my $badWBString1 = "<foo>bar";
@@ -42,6 +43,10 @@ ok($@);
 
 eval { my $fail = $parser->parse_string($badWFString2); };
 ok($@);
+
+eval { my $fail = $parser->parse_string($badWFString3); };
+ok($@);
+
 
 eval { my $fail = $parser->parse_string(""); };
 ok($@);
@@ -220,6 +225,12 @@ print "# 7. SAX parser\n";
     my $handler = XML::LibXML::SAX::Builder->new();
     my $generator = XML::LibXML::SAX->new( Handler=>$handler );
 
+
+    my $string1  = q{<bar>foo</bar>};
+
+    $doc = $generator->parse_string( $string1 );
+    ok( $doc );
+
     my $string  = q{<bar foo="bar">foo</bar>};
 
     $doc = $generator->parse_string( $string );
@@ -233,7 +244,12 @@ print "# 7. SAX parser\n";
     my $root = $doc->documentElement;
     my @attrs = $root->attributes;
     ok( scalar @attrs );
-    ok( $attrs[0]->nodeType, XML_NAMESPACE_DECL );
+    if ( scalar @attrs ) {
+        ok( $attrs[0]->nodeType, XML_NAMESPACE_DECL );
+    }
+    else {
+        ok(0);
+    }
 
     $doc = $generator->parse_uri( "example/test.xml" );
 

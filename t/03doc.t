@@ -1,4 +1,4 @@
-# $Id: 03doc.t,v 1.2 2002/05/08 00:27:07 phish Exp $
+# $Id: 03doc.t,v 1.3 2002/05/24 10:15:35 phish Exp $
 
 ##
 # this test checks the DOM Document interface of XML::LibXML
@@ -12,7 +12,7 @@
 use Test;
 use strict;
 
-BEGIN { plan tests => 62 };
+BEGIN { plan tests => 63 };
 use XML::LibXML;
 
 {
@@ -174,6 +174,9 @@ use XML::LibXML;
     @cn = $doc->childNodes;
     ok( scalar(@cn) , 1);
     ok($cn[0]->isSameNode($node2));
+
+    my $node3 = $doc->createElementNS( "http://foo", "bar" );
+    ok($node3);
 
     print "# 3.2 Processing Instructions\n"; 
     {

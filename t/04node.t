@@ -1,4 +1,4 @@
-# $Id: 04node.t,v 1.4 2002/05/15 13:29:23 phish Exp $
+# $Id: 04node.t,v 1.5 2002/05/25 11:31:13 phish Exp $
 
 ##
 # this test checks the DOM Node interface of XML::LibXML
@@ -11,7 +11,7 @@
 
 use Test;
 
-BEGIN { plan tests => 117 };
+BEGIN { plan tests => 118 };
 use XML::LibXML;
 
 my $xmlstring = q{<foo>bar<foobar/><bar foo="foobar"/><!--foo--><![CDATA[&foo bar]]></foo>};
@@ -233,6 +233,9 @@ print "# 3   Standalone With NameSpaces\n\n";
 
     ok( $elem->lookupNamespacePrefix( $URI ), $pre);
     ok( $elem->lookupNamespaceURI( $pre ), $URI);
+
+    my @ns = $elem->getNamespaces;
+    ok( scalar(@ns) ,1 );
 }
 
 print "# 4.   Document swtiching\n";

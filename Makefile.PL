@@ -1,4 +1,4 @@
-# $Id: Makefile.PL,v 1.18 2002/05/17 18:49:46 phish Exp $
+# $Id: Makefile.PL,v 1.26 2002/05/31 15:12:42 phish Exp $
 
 use ExtUtils::MakeMaker;
 use Config;
@@ -8,6 +8,8 @@ use File::Spec;
 $|=0;
 
 my %config;
+
+my ( $lib_major, $lib_minor, $lib_patch ) = (2, 4, 20);
 
 while($_ = shift) {
     my ($key, $val) = split(/=/, $_, 2);
@@ -19,38 +21,41 @@ my $DEBUG = delete $config{DEBUG};
 # $config{DEFINE} .= " -DXS_WARNINGS";
 
 if ( $] >= 5.006 ) {
-# if ( ( backtick('perl -V:version') =~ /version=\'([^\']*)\'/ )[0] !~ /5\.0/ ) {
     warn "enable native perl UTF8\n";
-
     $config{DEFINE} .= " -DHAVE_UTF8";
 }
 
 # get libs and inc from gnome-config
-eval {
-    my $xml2cfg = "xml2-config";
-    if ( defined $ENV{XMLPREFIX} ) {
-        $xml2cfg = $ENV{XMLPREFIX} . '/bin/' . $xml2cfg;
-    }
-    print "running xml2-config... ";
-    my $ver = backtick("$xml2cfg --version");
-    my ($major, $minor, $point) = $ver =~ /(\d+).(\d+)\.(\d+)/g;
-    die "VERSION" unless $major > 2 || $minor > 4 || $point >= 20;
-    $config{LIBS} ||= backtick("$xml2cfg --libs");
-    $config{INC}  ||= backtick("$xml2cfg --cflags");
-    print "ok\n";
-};
-if ($@) {
-    print "failed\n";
-    if ($@ =~ /^VERSION/) {
-        die "XML::LibXML needs libxml2 version 2.4.20 or higher\n";
-    }
-    warn "*** ", $@ if $DEBUG;
-    warn "using fallback values for LIBS and INC\n";
-    # backtick fails if gnome-config didn't exist...
-    $config{LIBS} = '-L/usr/local/lib -L/usr/lib -lxml2 -lz -lm';
-    $config{INC} = '-I/usr/local/include -I/usr/include';
-    
-    print <<OPT;
+
+unless ( $is_Win32 ) {
+    eval {
+        my $xml2cfg = "xml2-config";
+        if ( defined $ENV{XMLPREFIX} ) {
+            $xml2cfg = $ENV{XMLPREFIX} . '/bin/' . $xml2cfg;
+        }
+
+        print "running xml2-config... ";
+        my $ver = backtick("$xml2cfg --version");
+        my ($major, $minor, $point) = $ver =~ /(\d+).(\d+)\.(\d+)/g;
+        die "VERSION $major.$minor.$point" unless $major > $lib_major
+          || ($major == $lib_major && $minor > $lib_minor)
+            || ($major == $lib_major && $minor == $lib_minor && $point >= $lib_patch);
+        $config{LIBS} ||= backtick("$xml2cfg --libs");
+        $config{INC}  ||= backtick("$xml2cfg --cflags");
+        print "ok\n";
+    };
+    if ($@) {
+        print "failed\n";
+        if ($@ =~ /^VERSION/) {
+            die "XML::LibXML needs libxml2 version $lib_major.$lib_minor.$lib_patch or higher (found $@)\n";
+        }
+        warn "*** ", $@ if $DEBUG;
+        warn "using fallback values for LIBS and INC\n";
+        # backtick fails if gnome-config didn't exist...
+        $config{LIBS} = '-L/usr/local/lib -L/usr/lib -lxml2 -lz -lm';
+        $config{INC} = '-I/usr/local/include -I/usr/include';
+
+        print <<OPT;
 options:
   LIBS='$config{LIBS}'
   INC='$config{INC}'
@@ -58,22 +63,27 @@ If this is wrong, Re-run as:
   \$ $^X Makefile.PL LIBS='-L/path/to/lib' INC='-I/path/to/include'
 
 OPT
-
+    }
 }
 
+
 if ($config{LIBS} !~ /\-lxml2\b/) {
-    $config{LIBS} .= ' -lxml2';
+    $config{LIBS} .= $is_Win32 ? '-llibxml2' : ' -lxml2';
 }
 
 if ($config{LIBS} !~ /\-lz\b/) {
-    $config{LIBS} .= ' -lz';
+    $config{LIBS} .= $is_Win32 ? '-lzlib' :' -lz';
 }
 
 if ($config{LIBS} !~ /\-lm\b/) {
-    $config{LIBS} .= ' -lm';
+    $config{LIBS} .= $is_Win32 ? '' :' -lm';
 }
 
-if (!have_library("xml2")) {
+if ( $config{DEBUG} ) {
+    warn "win32 compile\n" if $is_Win32;
+}
+
+unless (have_library("xml2") or have_library("libxml2")) {
     die <<DEATH;
 libxml2 not found
 Try setting LIBS and INC values on the command line
@@ -99,7 +109,8 @@ WriteMakefile(
     'VERSION_FROM' => 'LibXML.pm', # finds $VERSION
     'AUTHOR'    => 'Matt Sergeant',
     'ABSTRACT'  => 'Interface to Gnome libxml2 xml parsing and DOM library',
-    'PREREQ_PM' => { 'XML::SAX' => 0 },
+    'PREREQ_PM' => { 'XML::SAX' => 0,
+                     'XML::NamespaceSupport' => '1.07',  },
     'OBJECT'    => '$(O_FILES)', # add the DOM extensions to libxml2
     'dist'      => { PREOP => "$^X -Iblib/arch -Iblib/lib example/xml2pod.pl" },
     %config,
@@ -304,7 +315,7 @@ EOT
     my $quote = $is_Win32 ? '"' : "'";
     xsystem("$^X Makefile.PL " . join(' ', map { "${quote}$_=$config{$_}${quote}" } keys %config));
     xsystem("$Config{make} test ${quote}OTHERLDFLAGS=${opt}${quote}");
-}
+} # end try_link0
 
 sub try_link {
     my $start_dir = cwd();
@@ -343,7 +354,6 @@ SRC
             }
         }
         else {
-
             $result = try_link(<<"SRC", $libs);
 blank() { return 0; }
 int t() { ${func}(); return 0; }
