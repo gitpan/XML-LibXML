@@ -11,6 +11,7 @@ XML::LibXML::Attr - The DOM Attribute Class
  $value = $attr->value;
  $attr->setValue( $string );
  $node = $attr->getOwnerElement();
+ $attr->setNamespace($nsURI, $prefix);
 
 
 =head1 DESCRIPTION
@@ -66,6 +67,17 @@ attribute is not bound to a node, undef will be
 returned. Overwriting the underlaying
 implementation, the B<parentNode> function
 will return undef, instead of the owner element.
+
+
+=item B<setNamespace>
+
+
+This function activates a namespace for the given
+attribute. If the attribute was not previously
+declared in the context of the attribute this
+function will be silently ignored. In this case
+you may wish to call setNamespace() on the
+ownerElement.
 
 
 =back

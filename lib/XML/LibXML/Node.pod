@@ -36,7 +36,7 @@ XML::LibXML::Node - "virtual" Base Class DOM-Nodes
  $result = $node->find( $xpath );
  print $node->findvalue( $xpath );
  @childnodes = $node->childNodes;
- $xmlstring = $node->toString($docencoding);
+ $xmlstring = $node->toString($format,$docencoding);
  $localname = $node->localname;
  $nameprefix = $node->prefix;
  $uri = $node->namespaceURI()
@@ -45,7 +45,8 @@ XML::LibXML::Node - "virtual" Base Class DOM-Nodes
  $nsnode = $node->lookupNamespaceURI( $URI );
  $nsnode = $node->lookupNamespacePrefix( $prefix );
  $node->iterator( \&nodehandler );
- $node->normalize
+ $node->normalize;
+ @nslist = $node->getNamespaces;
 
 
 =head1 DESCRIPTION
@@ -354,9 +355,12 @@ I<XML::LibXML::Document::toString> for a
 single node. This means a node and all its
 childnodes will be dumped into the result string.
 
-If the optional $docencoding flag is set, this
-function returns the string in its original
-encoding (the encoding of the document)
+Additionally to the $format flag of
+XML::LibXML::Document, this version accepts the
+optional $docencoding flag. If this flag is set
+this function returns the string in its original
+encoding (the encoding of the document) rather
+than UTF8.
 
 
 =item B<localname>
@@ -440,6 +444,19 @@ This function normalizes adjacent textnodes. This
 function is not as strict as libxml2's
 xmlTextMerge() function, since it will not free a
 node that is still refered by the perl layer.
+
+
+=item B<getNamespaces>
+
+
+If a node has any namespaces defined, this
+function will return these namespaces. Note, that
+this will not return all namespaces that are in
+scope, but only the ones declares explicitly for
+that node.
+
+Although getNamespaces is available for all nodes,
+it makes only sense if used with element nodes.
 
 
 =back

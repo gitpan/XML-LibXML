@@ -26,6 +26,7 @@ XML::LibXML::Element - The DOM Element Class
  $node->appendText( $PCDATA );
  $node->appendTextNode( $PCDATA );
  $node->appendTextChild( $childname , $PCDATA )
+ $node->setNamespace( $nsURI , $nsPrefix, $activate )
 
 
 =head1 DESCRIPTION
@@ -200,6 +201,61 @@ lets you set an Element, that contains only a
 I<text node> directly by specifying the name
 and the text content.
 
+
+=item B<setNamespace>
+
+
+setNamespace() allows one to apply a namespace to
+an element. The function takes three parameters:
+1. the namespace URI, which is required and the
+two optional values prefix, which is the namespace
+prefix, as it should be used in child elements or
+attributes as well as the additionally activate
+parameter.
+
+The activate parameter is most usefull: If this
+parameter is set to FALSE (0), the namespace is
+simply added to the namespacelist of the node,
+while the element's namespace itself is not
+altered. Nevertheless activate is set to TRUE (1)
+on default. In this case the namespace automaticly
+is used as the nodes effective namespace. This
+means the namespace prefix is added to the node
+name and if there was a namespace already active
+for the node, this will be replaced (but not
+removed from the global namespace list)
+
+The following example may clarify this:
+
+ my $e1 = $doc->createElement("bar");
+ $e1->setNamespace("http://foobar.org", "foo")
+                
+results
+
+ 
+
+while 
+ my $e2 = $doc->createElement("bar");
+ $e2->setNamespace("http://foobar.org", "foo",0)
+                
+results only
+
+ 
+
+By using $activate == 0 it is possible to apply
+multiple namepace declarations to a single
+element.
+
+Alternativly you can call setAttribute() simply to
+declare a new namespace for a node, without
+activating it:
+
+  $e2->setAttribute( "xmlns:foo", "http://bar.org" );                 
+                
+has the same result as
+
+ $e2->setNamespace("http://foobar.org", "foo", 0)
+                
 
 =back
 

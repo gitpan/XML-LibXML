@@ -1,4 +1,4 @@
-# $Id: 20extras.t,v 1.3 2002/05/15 13:42:52 phish Exp $
+# $Id: 20extras.t,v 1.4 2002/06/04 15:49:35 phish Exp $
 
 use Test;
 
@@ -20,6 +20,7 @@ my $parser = XML::LibXML->new();
 
 {
     local $XML::LibXML::skipDTD = 1;
+    $parser->expand_entities(0);
     my $doc = $parser->parse_file( "example/dtd.xml" );
     ok($doc);
     my $test = "<?xml version=\"1.0\"?>\n<doc>This is a valid document &foo; !</doc>\n";

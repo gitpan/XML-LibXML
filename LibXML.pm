@@ -1,4 +1,4 @@
-# $Id: LibXML.pm,v 1.66 2002/05/29 20:52:06 phish Exp $
+# $Id: LibXML.pm,v 1.68 2002/06/12 10:02:00 phish Exp $
 
 package XML::LibXML;
 
@@ -10,7 +10,7 @@ use Carp;
 use XML::LibXML::NodeList;
 use IO::Handle; # for FH reads called as methods
 
-$VERSION = "1.51";
+$VERSION = "1.52";
 require Exporter;
 require DynaLoader;
 
@@ -1134,6 +1134,31 @@ a string containing the resource at the given URI.
 Note that you do not need to enable this - if not supplied libxml will
 get the resource either directly from the filesystem, or using an internal
 http client library.
+
+=head1 DEFAULT VALUES
+
+The following table gives an overview about the default values of the
+parser attributes.
+
+=over 4
+
+=item validation == off (0)
+
+=item expand_entities == on (1)
+
+=item keep_blanks == on (1)
+
+=item pedantic_parser == off (0)
+
+=item load_ext_dtd == on (1)
+
+=item complete_attributes == on (1)
+
+=item expand_xinclude == off (0)
+
+=back
+
+By default no callback handler is set.
 
 =head1 PARSING
 

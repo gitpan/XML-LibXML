@@ -1,4 +1,4 @@
-# $Id: Builder.pm,v 1.14 2002/05/27 13:02:20 phish Exp $
+# $Id: Builder.pm,v 1.16 2002/06/11 15:33:19 phish Exp $
 
 package XML::LibXML::SAX::Builder;
 
@@ -56,7 +56,7 @@ sub start_prefix_mapping {
         $self->{NamespaceStack}->push_context;
     }
 
-    $self->{USENAMESPACESTACK} = 1; # remember, we can skip NS attributes later
+    $self->{USENAMESPACESTACK} = 1;
 
     $self->{NamespaceStack}->declare_prefix( $ns->{Prefix}, $ns->{NamespaceURI} );
 }
@@ -161,7 +161,15 @@ sub characters {
         $self->{NamespaceStack}->push_context;
     }
     return unless $self->{Parent};
-    $self->{Parent}->appendText($chars->{Data});
+    my $node;
+    if ( defined $self->{DOM} ) {
+        $node = $self->{DOM}->createTextNode($chars->{Data});
+    }
+    else {
+        $node = XML::LibXML::Text->new($chars->{Data});
+    }
+
+    $self->{Parent}->appendChild($node);
 }
 
 sub comment {

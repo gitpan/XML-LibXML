@@ -1,4 +1,4 @@
-/* $Id: LibXML.xs,v 1.109 2002/05/25 11:31:12 phish Exp $ */
+/* $Id: LibXML.xs,v 1.114 2002/06/11 12:20:18 matt Exp $ */
 
 #ifdef __cplusplus
 extern "C" {
@@ -549,20 +549,33 @@ LibXML_init_parser( SV * self ) {
         }
 
         item = hv_fetch( real_obj, "XML_LIBXML_EXPAND_ENTITIES", 26, 0 );
-        if ( item != NULL && SvTRUE(*item) ) {
+        if ( item != NULL ) {
+            if ( SvTRUE(*item) ) {
+                xmlSubstituteEntitiesDefaultValue = 1;
+                xmlLoadExtDtdDefaultValue |= XML_DETECT_IDS;
+            }
+            else {
+                xmlSubstituteEntitiesDefaultValue = 0;
+            }
+        }
+        else {
             xmlSubstituteEntitiesDefaultValue = 1;
             xmlLoadExtDtdDefaultValue |= XML_DETECT_IDS;
         }
-        else {
-            xmlSubstituteEntitiesDefaultValue = 0;
-        }
 
         item = hv_fetch( real_obj, "XML_LIBXML_KEEP_BLANKS", 22, 0 );
-        if ( item != NULL && SvTRUE(*item) )
-             xmlKeepBlanksDefault(1);
-        else {
-             xmlKeepBlanksDefault(0);
+        if ( item != NULL ) {
+            if ( SvTRUE(*item) )
+                xmlKeepBlanksDefault(1);
+            else {
+                xmlKeepBlanksDefault(0);
+            }
         }
+        else {
+            /* keep blanks on default */
+            xmlKeepBlanksDefault(1);
+        }
+
         item = hv_fetch( real_obj, "XML_LIBXML_PEDANTIC", 19, 0 );
         xmlPedanticParserDefaultValue = item != NULL && SvTRUE(*item) ? 1 : 0;
 
@@ -573,10 +586,12 @@ LibXML_init_parser( SV * self ) {
             xmlLoadExtDtdDefaultValue ^= 1;
 
         item = hv_fetch( real_obj, "XML_LIBXML_COMPLETE_ATTR", 24, 0 );
-        if (item != NULL && SvTRUE(*item))
+        if (item != NULL && SvTRUE(*item)) {
             xmlLoadExtDtdDefaultValue |= XML_COMPLETE_ATTRS;
-        else
+        }
+        else {
             xmlLoadExtDtdDefaultValue ^= XML_COMPLETE_ATTRS;
+        }
         /* now fetch the callbacks */
 
         item = hv_fetch( real_obj, "XML_LIBXML_READ_CB", 18, 0 );
@@ -1070,7 +1085,7 @@ _parse_string(self, string, directory = NULL)
         SV * string
         char * directory
     PREINIT:
-        xmlParserCtxtPtr ctxt;
+        xmlParserCtxtPtr ctxt = NULL;
         STRLEN len;
         char * ptr;
         int well_formed;
@@ -2404,9 +2419,16 @@ createAttribute( pdoc, pname, pvalue=&PL_sv_undef )
         xmlAttrPtr self = NULL;
     CODE:
         name = nodeSv2C( pname , (xmlNodePtr) doc );
+        if ( name == NULL ) {
+            XSRETURN_UNDEF;
+        }
         value = nodeSv2C( pvalue , (xmlNodePtr) doc );
         self = xmlNewDocProp( doc, name, value );
         RETVAL = PmmNodeToSv((xmlNodePtr)self,NULL); 
+        xmlFree(name);
+        if ( value ) {
+            xmlFree(value);
+        }
     OUTPUT:
         RETVAL
 
@@ -2428,6 +2450,10 @@ createAttributeNS( pdoc, URI, pname, pvalue=&PL_sv_undef )
         xmlNsPtr ns = NULL;
     CODE:
         name  = nodeSv2C( pname , (xmlNodePtr) doc );
+        if( name == NULL ) {
+            XSRETURN_UNDEF;
+        }
+
         nsURI = Sv2C( URI , NULL );
         value = nodeSv2C( pvalue, NULL );
 
@@ -2454,7 +2480,9 @@ createAttributeNS( pdoc, URI, pname, pvalue=&PL_sv_undef )
                         xmlFree(prefix);
                     }
                     xmlFree(name);
-                    xmlFree(value);
+                    if ( value ) {
+                        xmlFree(value);
+                    }
                     XSRETURN_UNDEF;
                 }
 
@@ -2468,12 +2496,16 @@ createAttributeNS( pdoc, URI, pname, pvalue=&PL_sv_undef )
                     xmlFree(prefix);
                 }
                 xmlFree(localname);
-                xmlFree(value);
+                if ( value ) {
+                    xmlFree(value);
+                }
             }   
             else {
                 croak( "can't create a new namespace on an attribute!" );
                 xmlFree(name);
-                xmlFree(value);
+                if ( value ) {
+                    xmlFree(value);
+                }
                 XSRETURN_UNDEF;
             }
         }
@@ -2481,7 +2513,9 @@ createAttributeNS( pdoc, URI, pname, pvalue=&PL_sv_undef )
             self = xmlNewDocProp( doc, name, value );
             RETVAL = PmmNodeToSv((xmlNodePtr)self,NULL);
             xmlFree(name);
-            xmlFree(value);
+            if ( value ) {
+                xmlFree(value);
+            }
         }
     OUTPUT:
         RETVAL
@@ -4148,11 +4182,7 @@ _setAttribute( self, attr_name, attr_value )
             XSRETURN_UNDEF;
         }
         value = nodeSv2C(attr_value, node );
-        if ( !value ) {
-            xmlFree(name);
-            XSRETURN_UNDEF;
-        }
-
+       
         xmlSetProp( node, name, value );
         xmlFree(name);
         xmlFree(value);        
@@ -4247,7 +4277,7 @@ setAttributeNode( self, attr_node )
         RETVAL
 
 SV *
-getAttribtueNS( self, namespaceURI, attr_name )
+getAttributeNS( self, namespaceURI, attr_name )
         SV * self
         SV * namespaceURI
         SV * attr_name
@@ -4345,11 +4375,7 @@ setAttributeNS( self, namespaceURI, attr_name, attr_value )
             xmlFree(nsURI);
 
             value = nodeSv2C( attr_value, node );
-            if (!value) {
-                xmlFree(name);
-                XSRETURN_UNDEF;
-            }
-        
+         
             xmlSetNsProp( node, ns, name, value );
         }
         else {
@@ -4646,22 +4672,16 @@ appendData( perlnode, value )
         xmlChar * data = NULL;
         xmlChar * encstring = NULL;
         xmlNodePtr node = PmmSvNode(perlnode);
+        int strlen = 0;
     CODE:
         if ( node != NULL ) {
             encstring = Sv2C( value,
                               node->doc!=NULL ? node->doc->encoding : NULL );
-            if ( encstring != NULL && xmlStrlen( encstring ) > 0 ) {
-                data = domGetNodeValue( node );
-                if ( data != NULL && xmlStrlen( data ) > 0) {
-                    data = xmlStrcat( data, encstring );
-                    domSetNodeValue( node, data );
-                    xmlFree( encstring );
-                    xmlFree( data );
-                }
-                else {
-                    domSetNodeValue( node, encstring );
-                    xmlFree( encstring );
-                }
+            
+            if ( encstring != NULL ) {
+                strlen = xmlStrlen( encstring );
+                xmlTextConcat( node, encstring, strlen );
+                xmlFree( encstring );
             }
         }
 

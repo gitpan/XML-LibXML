@@ -15,9 +15,9 @@ XML::LibXML::Document - DOM Document Class
  $doc->setStandalone($numvalue);
  my $compression = $doc->compression;
  $doc->setCompression($ziplevel);
- $docstring = $dom->toString([$format]);
- $state = $doc->toFile
- $state = $doc->toFH
+ $docstring = $dom->toString($format);
+ $state = $doc->toFile($filename, $format);
+ $state = $doc->toFH($fh, $format);
  $document->toStringHTML();
  $bool = $dom->is_valid();
  $dom->validate();
@@ -213,13 +213,27 @@ for output.
 The optional B<$format> parameter sets the
 indenting of the output. This parameter is
 expected to be an I<integer> value, that
-specifies the number of linebreaks for each node.
+specifies that indentation should be used. The
+format parameter can have three different values
+if it is used: 
+If $format is 0, than the document is dumped as it
+was originally parsed
 
-For more information about the formatted output
-check the documentation of
-I<xmlDocDumpFormatMemory> in
-I<libxml2/tree.h>.
+If $format is 1, libxml2 will add ignoreable
+whitespaces, so the nodes content is easier to read.
+Existing text nodes will not be altered
 
+If $format is 2 (or higher), libxml2 will act as
+$format == 1 but it add a leading and a trailing
+linebreak to each text node.
+
+libxml2 uses a hardcoded indentation of 2 space
+characters per indentation level. This value can
+not be altered on runtime.
+
+B<NOTE>: XML::LibXML::Document::toString
+returns the data in the document encoding rather
+than UTF8! 
 
 =item B<toFile>
 
@@ -229,6 +243,9 @@ writes the document directly into a
 filesystem. This function is very usefull, if one
 needs to store large documents.
 
+The format parameter has the same behaviour as in
+toString().
+
 
 =item B<toFH>
 
@@ -236,6 +253,9 @@ needs to store large documents.
 This function is similar to toString(), but it
 writes the document directly to a filehandler or a
 stream.
+
+The format parameter has the same behaviour as in
+toString().
 
 
 =item B<toStringHTML>

@@ -1,4 +1,4 @@
-# $Id: Makefile.PL,v 1.26 2002/05/31 15:12:42 phish Exp $
+# $Id: Makefile.PL,v 1.27 2002/06/04 14:44:06 phish Exp $
 
 use ExtUtils::MakeMaker;
 use Config;
@@ -68,11 +68,11 @@ OPT
 
 
 if ($config{LIBS} !~ /\-lxml2\b/) {
-    $config{LIBS} .= $is_Win32 ? '-llibxml2' : ' -lxml2';
+    $config{LIBS} .= $is_Win32 ? ' -llibxml2' : ' -lxml2';
 }
 
 if ($config{LIBS} !~ /\-lz\b/) {
-    $config{LIBS} .= $is_Win32 ? '-lzlib' :' -lz';
+    $config{LIBS} .= $is_Win32 ? ' -lzlib' :' -lz';
 }
 
 if ($config{LIBS} !~ /\-lm\b/) {

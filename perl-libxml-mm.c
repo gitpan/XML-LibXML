@@ -1,6 +1,6 @@
 /**
  * perl-libxml-mm.c
- * $Id: perl-libxml-mm.c,v 1.15 2002/05/21 08:28:22 phish Exp $
+ * $Id: perl-libxml-mm.c,v 1.19 2002/06/11 22:10:56 phish Exp $
  *
  * Basic concept:
  * perl varies in the implementation of UTF8 handling. this header (together
@@ -126,7 +126,7 @@ typedef ProxyNode* ProxyNodePtr;
 ProxyNodePtr
 PmmNewNode(xmlNodePtr node)
 {
-    ProxyNodePtr proxy;
+    ProxyNodePtr proxy = NULL;
 
     if ( node->_private == NULL ) {
         proxy = (ProxyNodePtr)malloc(sizeof(ProxyNode));
@@ -141,13 +141,14 @@ PmmNewNode(xmlNodePtr node)
     else {
         proxy = (ProxyNodePtr)node->_private;
     }
+
     return proxy;
 }
 
 ProxyNodePtr
 PmmNewFragment(xmlDocPtr doc) 
 {
-    ProxyNodePtr retval;
+    ProxyNodePtr retval = NULL;
     xmlNodePtr frag = NULL;
 
     xs_warn("new frag\n");
@@ -209,9 +210,10 @@ PmmFreeNode( xmlNodePtr node )
 int
 PmmREFCNT_dec( ProxyNodePtr node ) 
 { 
-    xmlNodePtr libnode;
-    ProxyNodePtr owner; 
+    xmlNodePtr libnode = NULL;
+    ProxyNodePtr owner = NULL;  
     int retval = 0;
+
     if ( node ) {
         retval = PmmREFCNT(node)--;
         if ( PmmREFCNT(node) <= 0 ) {
@@ -446,7 +448,7 @@ PmmFixOwner( ProxyNodePtr nodetofix, ProxyNodePtr parent )
 ProxyNodePtr
 PmmNewContext(xmlParserCtxtPtr node)
 {
-    ProxyNodePtr proxy;
+    ProxyNodePtr proxy = NULL;
 
     if ( node->_private == NULL ) {
         proxy = (ProxyNodePtr)malloc(sizeof(ProxyNode));
@@ -527,7 +529,7 @@ xmlChar*
 PmmEncodeString( const char *encoding, const xmlChar *string ){
     xmlCharEncoding enc;
     xmlChar *ret = NULL;
-    xmlBufferPtr in, out;
+    xmlBufferPtr in = NULL, out = NULL;
     xmlCharEncodingHandlerPtr coder = NULL;
     
     if ( string != NULL ) {
@@ -586,7 +588,7 @@ char*
 PmmDecodeString( const char *encoding, const xmlChar *string){
     char *ret=NULL;
     xmlCharEncoding enc;
-    xmlBufferPtr in, out;
+    xmlBufferPtr in = NULL, out = NULL;
     xmlCharEncodingHandlerPtr coder = NULL;
 
     if ( string != NULL ) {
@@ -663,13 +665,13 @@ Sv2C( SV* scalar, const xmlChar *encoding )
     xmlChar *retval = NULL;
     xs_warn("sv2c start!");
     if ( scalar != NULL && scalar != &PL_sv_undef ) {
-        STRLEN len;
+        STRLEN len = 0;
         char * t_pv =SvPV(scalar, len);
+        xmlChar* ts = NULL;
         xmlChar* string = xmlStrdup((xmlChar*)t_pv);
         /* Safefree( t_pv ); */
         
         if ( xmlStrlen(string) > 0 ) {
-            xmlChar* ts;
             xs_warn( "no undefs" );
 #ifdef HAVE_UTF8
             xs_warn( "use UTF8" );
@@ -680,12 +682,14 @@ Sv2C( SV* scalar, const xmlChar *encoding )
                 xs_warn( "domEncodeString!" );
                 ts= PmmEncodeString( encoding, string );
                 xs_warn( "done!" );
-                if ( string != NULL ) 
+                if ( string != NULL ) {
                     xmlFree(string);
+                }
                 string=ts;
             }
-            retval = xmlStrdup(string);
         }
+
+        retval = xmlStrdup(string);
         if (string != NULL ) {
             xmlFree(string);
         }
@@ -700,7 +704,7 @@ nodeC2Sv( const xmlChar * string,  xmlNodePtr refnode )
 {
     /* this is a little helper function to avoid to much redundand
        code in LibXML.xs */
-    SV* retval;
+    SV* retval = &PL_sv_undef;
 
     if ( refnode != NULL ) {
         xmlDocPtr real_doc = refnode->doc;
