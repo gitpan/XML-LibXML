@@ -829,6 +829,8 @@ C2Sv( const xmlChar *string, const xmlChar *encoding )
 {
     SV *retval = &PL_sv_undef;
     xmlCharEncoding enc;
+    STRLEN len = 0;
+
     if ( string != NULL ) {
         if ( encoding != NULL ) {
             enc = xmlParseCharEncoding( (const char*)encoding );
@@ -841,11 +843,10 @@ C2Sv( const xmlChar *string, const xmlChar *encoding )
             enc = XML_CHAR_ENCODING_UTF8;
         }
 
+        len = xmlStrlen( string );
         if ( enc == XML_CHAR_ENCODING_UTF8 ) {
             /* create an UTF8 string. */       
-            STRLEN len = 0;
             xs_warn("set UTF8 string");
-            len = xmlStrlen( string );
             /* create the SV */
             /* string[len] = 0; */
 
@@ -859,7 +860,7 @@ C2Sv( const xmlChar *string, const xmlChar *encoding )
         else {
             /* just create an ordinary string. */
             xs_warn("set ordinary string");
-            retval = newSVpvn( (const char *)string, xmlStrlen( string ) );
+            retval = newSVpvn( (const char *)string, xmlStrlen(string) );
         }
     }
 

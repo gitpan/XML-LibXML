@@ -14,7 +14,7 @@
         <surname>Glahn</surname>
       </author>
     </authorgroup>
-    <edition>1.55</edition>
+    <edition>1.56</edition>
     <copyright>
       <year>2001-2002</year>
       <holder>AxKit.com Ltd; 2001-2003 Christian Glahn</holder>
@@ -85,7 +85,7 @@
       libxml2. This avoids problems with binary incompatibilities between
       releases of the library.</para>
       <sect2>
-        <title>Note On libxml2 Versions</title>
+        <title>Notes On libxml2 Versions</title>
         <para>libxml2 claims binary compatibility between its patch levels.
         This is not all true:</para>
         <para>First of all XML::LibXML requires at least libxml2 2.4.25. For
@@ -123,10 +123,13 @@
         <para>The following versions are tested:</para>
         <itemizedlist>
           <listitem>
-            <para>prior to 2.4.25: tested; not working.</para>
+            <para>past 2.4.20: tested; working.</para>
           </listitem>
           <listitem>
-            <para>past 2.4.25: tested; working</para>
+            <para>2.4.25: tested; not working</para>
+          </listitem>
+          <listitem>
+            <para>past 2.4.25: tested, working</para>
           </listitem>
           <listitem>
             <para>past 2.5.0: tested; working</para>
@@ -907,6 +910,20 @@ local $XML::LibXML::setTagCompression = 1;</programlisting>
               <funcsynopsisinfo>$parser-&#62;pedantic_parser(1)</funcsynopsisinfo>
             </funcsynopsis>
             <para>You can make XML::LibXML more pedantic if you want to.</para>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>line_numbers</term>
+          <listitem>
+            <funcsynopsis>
+              <funcsynopsisinfo>$parser-&#62;line_numbers(1)</funcsynopsisinfo>
+            </funcsynopsis>
+            <para>If this option is activated XML::LibXML will store the line
+            number of a node. This gives more information where a validation
+            error occoured. It could be also used to find out about the
+            position of a node after parsing (see also
+            XML::LibXML::Node::line_number()) </para>
+            <para>By default line numbering is switched off (0).</para>
           </listitem>
         </varlistentry>
         <varlistentry>
@@ -1859,6 +1876,17 @@ my $dtd      = $document-&#62;createInternalSubset( &#34;foo&#34;, &#34;-//FOO//
           <function>XML::LibXML::NodeList</function> object.</para>
         </listitem>
       </varlistentry>
+      <varlistentry>
+        <term>getElementsById</term>
+        <listitem>
+          <funcsynopsis>
+            <funcsynopsisinfo>my $node = $doc-&#62;getElementsById($id);</funcsynopsisinfo>
+          </funcsynopsis>
+          <para>This allows to fetch the node at a given position in the DOM.</para>
+          <para>Note: The Id of a node might change while manipulating the
+          document.</para>
+        </listitem>
+      </varlistentry>
     </variablelist>
   </chapter>
   <chapter>
@@ -1960,6 +1988,22 @@ my $dtd      = $document-&#62;createInternalSubset( &#34;foo&#34;, &#34;-//FOO//
           in the libxml2 <emphasis>tree.h</emphasis> documentation. The return
           value of this function is a numeric value. Therefore it differst
           with the result of perl ref function.</para>
+        </listitem>
+      </varlistentry>
+      <varlistentry>
+        <term>line_number</term>
+        <listitem>
+          <funcsynopsis>
+            <funcsynopsisinfo>$lineno = $node-&#62;line_number();</funcsynopsisinfo>
+          </funcsynopsis>
+          <para>This function returns the line number where the tag was found
+          during parsing. If a node is added to the document the line number
+          is 0. Problems may occour, if a node from one document is passed to
+          another one. </para>
+          <para>Note: line_number() is special to XML::LibXML and not part of
+          the DOM specification. </para>
+          <para>If the line_numbers flag of the parser was not activated
+          before parsing, line_number() will always return 0.</para>
         </listitem>
       </varlistentry>
     </variablelist>

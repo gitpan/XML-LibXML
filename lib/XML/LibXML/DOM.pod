@@ -103,7 +103,7 @@ Matt Sergeant,
 Christian Glahn, 
 =head1 VERSION
 
-1.55
+1.56
 
 =head1 COPYRIGHT
 

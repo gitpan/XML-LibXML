@@ -1,4 +1,4 @@
-/* $Id: LibXML.xs,v 1.156 2003/08/19 21:06:31 phish Exp $ */
+/* $Id: LibXML.xs,v 1.159 2003/08/23 00:07:07 phish Exp $ */
 
 #ifdef __cplusplus
 extern "C" {
@@ -658,12 +658,24 @@ LibXML_init_parser( SV * self ) {
 
         item = hv_fetch( real_obj, "XML_LIBXML_PEDANTIC", 19, 0 );
         if ( item != NULL && SvTRUE(*item) ) {
+#ifdef LIBXML_THREAD_ENABLED
             xmlThrDefPedanticParserDefaultValue( 1 );
+#endif
             xmlPedanticParserDefaultValue = 1;
         }
         else {
+#ifdef LIBXML_THREAD_ENABLED
             xmlThrDefPedanticParserDefaultValue( 0 );
+#endif
             xmlPedanticParserDefaultValue = 0;
+        }
+
+        item =  hv_fetch( real_obj, "XML_LIBXML_LINENUMBERS", 22, 0 );
+        if ( item != NULL && SvTRUE(*item) ) {
+            xmlLineNumbersDefault( 1 );
+        }
+        else {
+            xmlLineNumbersDefault( 0 );
         }
 
         item = hv_fetch( real_obj, "XML_LIBXML_EXT_DTD", 18, 0 );
@@ -754,6 +766,7 @@ LibXML_cleanup_parser() {
     xmlGetWarningsDefaultValue = 0;
     xmlLoadExtDtdDefaultValue = 5;
     xmlPedanticParserDefaultValue = 0;
+    xmlLineNumbersDefault( 0 );
     xmlDoValidityCheckingDefaultValue = 0;
 
     if (LibXML_old_ext_ent_loader != NULL ) {
@@ -1057,7 +1070,7 @@ PROTOTYPES: DISABLE
 BOOT:
     LIBXML_TEST_VERSION
     xmlInitParser();
-    PmmSAXInitialize();
+    PmmSAXInitialize(aTHX);
 
     /* make the callback mechnism available to perl coders */
     xmlRegisterInputCallbacks((xmlInputMatchCallback) LibXML_input_match,
@@ -1073,6 +1086,7 @@ BOOT:
     xmlKeepBlanksDefaultValue = 1;
     xmlLoadExtDtdDefaultValue = 5;
     xmlPedanticParserDefaultValue = 0;
+    xmlLineNumbersDefault(0);
     xmlSetGenericErrorFunc(NULL, NULL);
 #ifdef LIBXML_CATALOG_ENABLED
     /* xmlCatalogSetDebug(10); */
@@ -4692,6 +4706,14 @@ nodePath( self )
             croak( "cannot calculate path for the given node" );
         }
         RETVAL = nodeC2Sv( path, self );
+    OUTPUT:
+        RETVAL
+
+int
+line_number( self )
+        xmlNodePtr self
+    CODE:
+        RETVAL = xmlGetLineNo( self );
     OUTPUT:
         RETVAL
         

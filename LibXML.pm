@@ -1,4 +1,4 @@
-# $Id: LibXML.pm,v 1.91 2003/08/19 20:52:48 phish Exp $
+# $Id: LibXML.pm,v 1.94 2003/08/23 00:07:06 phish Exp $
 
 package XML::LibXML;
 
@@ -14,7 +14,7 @@ use XML::LibXML::NodeList;
 use IO::Handle; # for FH reads called as methods
 
 
-$VERSION = "1.55";
+$VERSION = "1.56";
 require Exporter;
 require DynaLoader;
 
@@ -227,6 +227,12 @@ sub pedantic_parser {
     my $self = shift;
     $self->{XML_LIBXML_PEDANTIC} = shift if scalar @_;
     return $self->{XML_LIBXML_PEDANTIC};
+}
+
+sub line_numbers {
+    my $self = shift;
+    $self->{XML_LIBXML_LINENUMBERS} = shift if scalar @_;
+    return $self->{XML_LIBXML_LINENUMBERS};
 }
 
 sub load_ext_dtd {
@@ -669,7 +675,8 @@ sub toString {
         }
     }
     else {
-        $retval =  $self->_toString($flag||0);
+        $flag ||= 0 unless defined $flag;
+        $retval =  $self->_toString($flag);
     }
 
     return $retval;
@@ -735,6 +742,11 @@ sub getElementsByLocalName {
     my $xpath = "descendant-or-self::*[local-name()='$name']";
     my @nodes = $doc->_findnodes($xpath);
     return wantarray ? @nodes : XML::LibXML::NodeList->new(@nodes);
+}
+
+sub getElementsById {
+    my ( $doc, $id ) = @_;
+    return ($doc->findnodes( "id('$id')" ))[0];
 }
 
 1;

@@ -48,6 +48,7 @@ XML::LibXML::Document - XML::LibXML DOM Document Class
   my @nodelist = $doc->getElementsByTagName($tagname);
   my @nodelist = $doc->getElementsByTagName($nsURI,$tagname);
   my @nodelist = $doc->getElementsByLocalName($localname);
+  my $node = $doc->getElementsById($id);
 
 
 =head1 DESCRIPTION
@@ -563,6 +564,15 @@ This allows to fetch all nodes from a given document with the given Localname.
 In SCALAR context this function returns a XML::LibXML::NodeList object.
 
 
+=item B<getElementsById>
+
+  my $node = $doc->getElementsById($id);
+
+This allows to fetch the node at a given position in the DOM.
+
+Note: The Id of a node might change while manipulating the document.
+
+
 
 =back
 
@@ -572,7 +582,7 @@ Matt Sergeant,
 Christian Glahn, 
 =head1 VERSION
 
-1.55
+1.56
 
 =head1 COPYRIGHT
 

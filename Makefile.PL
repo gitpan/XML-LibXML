@@ -78,7 +78,9 @@ if ( $] >= 5.006 ) {
 #
 unless ( $is_Win32 ) { # cannot get config in W32
     my @blacklist = (
-                     [2,4,24,0],
+                     [2,4,20,0],
+                     [2,4,24,1],
+                     [2,4,25,0],
                      [2,4,30,1],
                      [2,5,4,1],
                      [2,5,5,0], # known as broken

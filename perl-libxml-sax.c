@@ -1,6 +1,6 @@
 /**
  * perl-libxml-sax.c
- * $Id: perl-libxml-sax.c,v 1.25 2003/05/22 23:23:43 phish Exp $
+ * $Id: perl-libxml-sax.c,v 1.26 2003/08/22 22:16:16 phish Exp $
  */
 
 #ifdef __cplusplus
@@ -77,7 +77,7 @@ _C2Sv( const xmlChar *string, const xmlChar *dummy )
 }
 
 void
-PmmSAXInitialize()
+PmmSAXInitialize(pTHX)
 {
     PERL_HASH(PrefixHash,     "Prefix",        6);
     PERL_HASH(NsURIHash,      "NamespaceURI", 12);

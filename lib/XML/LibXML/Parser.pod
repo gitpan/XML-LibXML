@@ -27,6 +27,7 @@ XML::LibXML::Parser - Parsing XML Data with XML::LibXML
   $parser->expand_entities(0);
   $parser->keep_blanks(0);
   $parser->pedantic_parser(1)
+  $parser->line_numbers(1)
   $parser->load_ext_dtd(1);
   $parser->complete_attributes(1);
   $parser->expand_xinclude(1);
@@ -499,6 +500,18 @@ whitespace in the document.
 You can make XML::LibXML more pedantic if you want to.
 
 
+=item B<line_numbers>
+
+  $parser->line_numbers(1)
+
+If this option is activated XML::LibXML will store the line number of a node.
+This gives more information where a validation error occoured. It could be also
+used to find out about the position of a node after parsing (see also
+XML::LibXML::Node::line_number())
+
+By default line numbering is switched off (0).
+
+
 =item B<load_ext_dtd>
 
   $parser->load_ext_dtd(1);
@@ -711,7 +724,7 @@ Matt Sergeant,
 Christian Glahn, 
 =head1 VERSION
 
-1.55
+1.56
 
 =head1 COPYRIGHT
 

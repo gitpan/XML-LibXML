@@ -11,6 +11,7 @@ XML::LibXML::Node - Abstract Base Class of XML::LibXML Nodes
   $content = $node->nodeValue;
   $content = $node->textContent;
   $type = $node->nodeType;
+  $lineno = $node->line_number();
   $node->unbindNode()
   $childnode = $node->removeChild( $childnode )
   $oldnode = $node->replaceChild( $newNode, $oldNode )
@@ -153,6 +154,21 @@ given node as spacified in DOM.
 Retrun the node's type. The possible types are described in the libxml2 tree.h
 documentation. The return value of this function is a numeric value. Therefore
 it differst with the result of perl ref function.
+
+
+=item B<line_number>
+
+  $lineno = $node->line_number();
+
+This function returns the line number where the tag was found during parsing.
+If a node is added to the document the line number is 0. Problems may occour,
+if a node from one document is passed to another one.
+
+Note: line_number() is special to XML::LibXML and not part of the DOM
+specification.
+
+If the line_numbers flag of the parser was not activated before parsing,
+line_number() will always return 0.
 
 
 
@@ -758,7 +774,7 @@ Matt Sergeant,
 Christian Glahn, 
 =head1 VERSION
 
-1.55
+1.56
 
 =head1 COPYRIGHT
 
