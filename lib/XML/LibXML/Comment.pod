@@ -20,7 +20,7 @@ the datastructure. :-)
   $node = XML::LibXML::Comment( $content );
 
 The constructor is the only provided function for this package. It is required,
-because libxml2 treats text nodes and comment nodes slightly different.
+because libxml2 treats text nodes and comment nodes slightly differently.
 
 
 
@@ -32,10 +32,10 @@ Matt Sergeant,
 Christian Glahn, 
 =head1 VERSION
 
-1.56
+1.57
 
 =head1 COPYRIGHT
 
-2001-2002, AxKit.com Ltd; 2001-2003 Christian Glahn, All rights reserved.
+2001-2004, AxKit.com Ltd; 2002-2004 Christian Glahn, All rights reserved.
 
 =cut

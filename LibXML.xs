@@ -1,4 +1,4 @@
-/* $Id: LibXML.xs,v 1.159 2003/08/23 00:07:07 phish Exp $ */
+/* $Id: LibXML.xs,v 1.173 2004/02/26 23:54:07 phish Exp $ */
 
 #ifdef __cplusplus
 extern "C" {
@@ -16,19 +16,21 @@ extern "C" {
 #  include <unistd.h>
 #endif
 
-/* get some infos about the environment libxml2 was configured for.
- */
+/* libxml2 configuration properties */
 #include <libxml/xmlversion.h>
 
 #define DEBUG_C14N
 
 /* libxml2 stuff */
+#include <libxml/xmlversion.h>
+#include <libxml/globals.h>
 #include <libxml/xmlmemory.h>
 #include <libxml/parser.h>
 #include <libxml/parserInternals.h>
 #include <libxml/HTMLparser.h>
 #include <libxml/HTMLtree.h>
 #include <libxml/DOCBparser.h>
+#include <libxml/c14n.h>
 #include <libxml/tree.h>
 #include <libxml/xpath.h>
 #include <libxml/xmlIO.h>
@@ -36,6 +38,12 @@ extern "C" {
 #include <libxml/xmlerror.h>
 #include <libxml/xinclude.h>
 #include <libxml/valid.h>
+
+#if LIBXML_VERSION >= 20510
+#define HAVE_SCHEMAS
+#include <libxml/relaxng.h>
+#include <libxml/xmlschemas.h>
+#endif
 
 #ifdef LIBXML_CATALOG_ENABLED
 #include <libxml/catalog.h>
@@ -64,6 +72,8 @@ extern "C" {
 }
 #endif
 
+/* These globals are now declared in libxml2's globals.h */
+#if 0
 #ifdef VMS
 extern int xmlDoValidityCheckingDefaultVal;
 #define xmlDoValidityCheckingDefaultValue xmlDoValidityCheckingDefaultVal
@@ -77,6 +87,7 @@ LIBXML_DLL_IMPORT extern int xmlGetWarningsDefaultValue;
 LIBXML_DLL_IMPORT extern int xmlKeepBlanksDefaultValue;
 LIBXML_DLL_IMPORT extern int xmlLoadExtDtdDefaultValue;
 LIBXML_DLL_IMPORT extern int xmlPedanticParserDefaultValue;
+#endif
 
 #define TEST_PERL_FLAG(flag) \
     SvTRUE(perl_get_sv(flag, FALSE)) ? 1 : 0
@@ -86,28 +97,14 @@ static SV * LibXML_read_cb  = NULL;
 static SV * LibXML_open_cb  = NULL;
 static SV * LibXML_close_cb = NULL;
 
-static SV * LibXML_error    = NULL;
-
-#define LibXML_init_error() LibXML_error = NEWSV(0, 512); \
-                            sv_setpvn(LibXML_error, "", 0); \
-                            xmlSetGenericErrorFunc( NULL ,  \
-                                (xmlGenericErrorFunc)LibXML_error_handler);
-
-#define LibXML_croak_error() if ( SvCUR( LibXML_error ) > 0 ) { \
-                                 croak("%s",SvPV(LibXML_error, len)); \
-                             }
-
-#define LibXML_warn_error() if ( SvCUR( LibXML_error ) > 0 ) { \
-                                 warn("%s",SvPV(LibXML_error, len)); \
-                             }
-
-
 /* this should keep the default */
 static xmlExternalEntityLoader LibXML_old_ext_ent_loader = NULL;
 
 /* ****************************************************************
  * Error handler
  * **************************************************************** */
+
+static SV * LibXML_error    = NULL;
 
 /* stores libxml errors into $@ */
 void
@@ -126,7 +123,7 @@ LibXML_error_handler(void * ctxt, const char * msg, ...)
         sv_catsv(LibXML_error, sv); /* remember the last error */
     }
     else {
-       croak("%s",SvPV(sv, PL_na));
+       croak("%s", SvPV_nolen(sv));
     }
 
     SvREFCNT_dec(sv);
@@ -137,18 +134,18 @@ LibXML_validity_error(void * ctxt, const char * msg, ...)
 {
     va_list args;
     SV * sv;
-    
+
     sv = NEWSV(0,512);
-    
+
     va_start(args, msg);
     sv_vsetpvfn(sv, msg, strlen(msg), &args, NULL, 0, NULL);
     va_end(args);
-    
+
     if (LibXML_error != NULL) {
         sv_catsv(LibXML_error, sv); /* remember the last error */
     }
     else {
-        croak("%s",SvPV(sv, PL_na));
+        croak("%s", SvPV_nolen(sv));
     }
     SvREFCNT_dec(sv);
 }
@@ -160,17 +157,17 @@ LibXML_validity_warning(void * ctxt, const char * msg, ...)
     STRLEN len;
     SV * sv;
     char * string = NULL;
-    
+
     sv = NEWSV(0,512);
-    
+
     va_start(args, msg);
     sv_vsetpvfn(sv, msg, strlen(msg), &args, NULL, 0, NULL);
     va_end(args);
-    
+
     string = SvPV(sv, len);
     if ( string != NULL ) {
         if ( len > 0 ) {
-             warn("validation error: '%s'" , string);
+            warn("validation error: '%s'" , string);
         }
         Safefree(string);
     }
@@ -178,26 +175,69 @@ LibXML_validity_warning(void * ctxt, const char * msg, ...)
     SvREFCNT_dec(sv);
 }
 
+static void
+LibXML_init_error(SV ** saved_errorp)
+{
+    *saved_errorp = LibXML_error;
+    LibXML_error = NEWSV(0, 512);
+    sv_setpvn(LibXML_error, "", 0);
+    xmlSetGenericErrorFunc(NULL, (xmlGenericErrorFunc) LibXML_error_handler);
+}
+
+static void
+LibXML_report_error(SV * saved_error, int recover)
+{
+    SV *my_error = sv_2mortal(LibXML_error);
+    LibXML_error = saved_error;
+    if ( SvCUR( my_error ) > 0 ) {
+        if ( recover ) {
+            warn("%s", SvPV_nolen(my_error));
+        } else {
+            croak("%s", SvPV_nolen(my_error));
+        }
+    }
+}
+
+static int
+LibXML_get_recover(HV * real_obj)
+{
+    SV** item = hv_fetch( real_obj, "XML_LIBXML_RECOVER", 18, 0 );
+    return ( item != NULL && SvTRUE(*item) ) ? 1 : 0;
+}
+
+static SV *
+LibXML_NodeToSv(HV * real_obj, xmlNodePtr real_doc)
+{
+    SV** item = hv_fetch( real_obj, "XML_LIBXML_GDOME", 16, 0 );
+
+    if ( item != NULL && SvTRUE(*item) ) {
+        return PmmNodeToGdomeSv(real_doc);
+    }
+    else {
+        return PmmNodeToSv(real_doc, NULL);
+    }
+}
+
 /* ****************************************************************
- * IO callbacks 
+ * IO callbacks
  * **************************************************************** */
 
 int
 LibXML_read_perl (SV * ioref, char * buffer, int len)
-{   
+{
     dTHX;
     dSP;
-    
+
     int cnt;
     SV * read_results;
     STRLEN read_length;
     char * chars;
     SV * tbuff = NEWSV(0,len);
     SV * tsize = newSViv(len);
-    
+
     ENTER;
     SAVETMPS;
-    
+
     PUSHMARK(SP);
     EXTEND(SP, 3);
     PUSHs(ioref);
@@ -217,12 +257,11 @@ LibXML_read_perl (SV * ioref, char * buffer, int len)
     if (cnt != 1) {
         croak("read method call failed");
     }
-    
+
     if (SvTRUE(ERRSV)) {
-       STRLEN n_a;
-       croak("read on filehandle failed: %s", SvPV(ERRSV, n_a));
+       croak("read on filehandle failed: %s", SvPV_nolen(ERRSV));
        POPs ;
-    }				  
+    }
 
     read_results = POPs;
 
@@ -241,7 +280,7 @@ LibXML_read_perl (SV * ioref, char * buffer, int len)
     return read_length;
 }
 
-int 
+int
 LibXML_input_match(char const * filename)
 {
     int results = 0;
@@ -274,32 +313,31 @@ LibXML_input_match(char const * filename)
         count = perl_call_sv(callback, G_SCALAR | G_EVAL);
 
         SPAGAIN;
-        
+
         if (count != 1) {
             croak("match callback must return a single value");
         }
-        
+
         if (SvTRUE(ERRSV)) {
-            STRLEN n_a;
-       	    croak("input match callback died: %s", SvPV(ERRSV, n_a));
-       	    POPs ;
-    	}				  
+            croak("input match callback died: %s", SvPV_nolen(ERRSV));
+            POPs ;
+        }
 
         res = POPs;
 
         if (SvTRUE(res)) {
             results = 1;
         }
-        
+
         PUTBACK;
         FREETMPS;
         LEAVE;
     }
-    
+
     return results;
 }
 
-void * 
+void *
 LibXML_input_open(char const * filename)
 {
     SV * results;
@@ -331,16 +369,15 @@ LibXML_input_open(char const * filename)
         count = perl_call_sv(callback, G_SCALAR | G_EVAL);
 
         SPAGAIN;
-        
+
         if (count != 1) {
             croak("open callback must return a single value");
         }
 
         if (SvTRUE(ERRSV)) {
-            STRLEN n_a;
-       	    croak("input callback died: %s", SvPV(ERRSV, n_a));
-       	    POPs ;
-        } 
+            croak("input callback died: %s", SvPV_nolen(ERRSV));
+            POPs ;
+        }
 
         results = POPs;
 
@@ -350,14 +387,13 @@ LibXML_input_open(char const * filename)
         FREETMPS;
         LEAVE;
     }
-    
+
     return (void *)results;
 }
 
-int 
+int
 LibXML_input_read(void * context, char * buffer, int len)
 {
-    SV * results = NULL;
     STRLEN res_len = 0;
     const char * output;
     SV * global_cb;
@@ -371,7 +407,7 @@ LibXML_input_read(void * context, char * buffer, int len)
             && SvTRUE(global_cb)) {
         callback = global_cb;
     }
-    
+
     if (callback) {
         int count;
 
@@ -390,15 +426,14 @@ LibXML_input_read(void * context, char * buffer, int len)
         count = perl_call_sv(callback, G_SCALAR | G_EVAL);
 
         SPAGAIN;
-        
+
         if (count != 1) {
             croak("read callback must return a single value");
         }
 
         if (SvTRUE(ERRSV)) {
-            STRLEN n_a;
-       	    croak("read callback died: %s", SvPV(ERRSV, n_a));
-       	    POPs ;
+            croak("read callback died: %s", SvPV_nolen(ERRSV));
+            POPs ;
         }
 
         output = POPp;
@@ -411,16 +446,16 @@ LibXML_input_read(void * context, char * buffer, int len)
                 buffer[0] = 0;
             }
         }
-        
+
         FREETMPS;
         LEAVE;
     }
-    
+
     /* warn("read, asked for: %d, returning: [%d] %s\n", len, res_len, buffer); */
     return res_len;
 }
 
-void 
+void
 LibXML_input_close(void * context)
 {
     SV * global_cb;
@@ -454,15 +489,14 @@ LibXML_input_close(void * context)
         SPAGAIN;
 
         SvREFCNT_dec(ctxt);
-        
+
         if (!count) {
             croak("close callback failed");
         }
 
         if (SvTRUE(ERRSV)) {
-            STRLEN n_a;
-       	    croak("close callback died: %s", SvPV(ERRSV, n_a));
-       	    POPs ;
+            croak("close callback died: %s", SvPV_nolen(ERRSV));
+            POPs ;
         }
 
         PUTBACK;
@@ -473,22 +507,19 @@ LibXML_input_close(void * context)
 
 int
 LibXML_output_write_handler(void * ioref, char * buffer, int len)
-{   
+{
     if ( buffer != NULL && len > 0) {
         dTHX;
         dSP;
 
-        int cnt; 
-        SV * read_results;
-        STRLEN read_length;
-        char * chars;
+        int cnt;
         SV * tbuff = newSVpv(buffer,len);
         SV * tsize = newSViv(len);
 
 
         ENTER;
         SAVETMPS;
-    
+
         PUSHMARK(SP);
         EXTEND(SP, 3);
         PUSHs((SV*)ioref);
@@ -505,9 +536,8 @@ LibXML_output_write_handler(void * ioref, char * buffer, int len)
         }
 
         if (SvTRUE(ERRSV)) {
-            STRLEN n_a;
-       	    croak("write method call died: %s", SvPV(ERRSV, n_a));
-       	    POPs ;
+            croak("write method call died: %s", SvPV_nolen(ERRSV));
+            POPs ;
         }
 
         FREETMPS;
@@ -516,16 +546,16 @@ LibXML_output_write_handler(void * ioref, char * buffer, int len)
     return len;
 }
 
-int 
+int
 LibXML_output_close_handler( void * handler )
 {
     return 1;
-} 
+}
 
 xmlParserInputPtr
 LibXML_load_external_entity(
-        const char * URL, 
-        const char * ID, 
+        const char * URL,
+        const char * ID,
         xmlParserCtxtPtr ctxt)
 {
     SV * self;
@@ -540,22 +570,22 @@ LibXML_load_external_entity(
     if (ctxt->_private == NULL) {
         return xmlNewInputFromFile(ctxt, URL);
     }
-    
+
     if (URL == NULL) {
         URL = "";
     }
     if (ID == NULL) {
         ID = "";
     }
-    
+
     self = (SV *)ctxt->_private;
     real_obj = (HV *)SvRV(self);
     func = hv_fetch(real_obj, "ext_ent_handler", 15, 0);
-    
+
     if (func) {
         dTHX;
         dSP;
-        
+
         ENTER;
         SAVETMPS;
 
@@ -563,33 +593,32 @@ LibXML_load_external_entity(
         XPUSHs(sv_2mortal(newSVpv((char*)URL, 0)));
         XPUSHs(sv_2mortal(newSVpv((char*)ID, 0)));
         PUTBACK;
-        
+
         count = perl_call_sv(*func, G_SCALAR | G_EVAL);
-        
-        SPAGAIN;       
+
+        SPAGAIN;
 
         if (!count) {
-            croak("external entity handler did not return a value"); 
+            croak("external entity handler did not return a value");
         }
-        
+
         if (SvTRUE(ERRSV)) {
-            STRLEN n_a;
-       	    croak("external entity callback died: %s", SvPV(ERRSV, n_a));
-       	    POPs ;
+            croak("external entity callback died: %s", SvPV_nolen(ERRSV));
+            POPs ;
         }
 
         results = POPs;
-        
+
         results_pv = SvPV(results, results_len);
         input_buf = xmlParserInputBufferCreateMem(
                         results_pv,
                         results_len,
                         XML_CHAR_ENCODING_NONE
                         );
-        
+
         FREETMPS;
         LEAVE;
-        
+
         return xmlNewIOInputStream(ctxt, input_buf, XML_CHAR_ENCODING_NONE);
     }
     else {
@@ -597,30 +626,28 @@ LibXML_load_external_entity(
             return NULL;
         }
         return xmlNewInputFromFile(ctxt, URL);
-    }    
+    }
 }
 
 /* ****************************************************************
  * Helper functions
  * **************************************************************** */
 
-void
+HV*
 LibXML_init_parser( SV * self ) {
     /* we fetch all switches and callbacks from the hash */
+    HV* real_obj = NULL;
     SV** item    = NULL;
     SV*  item2   = NULL;
-    
+    /* xmlInitParser(); */ /* useless call */
     xmlGetWarningsDefaultValue = 0;
 
     if ( self != NULL ) {
         /* first fetch the values from the hash */
-        HV* real_obj = (HV *)SvRV(self);
-        SV * RETVAL  = NULL; /* dummy for the stupid macro */
-
-        LibXML_init_error();
+        real_obj = (HV *)SvRV(self);
 
         item = hv_fetch( real_obj, "XML_LIBXML_VALIDATION", 21, 0 );
-        if ( item != NULL && SvTRUE(*item) ) {  
+        if ( item != NULL && SvTRUE(*item) ) {
             xmlDoValidityCheckingDefaultValue = 1;
             xmlLoadExtDtdDefaultValue |= XML_DETECT_IDS;
         }
@@ -698,20 +725,20 @@ LibXML_init_parser( SV * self ) {
             LibXML_read_cb= *item;
 
         item = hv_fetch( real_obj, "XML_LIBXML_MATCH_CB", 19, 0 );
-        if ( item != NULL  && SvTRUE(*item)) 
+        if ( item != NULL  && SvTRUE(*item))
             LibXML_match_cb= *item;
 
         item = hv_fetch( real_obj, "XML_LIBXML_OPEN_CB", 18, 0 );
-        if ( item != NULL  && SvTRUE(*item)) 
+        if ( item != NULL  && SvTRUE(*item))
             LibXML_open_cb = *item;
 
         item = hv_fetch( real_obj, "XML_LIBXML_CLOSE_CB", 19, 0 );
-        if ( item != NULL  && SvTRUE(*item)) 
+        if ( item != NULL  && SvTRUE(*item))
             LibXML_close_cb = *item;
 
         item = hv_fetch(real_obj, "ext_ent_handler", 15, 0);
         if ( item != NULL  && SvTRUE(*item)) {
-            LibXML_old_ext_ent_loader =  xmlGetExternalEntityLoader(); 
+            LibXML_old_ext_ent_loader =  xmlGetExternalEntityLoader();
             xmlSetExternalEntityLoader( (xmlExternalEntityLoader)LibXML_load_external_entity );
         }
         else {
@@ -726,37 +753,34 @@ LibXML_init_parser( SV * self ) {
 
     if ( LibXML_match_cb == NULL ) {
         item2 = perl_get_sv("XML::LibXML::MatchCB", 0);
-        if ( item != NULL  && SvTRUE(item2)) 
+        if ( item != NULL  && SvTRUE(item2))
             LibXML_match_cb= item2;
     }
     if ( LibXML_read_cb == NULL ) {
         item2 = perl_get_sv("XML::LibXML::ReadCB", 0);
-        if ( item2 != NULL  && SvTRUE(item2)) 
+        if ( item2 != NULL  && SvTRUE(item2))
             LibXML_read_cb= item2;
     }
     if ( LibXML_open_cb == NULL ) {
         item2 = perl_get_sv("XML::LibXML::OpenCB", 0);
-        if ( item2 != NULL  && SvTRUE(item2)) 
+        if ( item2 != NULL  && SvTRUE(item2))
             LibXML_open_cb= item2;
     }
     if ( LibXML_close_cb == NULL ) {
         item2 = perl_get_sv("XML::LibXML::CloseCB", 0);
-        if ( item2 != NULL  && SvTRUE(item2)) 
+        if ( item2 != NULL  && SvTRUE(item2))
             LibXML_close_cb= item2;
     }
 
      /* LibXML_old_ext_ent_loader =  xmlGetExternalEntityLoader();  */
      /* xmlSetExternalEntityLoader( (xmlExternalEntityLoader)LibXML_load_external_entity ); */
 
-    return; 
+    xmlRegisterInputCallbacks((xmlInputMatchCallback) LibXML_input_match,
+                              (xmlInputOpenCallback) LibXML_input_open,
+                              (xmlInputReadCallback) LibXML_input_read,
+                              (xmlInputCloseCallback) LibXML_input_close);
 
-/*    xmlRegisterInputCallbacks((xmlInputMatchCallback) LibXML_input_match,*/
-/*                              (xmlInputOpenCallback) LibXML_input_open, */
-/*                              (xmlInputReadCallback) LibXML_input_read, */
-/*                              (xmlInputCloseCallback) LibXML_input_close); */
-
-
-
+    return real_obj;
 }
 
 void
@@ -776,12 +800,12 @@ LibXML_cleanup_parser() {
 
 void
 LibXML_cleanup_callbacks() {
-    
-    return;
+
 /*    xs_warn("      cleanup parser callbacks!\n"); */
 
-/*    xmlCleanupInputCallbacks(); */
-/*    xmlRegisterDefaultInputCallbacks(); */
+    xmlCleanupInputCallbacks();
+    xmlRegisterDefaultInputCallbacks();
+
 /*    if ( LibXML_old_ext_ent_loader != NULL ) { */
 /*        xmlSetExternalEntityLoader( NULL ); */
 /*        xmlSetExternalEntityLoader( LibXML_old_ext_ent_loader ); */
@@ -791,12 +815,12 @@ LibXML_cleanup_callbacks() {
 }
 
 
-int 
-LibXML_test_node_name( xmlChar * name ) 
+int
+LibXML_test_node_name( xmlChar * name )
 {
     xmlChar * cur = name;
     int tc  = 0;
-    int len = 0; 
+    int len = 0;
 
     if ( cur == NULL || *cur == 0 ) {
         /* warn("name is empty" ); */
@@ -825,242 +849,9 @@ LibXML_test_node_name( xmlChar * name )
         tc = 0;
         cur += len;
     }
-    
+
     /* warn("name is ok"); */
     return(1);
-}
-
-/* ****************************************************************
- * general parse functions 
- * **************************************************************** */
-
-xmlDocPtr
-LibXML_parse_stream(SV * self, SV * ioref, char * directory)
-{
-    xmlDocPtr doc = NULL;
-    xmlParserCtxtPtr ctxt;
-    int well_formed = 0;
-    int valid = 0;
-    char buffer[1024];
-    int read_length;
-    int ret = -1;
-    int encoding = 0;
-    char current_dir[512];
-    
-    if (directory == NULL) {
-        if (getcwd(current_dir, 512) != 0) {
-            directory = current_dir;
-        }
-        else {
-            warn("couldn't get current directory: %s\n", strerror(errno));
-        }
-    }
-    
-    read_length = LibXML_read_perl(ioref, buffer, 4);
-    if (read_length > 0) {
-        ctxt = xmlCreatePushParserCtxt(NULL, NULL, buffer, read_length, NULL);
-        if (ctxt == NULL) {
-            croak("Could not create push parser context: %s", strerror(errno));
-        }
-        ctxt->directory = directory;
-        ctxt->_private = (void*)self;
-        while(read_length = LibXML_read_perl(ioref, buffer, 1024)) {
-            xmlParseChunk(ctxt, buffer, read_length, 0);
-        }
-        ret = xmlParseChunk(ctxt, buffer, 0, 1);
-
-        ctxt->directory = NULL;
-
-        /* jsut being paranoid */
-        if ( ret == 0 ) {
-            doc = ctxt->myDoc;
-            well_formed = ctxt->wellFormed;
-            xmlFreeParserCtxt(ctxt);
-        }
-    }
-    else {
-        croak( "Empty Stream" );
-    }
-
-    if ( doc != NULL ) {
-        if (
-            !well_formed
-            || ( xmlDoValidityCheckingDefaultValue
-                 && !valid
-                 && (doc->intSubset
-                     || doc->extSubset) ) 
-            ) {
-            xmlFreeDoc(doc);
-            return NULL;
-        }
-
-        /* this should be done by libxml2 !? */
-        if (doc->encoding == NULL) {
-            /*  *LEAK NOTE* i am not shure if this is correct */
-            doc->encoding = xmlStrdup((const xmlChar*)"UTF-8");
-        }
-
-        if ( directory == NULL ) {
-            STRLEN len;
-            SV * newURI = sv_2mortal(newSVpvf("unknown-%12.12d", (void*)doc));
-            doc->URL = xmlStrdup((const xmlChar*)SvPV(newURI, len));
-        } else {
-            doc->URL = xmlStrdup((const xmlChar*)directory);
-        }
-    }
-
-    return doc;
-}
-
-void
-LibXML_parse_sax_stream(SV * self, SV * ioref, char * directory)
-{
-    xmlParserCtxtPtr ctxt;
-    char buffer[1024];
-    int read_length;
-    int ret = -1;
-    char current_dir[512];
-    
-    if (directory == NULL) {
-        if (getcwd(current_dir, 512) != 0) {
-            directory = current_dir;
-        }
-        else {
-            warn("couldn't get current directory: %s\n", strerror(errno));
-        }
-    }
-    
-    read_length = LibXML_read_perl(ioref, buffer, 4);
-    if (read_length > 0) {
-        xmlSAXHandlerPtr sax = PSaxGetHandler();
-        ctxt = xmlCreatePushParserCtxt(sax,
-                                       NULL,
-                                       buffer,
-                                       read_length,
-                                       NULL);
-        if (ctxt == NULL) {
-            croak("Could not create push parser context: %s", strerror(errno));
-        }
-        ctxt->directory = directory;
-        PmmSAXInitContext( ctxt, self );
-
-        while(read_length = LibXML_read_perl(ioref, buffer, 1024)) {
-            xmlParseChunk(ctxt, buffer, read_length, 0);
-        }
-        ret = xmlParseChunk(ctxt, buffer, 0, 1);
-
-        ctxt->directory = NULL;
-
-        xmlFree(ctxt->sax);
-        ctxt->sax = NULL;
-
-        xmlFree(sax);
-        PmmSAXCloseContext(ctxt);
-        xmlFreeParserCtxt(ctxt);
-
-    }
-    else {
-        croak( "Empty Stream" );
-    }
-
-}
-
-xmlDocPtr
-LibXML_parse_html_stream(SV * self, SV * ioref)
-{
-    xmlDocPtr doc = NULL;
-    htmlParserCtxtPtr ctxt;
-    int well_formed = 0;
-    char buffer[1024];
-    int read_length;
-    int ret = -1;
-    
-    read_length = LibXML_read_perl(ioref, buffer, 4);
-    if (read_length > 0) {
-        ctxt = htmlCreatePushParserCtxt(NULL, NULL, buffer, read_length,
-                                        NULL, XML_CHAR_ENCODING_NONE);
-        if (ctxt == NULL) {
-            croak("Could not create html push parser context: %s",
-                  strerror(errno));
-        }
-
-        ctxt->_private = (void*)self;
-
-        while(read_length = LibXML_read_perl(ioref, buffer, 1024)) {
-            ret = htmlParseChunk(ctxt, buffer, read_length, 0);
-            if ( ret != 0 ) {
-                break;
-            }   
-        }
-        ret = htmlParseChunk(ctxt, buffer, 0, 1);
-
-        if ( ret == 0 ) {
-            doc = ctxt->myDoc;
-            well_formed = ctxt->wellFormed;
-            htmlFreeParserCtxt(ctxt);
-        }
-    }
-    else {
-        croak( "Empty Stream" );
-    }
-    
-    if (!well_formed) {
-        xmlFreeDoc(doc);
-        return NULL;
-    }
-    
-    return doc;
-}
-
-
-xmlDocPtr
-LibXML_parse_sgml_stream(SV * self, SV * ioref, SV * enc )
-{
-    xmlDocPtr doc = NULL;
-    htmlParserCtxtPtr ctxt;
-    int well_formed = 0;
-    char buffer[1024];
-    int read_length;
-    int ret = -1;
-
-    const xmlChar * encoding = Sv2C( enc, NULL );
-
-    read_length = LibXML_read_perl(ioref, buffer, 4);
-    if (read_length > 0) {
-        ctxt = docbCreatePushParserCtxt(NULL, NULL, buffer, read_length,
-                                        NULL,
-                                        xmlParseCharEncoding( (const char*)encoding ));
-        if (ctxt == NULL) {
-            croak("Could not create sgml push parser context: %s",
-                  strerror(errno));
-        }
-
-        ctxt->_private = (void*)self;
-
-        while(read_length = LibXML_read_perl(ioref, buffer, 1024)) {
-            ret = docbParseChunk(ctxt, buffer, read_length, 0);
-            if ( ret != 0 ) {
-                break;
-            }   
-        }
-        ret = docbParseChunk(ctxt, buffer, 0, 1);
-
-        if ( ret == 0 ) {
-            doc = ctxt->myDoc;
-            well_formed = ctxt->wellFormed;
-            docbFreeParserCtxt(ctxt);
-        }
-    }
-    else {
-        croak( "Empty Stream" );
-    }
-    
-    if (!well_formed) {
-        xmlFreeDoc(doc);
-        return NULL;
-    }
-    
-    return doc;
 }
 
 MODULE = XML::LibXML         PACKAGE = XML::LibXML
@@ -1078,7 +869,7 @@ BOOT:
                               (xmlInputReadCallback) LibXML_input_read,
                               (xmlInputCloseCallback) LibXML_input_close);
 
-    xmlSetGenericErrorFunc( NULL , 
+    xmlSetGenericErrorFunc( NULL ,
                            (xmlGenericErrorFunc)LibXML_error_handler);
     xmlDoValidityCheckingDefaultValue = 0;
     xmlSubstituteEntitiesDefaultValue = 1;
@@ -1093,6 +884,22 @@ BOOT:
     xmlInitializeCatalog(); /* use catalog data */
 #endif
 
+char *
+LIBXML_DOTTED_VERSION()
+    CODE:
+        RETVAL = LIBXML_DOTTED_VERSION;
+    OUTPUT:
+        RETVAL
+
+
+int
+LIBXML_VERSION()
+    CODE:
+        RETVAL = LIBXML_VERSION;
+    OUTPUT:
+        RETVAL
+
+
 void
 END()
     CODE:
@@ -1100,13 +907,11 @@ END()
 
 char *
 get_last_error(CLASS)
-        SV * CLASS 
-    PREINIT: 
-        STRLEN len;
+        SV * CLASS
     CODE:
         RETVAL = NULL;
         if (LibXML_error != NULL) {
-            RETVAL = SvPV(LibXML_error, len);
+            RETVAL = SvPV_nolen(LibXML_error);
         }
     OUTPUT:
         RETVAL
@@ -1117,94 +922,86 @@ _parse_string(self, string, dir = &PL_sv_undef)
         SV * string
         SV * dir
     PREINIT:
-        xmlParserCtxtPtr ctxt = NULL;
-        STRLEN len = 0;
-        char * ptr = NULL;
+        char * directory = NULL;
+        STRLEN len;
+        char * ptr;
+        SV * saved_error;
+        HV * real_obj;
         int well_formed;
         int valid;
-        int ret;
         xmlDocPtr real_doc;
-        HV* real_obj = (HV *)SvRV(self);
-        SV** item    = NULL;
-        int recover ;
-        char * directory = NULL;
-    CODE:
-        ptr = SvPV(string, len);        
-        if (len == 0) {
+        int recover = 0;
+    INIT:
+        if (SvPOK(dir)) {
+            directory = SvPV(dir, len);
+            if (len <= 0) {
+                directory = NULL;
+            }
+        }
+        ptr = SvPV(string, len);
+        if (len <= 0) {
             croak("Empty string");
-        }
-  
-        LibXML_init_parser(self);
-        ctxt = xmlCreateMemoryParserCtxt((const char*)ptr, len);
-        if (ctxt == NULL) {
-            croak("Couldn't create memory parser context: %s", strerror(errno));
-        }
-
-        directory = (char*)Sv2C( dir, NULL );
-
-        xs_warn( "context created\n");
-
-        if ( directory != NULL ) {
-            ctxt->directory = directory;
-        }
-
-        ctxt->_private = (void*)self;
-        
-        xs_warn( "context initialized \n");        
-
-        ret = xmlParseDocument(ctxt);
-        xs_warn( "document parsed \n");
-        ctxt->directory = NULL;
-
-        well_formed = ctxt->wellFormed;
-        valid = ctxt->valid;
-
-        real_doc = ctxt->myDoc;
-        xmlFreeParserCtxt(ctxt);
-
-        sv_2mortal(LibXML_error);
-        
-        if ( real_doc == NULL ) {
-            LibXML_croak_error();
             XSRETURN_UNDEF;
         }
+    CODE:
+        RETVAL = &PL_sv_undef;
+        LibXML_init_error(&saved_error);
+        real_obj = LibXML_init_parser(self);
 
-  
-        if ( directory == NULL ) {
-            STRLEN len;
-            SV * newURI;
+        {
+            xmlParserCtxtPtr ctxt = xmlCreateMemoryParserCtxt((const char*)ptr, len);
+            if (ctxt == NULL) {
+                LibXML_report_error(saved_error, 1);
+                croak("Couldn't create memory parser context: %s", strerror(errno));
+            }
+            xs_warn( "context created\n");
 
-            newURI = sv_2mortal(newSVpvf("unknown-%12.12d", (void*)real_doc));
-            real_doc->URL = xmlStrdup((const xmlChar*)SvPV(newURI, len));
-        } else {
-            real_doc->URL = xmlStrdup((const xmlChar*)directory);
+            if ( directory != NULL ) {
+                ctxt->directory = directory;
+            }
+            ctxt->_private = (void*)self;
+
+            /* make libxml2-2.6 display line number on error */
+            if ( ctxt->input != NULL ) {
+                ctxt->input->filename = xmlStrdup((const xmlChar *) "");
+            }
+
+            xs_warn( "context initialized\n" );
+
+            {
+                xmlParseDocument(ctxt);
+                xs_warn( "document parsed \n");
+            }
+
+            ctxt->directory = NULL;
+            well_formed = ctxt->wellFormed;
+            valid = ctxt->valid;
+            real_doc = ctxt->myDoc;
+            ctxt->myDoc = NULL;
+            xmlFreeParserCtxt(ctxt);
         }
+        if ( real_doc != NULL ) {
+            recover = LibXML_get_recover(real_obj);
 
-        item = hv_fetch( real_obj, "XML_LIBXML_RECOVER", 18, 0 );
-        recover = ( item != NULL && SvTRUE(*item) ) ? 1 : 0;
-        if ( ( !well_formed && !recover )
-               || (xmlDoValidityCheckingDefaultValue
-                    && valid == 0 && recover == 0 ) ) {
-            xmlFreeDoc(real_doc);
-            RETVAL = &PL_sv_undef;    
-            croak("%s",SvPV(LibXML_error, len));
-        }
-        else if (xmlDoValidityCheckingDefaultValue
-                 && (real_doc->intSubset || real_doc->extSubset) ) {
-            LibXML_croak_error();
-        }
-
-        item = hv_fetch( real_obj, "XML_LIBXML_GDOME", 16, 0 );
-
-        if ( item != NULL && SvTRUE(*item) ) {  
-            RETVAL = PmmNodeToGdomeSv( (xmlNodePtr)real_doc );
-        }
-        else {
-           RETVAL = PmmNodeToSv((xmlNodePtr)real_doc, NULL);
+            if ( directory == NULL ) {
+                SV * newURI = sv_2mortal(newSVpvf("unknown-%12.12d", (void*)real_doc));
+                real_doc->URL = xmlStrdup((const xmlChar*)SvPV_nolen(newURI));
+            } else {
+                real_doc->URL = xmlStrdup((const xmlChar*)directory);
+            }
+            if ( recover || ( well_formed &&
+                              ( !xmlDoValidityCheckingDefaultValue
+                                || ( valid || ( real_doc->intSubset == NULL
+                                                && real_doc->extSubset == NULL ))))) {
+                RETVAL = LibXML_NodeToSv( real_obj, (xmlNodePtr) real_doc );
+            } else {
+                xmlFreeDoc(real_doc);
+            }
         }
 
         LibXML_cleanup_callbacks();
-        LibXML_cleanup_parser(); 
+        LibXML_cleanup_parser();
+        LibXML_report_error(saved_error, recover);
     OUTPUT:
         RETVAL
 
@@ -1213,248 +1010,372 @@ _parse_sax_string(self, string)
         SV * self
         SV * string
     PREINIT:
-        xmlParserCtxtPtr ctxt;
         STRLEN len;
         char * ptr;
-        int well_formed;
-        int ret;
-        xmlSAXHandlerPtr sax = NULL;
+        SV * saved_error;
+        HV * real_obj;
+        int recover = 0;
     INIT:
         ptr = SvPV(string, len);
-        if (len == 0) {
+        if (len <= 0) {
             croak("Empty string");
             XSRETURN_UNDEF;
         }
     CODE:
-        ctxt = xmlCreateMemoryParserCtxt(ptr, len);
-        LibXML_init_parser(self);
-        if (ctxt == NULL) {
-            croak("Couldn't create memory parser context: %s", strerror(errno));
+        RETVAL = 0;
+        LibXML_init_error(&saved_error);
+        real_obj = LibXML_init_parser(self);
+        recover = LibXML_get_recover(real_obj);
+
+        {
+            xmlParserCtxtPtr ctxt = xmlCreateMemoryParserCtxt((const char*)ptr, len);
+            if (ctxt == NULL) {
+                LibXML_report_error(saved_error, 1);
+                croak("Couldn't create memory parser context: %s", strerror(errno));
+            }
+            xs_warn( "context created\n");
+
+            PmmSAXInitContext( ctxt, self );
+            xs_warn( "context initialized \n");
+
+            {
+                RETVAL = xmlParseDocument(ctxt);
+                xs_warn( "document parsed \n");
+            }
+
+            PmmSAXCloseContext(ctxt);
+            xmlFreeParserCtxt(ctxt);
         }
-       
-        PmmSAXInitContext( ctxt, self );
 
-        RETVAL = xmlParseDocument(ctxt);
-
-        PmmSAXCloseContext(ctxt);
-        xmlFreeParserCtxt(ctxt);
-
-        sv_2mortal(LibXML_error);
         LibXML_cleanup_callbacks();
-        LibXML_cleanup_parser(); 
+        LibXML_cleanup_parser();
+        LibXML_report_error(saved_error, recover);
     OUTPUT:
         RETVAL
 
 SV*
-_parse_fh(self, fh, directory = NULL)
+_parse_fh(self, fh, dir = &PL_sv_undef)
         SV * self
         SV * fh
-        char * directory
+        SV * dir
     PREINIT:
         STRLEN len;
+        char * directory = NULL;
+        SV * saved_error;
+        HV * real_obj;
+        int well_formed;
+        int valid;
         xmlDocPtr real_doc;
-        HV* real_obj = (HV *)SvRV(self);
-        SV** item    = NULL;
         int recover = 0;
+    INIT:
+        if (SvPOK(dir)) {
+            directory = SvPV(dir, len);
+            if (len <= 0) {
+                directory = NULL;
+            }
+        }
     CODE:
-        LibXML_init_parser(self);
-        real_doc = LibXML_parse_stream(self, fh, directory);
-        
-        sv_2mortal(LibXML_error);
+        RETVAL = &PL_sv_undef;
+        LibXML_init_error(&saved_error);
+        real_obj = LibXML_init_parser(self);
 
-        item = hv_fetch( real_obj, "XML_LIBXML_RECOVER", 18, 0 );
-        recover = ( item != NULL && SvTRUE( *item ) ) ? 1 : 0;
+        {
+            int read_length;
+            char buffer[1024];
+            xmlParserCtxtPtr ctxt;
 
-        if (real_doc == NULL) {
-            LibXML_croak_error();
-            XSRETURN_UNDEF;
-        }
-        else if (xmlDoValidityCheckingDefaultValue
-                 && recover == 0 ) {
-            LibXML_croak_error();
-        }
-        else {
-            /* LibXML_warn_error(); */ /* if the parser causes some noise */
+            read_length = LibXML_read_perl(fh, buffer, 4);
+            if (read_length <= 0) {
+                croak( "Empty Stream" );
+            }
+
+            ctxt = xmlCreatePushParserCtxt(NULL, NULL, buffer, read_length, NULL);
+            if (ctxt == NULL) {
+                LibXML_report_error(saved_error, 1);
+                croak("Could not create xml push parser context: %s",
+                      strerror(errno));
+            }
+            xs_warn( "context created\n");
+
+            if ( directory != NULL ) {
+                ctxt->directory = directory;
+            }
+            ctxt->_private = (void*)self;
+            xs_warn( "context initialized \n");
+
+            {
+                int ret;
+                while ((read_length = LibXML_read_perl(fh, buffer, 1024))) {
+                    ret = xmlParseChunk(ctxt, buffer, read_length, 0);
+                    if ( ret != 0 ) {
+                        break;
+                    }
+                }
+                ret = xmlParseChunk(ctxt, buffer, 0, 1);
+                xs_warn( "document parsed \n");
+            }
+
+            ctxt->directory = NULL;
+            well_formed = ctxt->wellFormed;
+            valid = ctxt->valid;
+            real_doc = ctxt->myDoc;
+            ctxt->myDoc = NULL;
+            xmlFreeParserCtxt(ctxt);
         }
 
-        item = hv_fetch( real_obj, "XML_LIBXML_GDOME", 16, 0 );
+        if ( real_doc != NULL ) {
+            recover = LibXML_get_recover(real_obj);
 
-        if ( item != NULL && SvTRUE(*item) ) {  
-            RETVAL = PmmNodeToGdomeSv( (xmlNodePtr)real_doc );
-        }
-        else {
-            RETVAL = PmmNodeToSv((xmlNodePtr)real_doc, NULL);
+            if ( directory == NULL ) {
+                SV * newURI = sv_2mortal(newSVpvf("unknown-%12.12d", (void*)real_doc));
+                real_doc->URL = xmlStrdup((const xmlChar*)SvPV_nolen(newURI));
+            } else {
+                real_doc->URL = xmlStrdup((const xmlChar*)directory);
+            }
+
+            if ( recover || ( well_formed &&
+                              ( !xmlDoValidityCheckingDefaultValue
+                                || ( valid || ( real_doc->intSubset == NULL
+                                                && real_doc->extSubset == NULL ))))) {
+                RETVAL = LibXML_NodeToSv( real_obj, (xmlNodePtr) real_doc );
+            } else {
+                xmlFreeDoc(real_doc);
+            }
         }
 
         LibXML_cleanup_callbacks();
         LibXML_cleanup_parser();
+        LibXML_report_error(saved_error, recover);
     OUTPUT:
         RETVAL
 
 void
-_parse_sax_fh(self, fh, directory = NULL)
+_parse_sax_fh(self, fh, dir = &PL_sv_undef)
         SV * self
         SV * fh
-        char * directory
+        SV * dir
     PREINIT:
-    CODE:  
-        LibXML_init_parser(self);
-        LibXML_parse_sax_stream(self, fh, directory);
-        
-        sv_2mortal(LibXML_error);
-        
+        STRLEN len;
+        char * directory = NULL;
+        SV * saved_error;
+        HV * real_obj;
+        int recover = 0;
+    INIT:
+        if (SvPOK(dir)) {
+            directory = SvPV(dir, len);
+            if (len <= 0) {
+                directory = NULL;
+            }
+        }
+    CODE:
+        LibXML_init_error(&saved_error);
+        real_obj = LibXML_init_parser(self);
+        recover = LibXML_get_recover(real_obj);
+
+        {
+            int read_length;
+            char buffer[1024];
+            xmlSAXHandlerPtr sax;
+            xmlParserCtxtPtr ctxt;
+
+            read_length = LibXML_read_perl(fh, buffer, 4);
+            if (read_length <= 0) {
+                croak( "Empty Stream" );
+            }
+
+            sax = PSaxGetHandler();
+            ctxt = xmlCreatePushParserCtxt(sax, NULL, buffer, read_length, NULL);
+            if (ctxt == NULL) {
+                LibXML_report_error(saved_error, 1);
+                croak("Could not create xml push parser context: %s",
+                      strerror(errno));
+            }
+            xs_warn( "context created\n");
+
+            if ( directory != NULL ) {
+                ctxt->directory = directory;
+            }
+            PmmSAXInitContext( ctxt, self );
+            xs_warn( "context initialized \n");
+
+            {
+                int ret;
+                while ((read_length = LibXML_read_perl(fh, buffer, 1024))) {
+                    ret = xmlParseChunk(ctxt, buffer, read_length, 0);
+                    if ( ret != 0 ) {
+                        break;
+                    }
+                }
+                ret = xmlParseChunk(ctxt, buffer, 0, 1);
+                xs_warn( "document parsed \n");
+            }
+
+            ctxt->directory = NULL;
+            xmlFree(ctxt->sax);
+            ctxt->sax = NULL;
+            xmlFree(sax);
+            PmmSAXCloseContext(ctxt);
+            xmlFreeParserCtxt(ctxt);
+        }
+
         LibXML_cleanup_callbacks();
         LibXML_cleanup_parser();
+        LibXML_report_error(saved_error, recover);
 
 SV*
-_parse_file(self, filename)
+_parse_file(self, filename_sv)
         SV * self
-        const char * filename
+        SV * filename_sv
     PREINIT:
-        xmlParserCtxtPtr ctxt;
-        int well_formed = 0;
-        int valid = 0;
         STRLEN len;
-        xmlDocPtr real_doc = NULL;
-        HV* real_obj = (HV *)SvRV(self);
-        SV** item    = NULL;
-        int recover;
+        char * filename;
+        SV * saved_error;
+        HV * real_obj;
+        int well_formed;
+        int valid;
+        xmlDocPtr real_doc;
+        int recover = 0;
+    INIT:
+        filename = SvPV(filename_sv, len);
+        if (len <= 0) {
+            croak("Empty filename");
+            XSRETURN_UNDEF;
+        }
     CODE:
-        LibXML_init_parser(self);
-        ctxt = xmlCreateFileParserCtxt(filename);
+        RETVAL = &PL_sv_undef;
+        LibXML_init_error(&saved_error);
+        real_obj = LibXML_init_parser(self);
 
-        if (ctxt == NULL) {
-            croak("Could not create file parser context for file '%s' : %s", filename, strerror(errno));
-        }
-        ctxt->_private = (void*)self;
-        
-        xmlParseDocument(ctxt);
-
-        well_formed = ctxt->wellFormed;
-        valid       = ctxt->valid;
-
-        real_doc = ctxt->myDoc;
-        xmlFreeParserCtxt(ctxt);
-        
-        sv_2mortal(LibXML_error);
-        
-        if ( real_doc == NULL ) {
-            LibXML_croak_error();
-            XSRETURN_UNDEF;
-        }
-
-        item = hv_fetch( real_obj, "XML_LIBXML_RECOVER", 18, 0 );
-        recover = ( item != NULL && SvTRUE(*item) ) ? 1 : 0;
-
-        if (  ( !well_formed && !recover )
-               || (xmlDoValidityCheckingDefaultValue
-                   && !recover 
-                   && !valid ) ) {
-            xmlFreeDoc(real_doc);
-            croak("'%s'",SvPV(LibXML_error, len));
-            XSRETURN_UNDEF;
-        }
-        else {
-            item = hv_fetch( real_obj, "XML_LIBXML_GDOME", 16, 0 );
-
-            if ( item != NULL && SvTRUE(*item) ) {  
-                RETVAL = PmmNodeToGdomeSv( (xmlNodePtr)real_doc );
+        {
+            xmlParserCtxtPtr ctxt = xmlCreateFileParserCtxt(filename);
+            if (ctxt == NULL) {
+                LibXML_report_error(saved_error, 1);
+                croak("Couldn't create file parser context for file \"%s\": %s",
+                      filename, strerror(errno));
             }
-            else {
-                RETVAL = PmmNodeToSv((xmlNodePtr)real_doc, NULL);
+            xs_warn( "context created\n");
+
+            ctxt->_private = (void*)self;
+            xs_warn( "context initialized \n");
+
+            {
+                xmlParseDocument(ctxt);
+                xs_warn( "document parsed \n");
+            }
+
+            well_formed = ctxt->wellFormed;
+            valid = ctxt->valid;
+            real_doc = ctxt->myDoc;
+            ctxt->myDoc = NULL;
+            xmlFreeParserCtxt(ctxt);
+        }
+
+        if ( real_doc != NULL ) {
+            recover = LibXML_get_recover(real_obj);
+
+            if ( recover || ( well_formed &&
+                              ( !xmlDoValidityCheckingDefaultValue
+                                || ( valid || ( real_doc->intSubset == NULL
+                                                && real_doc->extSubset == NULL ))))) {
+                RETVAL = LibXML_NodeToSv( real_obj, (xmlNodePtr) real_doc );
+            } else {
+                xmlFreeDoc(real_doc);
             }
         }
-        /* LibXML_warn_error(); */ /* if the parser causes some noise */  
+
         LibXML_cleanup_callbacks();
         LibXML_cleanup_parser();
+        LibXML_report_error(saved_error, recover);
     OUTPUT:
         RETVAL
 
 void
-_parse_sax_file(self, filename)
+_parse_sax_file(self, filename_sv)
         SV * self
-        const char * filename
+        SV * filename_sv
     PREINIT:
-        xmlParserCtxtPtr ctxt;
         STRLEN len;
+        char * filename;
+        SV * saved_error;
+        HV * real_obj;
+        int recover = 0;
+    INIT:
+        filename = SvPV(filename_sv, len);
+        if (len <= 0) {
+            croak("Empty filename");
+            XSRETURN_UNDEF;
+        }
     CODE:
-        LibXML_init_parser(self);
-        ctxt = xmlCreateFileParserCtxt(filename);
+        LibXML_init_error(&saved_error);
+        real_obj = LibXML_init_parser(self);
+        recover = LibXML_get_recover(real_obj);
 
-        if (ctxt == NULL) {
-            croak("Could not create file parser context for file '%s' : %s", filename, strerror(errno));
+        {
+            xmlParserCtxtPtr ctxt = xmlCreateFileParserCtxt(filename);
+            if (ctxt == NULL) {
+                LibXML_report_error(saved_error, 1);
+                croak("Couldn't create file parser context for file \"%s\": %s",
+                      filename, strerror(errno));
+            }
+            xs_warn( "context created\n");
+
+            ctxt->sax = PSaxGetHandler();
+            PmmSAXInitContext( ctxt, self );
+            xs_warn( "context initialized \n");
+
+            {
+                xmlParseDocument(ctxt);
+                xs_warn( "document parsed \n");
+            }
+
+            PmmSAXCloseContext(ctxt);
+            xmlFreeParserCtxt(ctxt);
         }
 
-        ctxt->sax = PSaxGetHandler();
-        PmmSAXInitContext( ctxt, self );
-        
-        xmlParseDocument(ctxt);
-
-        PmmSAXCloseContext(ctxt);
-        xmlFreeParserCtxt(ctxt);
-                
-        sv_2mortal(LibXML_error);
-        
         LibXML_cleanup_callbacks();
         LibXML_cleanup_parser();
+        LibXML_report_error(saved_error, recover);
 
 SV*
 parse_html_string(self, string)
         SV * self
         SV * string
     PREINIT:
-        htmlParserCtxtPtr ctxt;
         STRLEN len;
         char * ptr;
-        int well_formed;
-        int ret;
-        xmlDocPtr real_doc;
-        HV* real_obj = (HV *)SvRV(self);
-        SV** item    = NULL;
-        int recover;
-    CODE:
+        SV * saved_error;
+        HV * real_obj;
+        htmlDocPtr real_doc;
+        int recover = 0;
+    INIT:
         ptr = SvPV(string, len);
-        if (len == 0) {
+        if (len <= 0) {
             croak("Empty string");
-        }
-                
-        LibXML_init_parser(self);
-
-        real_doc = htmlParseDoc((xmlChar*)ptr, NULL);
-        LibXML_cleanup_callbacks();
-        LibXML_cleanup_parser();        
-
-        sv_2mortal(LibXML_error);
-
-        if (real_doc == NULL) {
-            LibXML_croak_error();
             XSRETURN_UNDEF;
         }
-        else {
-            STRLEN n_a;
-            SV * newURI;
+    CODE:
+        RETVAL = &PL_sv_undef;
+        LibXML_init_error(&saved_error);
+        real_obj = LibXML_init_parser(self);
 
-            item = hv_fetch( real_obj, "XML_LIBXML_RECOVER", 18, 0 );
-            recover = ( item != NULL && SvTRUE( *item ) ) ? 1 : 0;
-            if (!recover) {
-                LibXML_croak_error();
-            }
-            else {
-                /* LibXML_warn_error(); */ /* if the parser causes some noise */
+        real_doc = htmlParseDoc((xmlChar*)ptr, NULL);
+
+        if ( real_doc != NULL ) {
+            recover = LibXML_get_recover(real_obj);
+
+            {
+                SV * newURI = sv_2mortal(newSVpvf("unknown-%12.12d", (void*)real_doc));
+                real_doc->URL = xmlStrdup((const xmlChar*)SvPV_nolen(newURI));
             }
 
-            newURI = newSVpvf("unknown-%12.12d", real_doc);
-            real_doc->URL = xmlStrdup((const xmlChar*)SvPV(newURI, n_a));
-            SvREFCNT_dec(newURI);
-
-            item = hv_fetch( real_obj, "XML_LIBXML_GDOME", 16, 0 );            
-            if ( item != NULL && SvTRUE(*item) ) {  
-                RETVAL = PmmNodeToGdomeSv( (xmlNodePtr)real_doc );
-            }
-            else {
-                RETVAL = PmmNodeToSv((xmlNodePtr)real_doc, NULL);
-            }
+            /* This HTML memory parser doesn't use a ctxt; there is no "well-formed"
+             * distinction, and if it manages to parse the HTML, it returns non-null. */
+            RETVAL = LibXML_NodeToSv( real_obj, (xmlNodePtr) real_doc );
         }
+
+        LibXML_cleanup_callbacks();
+        LibXML_cleanup_parser();
+        LibXML_report_error(saved_error, recover);
     OUTPUT:
         RETVAL
 
@@ -1463,338 +1384,396 @@ parse_html_fh(self, fh)
         SV * self
         SV * fh
     PREINIT:
-        STRLEN len;
-        xmlDocPtr real_doc;
-        HV* real_obj = (HV *)SvRV(self);
-        SV** item    = NULL;
-        int recover;
-    CODE:        
-        LibXML_init_parser(self);
-        real_doc = LibXML_parse_html_stream(self, fh);
-        LibXML_cleanup_callbacks();
-        LibXML_cleanup_parser();
-        
-        sv_2mortal(LibXML_error);
-        
+        SV * saved_error;
+        HV * real_obj;
+        htmlDocPtr real_doc;
+        int well_formed;
+        int recover = 0;
+    CODE:
+        RETVAL = &PL_sv_undef;
+        LibXML_init_error(&saved_error);
+        real_obj = LibXML_init_parser(self);
 
-        if (real_doc == NULL) {
-            LibXML_croak_error();
-            XSRETURN_UNDEF;
-        } 
-        else {
-            STRLEN n_a;
-            SV * newURI;
+        {
+            int read_length;
+            char buffer[1024];
+            htmlParserCtxtPtr ctxt;
 
-            item = hv_fetch( real_obj, "XML_LIBXML_RECOVER", 18, 0 );
-            recover = ( item != NULL && SvTRUE( *item ) ) ? 1 : 0;            
-            if (!recover){
-                LibXML_croak_error();
+            read_length = LibXML_read_perl(fh, buffer, 4);
+            if (read_length <= 0) {
+                croak( "Empty Stream" );
             }
-            else {
-                /* LibXML_warn_error(); */ /* if the parser causes some noise */
-            }
-            newURI = newSVpvf("unknown-%12.12d", real_doc);
-            real_doc->URL = xmlStrdup((const xmlChar*)SvPV(newURI, n_a));
-            SvREFCNT_dec(newURI);
-            item = hv_fetch( real_obj, "XML_LIBXML_GDOME", 16, 0 );
 
-            if ( item != NULL && SvTRUE(*item) ) {  
-                RETVAL = PmmNodeToGdomeSv( (xmlNodePtr)real_doc );
+            ctxt = htmlCreatePushParserCtxt(NULL, NULL, buffer, read_length,
+                                            NULL, XML_CHAR_ENCODING_NONE);
+            if (ctxt == NULL) {
+                LibXML_report_error(saved_error, 1);
+                croak("Could not create html push parser context: %s",
+                      strerror(errno));
             }
-            else {
-                RETVAL = PmmNodeToSv((xmlNodePtr)real_doc, NULL);
+            xs_warn( "context created\n");
+
+            ctxt->_private = (void*)self;
+            xs_warn( "context initialized \n");
+
+            {
+                int ret;
+                while ((read_length = LibXML_read_perl(fh, buffer, 1024))) {
+                    ret = htmlParseChunk(ctxt, buffer, read_length, 0);
+                    if ( ret != 0 ) {
+                        break;
+                    }
+                }
+                ret = htmlParseChunk(ctxt, buffer, 0, 1);
+                xs_warn( "document parsed \n");
+            }
+
+            well_formed = ctxt->wellFormed;
+            real_doc = ctxt->myDoc;
+            ctxt->myDoc = NULL;
+            htmlFreeParserCtxt(ctxt);
+        }
+
+        if ( real_doc != NULL ) {
+            recover = LibXML_get_recover(real_obj);
+
+            {
+                SV * newURI = sv_2mortal(newSVpvf("unknown-%12.12d", (void*)real_doc));
+                real_doc->URL = xmlStrdup((const xmlChar*)SvPV_nolen(newURI));
+            }
+
+            if ( recover || well_formed ) {
+                RETVAL = LibXML_NodeToSv( real_obj, (xmlNodePtr) real_doc );
+            } else {
+                xmlFreeDoc(real_doc);
             }
         }
+
+        LibXML_cleanup_callbacks();
+        LibXML_cleanup_parser();
+        LibXML_report_error(saved_error, recover);
     OUTPUT:
         RETVAL
-       
+
 SV*
-parse_html_file(self, filename)
+parse_html_file(self, filename_sv)
         SV * self
-        const char * filename
+        SV * filename_sv
     PREINIT:
         STRLEN len;
-        xmlDocPtr real_doc = NULL;
-        HV* real_obj = (HV *)SvRV(self);
-        SV** item    = NULL;
-        int recover;
-    CODE:
-        LibXML_init_parser(self);
-        real_doc = htmlParseFile((char*)filename, NULL);
-        LibXML_cleanup_callbacks();
-        LibXML_cleanup_parser();
-
-        sv_2mortal(LibXML_error);
-
-        if (real_doc == NULL) {
-            LibXML_croak_error();
+        char * filename;
+        SV * saved_error;
+        HV * real_obj;
+        htmlDocPtr real_doc;
+        int recover = 0;
+    INIT:
+        filename = SvPV(filename_sv, len);
+        if (len <= 0) {
+            croak("Empty filename");
             XSRETURN_UNDEF;
         }
+    CODE:
+        RETVAL = &PL_sv_undef;
+        LibXML_init_error(&saved_error);
+        real_obj = LibXML_init_parser(self);
 
-        item = hv_fetch( real_obj, "XML_LIBXML_RECOVER", 18, 0 );
-        recover = ( item != NULL && SvTRUE( *item ) ) ? 1 : 0;
-        if (!recover) {
-            LibXML_croak_error();
-        }
-        else {
-            /* LibXML_warn_error(); */ /* if the parser causes some noise */
+        real_doc = htmlParseFile((const char *)filename, NULL);
+
+        if ( real_doc != NULL ) {
+            recover = LibXML_get_recover(real_obj);
+
+            /* This HTML file parser doesn't use a ctxt; there is no "well-formed"
+             * distinction, and if it manages to parse the HTML, it returns non-null. */
+            RETVAL = LibXML_NodeToSv( real_obj, (xmlNodePtr) real_doc );
         }
 
-        item = hv_fetch( real_obj, "XML_LIBXML_GDOME", 16, 0 );
-
-        if ( item != NULL && SvTRUE(*item) ) {  
-            RETVAL = PmmNodeToGdomeSv( (xmlNodePtr)real_doc );
-        }
-        else {
-            RETVAL = PmmNodeToSv((xmlNodePtr)real_doc, NULL);
-        }
+        LibXML_cleanup_callbacks();
+        LibXML_cleanup_parser();
+        LibXML_report_error(saved_error, recover);
     OUTPUT:
         RETVAL
 
 SV*
-parse_sgml_fh(self, fh, encoding)
-        SV * self
-        SV * fh
-        SV * encoding
-    PREINIT:
-        STRLEN len;
-        xmlDocPtr real_doc;
-        HV* real_obj = (HV *)SvRV(self);
-        SV** item    = NULL;
-        STRLEN n_a;
-        SV * newURI;
-        int recover;
-    CODE:
-        LibXML_error = NEWSV(0, 512);
-        sv_setpvn(LibXML_error, "", 0);
-        
-        LibXML_init_parser(self);
-        real_doc = LibXML_parse_sgml_stream(self, fh, encoding);
-        LibXML_cleanup_callbacks();
-        LibXML_cleanup_parser();
-        
-        sv_2mortal(LibXML_error);
-        
-        if (real_doc == NULL) {
-            LibXML_croak_error();
-            XSRETURN_UNDEF;
-        }
-
-        item = hv_fetch( real_obj, "XML_LIBXML_RECOVER", 18, 0 );
-        recover = ( item != NULL && SvTRUE( *item ) ) ? 1 : 0;
-        if (!recover) {
-            LibXML_croak_error();
-        }
-        else {
-            /* LibXML_warn_error(); */ /* if the parser causes some noise */
-        }
-
-        newURI = newSVpvf("unknown-%12.12d", real_doc);
-        real_doc->URL = xmlStrdup((const xmlChar*)SvPV(newURI, n_a));
-        SvREFCNT_dec(newURI);
-        item = hv_fetch( real_obj, "XML_LIBXML_GDOME", 16, 0 );
-
-        if ( item != NULL && SvTRUE(*item) ) {  
-            RETVAL = PmmNodeToGdomeSv( (xmlNodePtr)real_doc );
-        }
-        else {
-            RETVAL = PmmNodeToSv((xmlNodePtr)real_doc, NULL);
-        }
-    OUTPUT:
-        RETVAL
-
-SV*
-parse_sgml_string(self, string, encoding)
+parse_sgml_string(self, string, enc = &PL_sv_undef)
         SV * self
         SV * string
-        SV * encoding
-    PREINIT:
-        htmlParserCtxtPtr ctxt;
-        STRLEN len;
-        char * ptr;
-        int well_formed;
-        int ret;
-        xmlDocPtr real_doc;
-        HV* real_obj = (HV *)SvRV(self);
-        SV** item    = NULL;
-        STRLEN n_a;
-        SV * newURI;
-        int recover;
-    CODE:
-        ptr = SvPV(string, len);
-        if (len == 0) {
-            croak("Empty string");
-        }
-        
-        LibXML_init_parser(self);
-        real_doc = (xmlDocPtr) docbParseDoc((xmlChar *)ptr,
-                                            (const char *)Sv2C(encoding, NULL));
-
-        LibXML_cleanup_callbacks();
-        LibXML_cleanup_parser();        
-
-        sv_2mortal(LibXML_error);
-
-        if (real_doc == NULL) {
-            LibXML_croak_error();
-            XSRETURN_UNDEF;
-        }
-
-        item = hv_fetch( real_obj, "XML_LIBXML_RECOVER", 18, 0 );
-        recover = ( item != NULL && SvTRUE( *item ) ) ? 1 : 0;
-        if (!recover) {
-            LibXML_croak_error();
-        }
-        else {
-            /* LibXML_warn_error(); */ /* if the parser causes some noise */
-        }
-
-        newURI = newSVpvf("unknown-%12.12d", real_doc);
-        real_doc->URL = xmlStrdup((const xmlChar*)SvPV(newURI, n_a));
-        SvREFCNT_dec(newURI);
-
-        item = hv_fetch( real_obj, "XML_LIBXML_GDOME", 16, 0 );            
-        if ( item != NULL && SvTRUE(*item) ) {  
-            RETVAL = PmmNodeToGdomeSv( (xmlNodePtr)real_doc );
-        }
-        else {
-            RETVAL = PmmNodeToSv((xmlNodePtr)real_doc, NULL);
-        }
-    OUTPUT:
-        RETVAL
-
-SV*
-parse_sgml_file(self, fn, encoding)
-        SV * self
-        SV * fn
-        SV * encoding
-    PREINIT:
-        const char * filename = (const char*)Sv2C( fn, NULL );
-        STRLEN len;
-        xmlDocPtr real_doc;
-        HV* real_obj = (HV *)SvRV(self);
-        SV** item    = NULL;
-        int recover;
-    CODE:
-        LibXML_init_parser(self);
-        real_doc = (xmlDocPtr) docbParseFile(filename,
-                                             (const char *) Sv2C(encoding, NULL));
-        LibXML_cleanup_callbacks();
-        LibXML_cleanup_parser();
-
-        sv_2mortal(LibXML_error);
-        
-        if (real_doc == NULL) {
-            LibXML_croak_error();
-            XSRETURN_UNDEF;
-        }
-        else {
-            item = hv_fetch( real_obj, "XML_LIBXML_RECOVER", 18, 0 );
-            recover = ( item != NULL && SvTRUE( *item ) ) ? 1 : 0;
-            if (!recover) {
-                LibXML_croak_error();
-            }
-            else {
-                /* LibXML_warn_error(); */ /* if the parser causes some noise */
-            }
-            
-            item = hv_fetch( real_obj, "XML_LIBXML_GDOME", 16, 0 );
-
-            if ( item != NULL && SvTRUE(*item) ) {  
-                RETVAL = PmmNodeToGdomeSv( (xmlNodePtr)real_doc );
-            }
-            else {
-                RETVAL = PmmNodeToSv((xmlNodePtr)real_doc, NULL);
-            }
-        }
-    OUTPUT:
-        RETVAL
-
-
-void
-parse_sax_sgml_file(self, fn, enc )
-        SV * self
-        SV * fn
         SV * enc
     PREINIT:
-        const char * filename = (const char *)Sv2C(fn, NULL);  
-        const char * encoding = (const char *)Sv2C(enc, NULL);
-        xmlParserCtxtPtr ctxt;
         STRLEN len;
+        char * ptr;
+        char * encoding = NULL;
+        SV * saved_error;
+        HV * real_obj;
+        docbDocPtr real_doc;
+        int recover = 0;
+    INIT:
+        ptr = SvPV(string, len);
+        if (len <= 0) {
+            croak("Empty string");
+            XSRETURN_UNDEF;
+        }
+        if (SvPOK(enc)) {
+            encoding = SvPV(enc, len);
+            if (len <= 0) {
+                encoding = NULL;
+            }
+        }
     CODE:
-        LibXML_init_parser(self);
-        ctxt = (xmlParserCtxtPtr) docbCreateFileParserCtxt(filename, encoding);
+        RETVAL = &PL_sv_undef;
+        LibXML_init_error(&saved_error);
+        real_obj = LibXML_init_parser(self);
 
-        if (ctxt == NULL) {
-            croak("Could not create file parser context for file '%s' : %s", filename, strerror(errno));
+        real_doc = docbParseDoc((xmlChar*)ptr, (const char *) encoding);
+
+        if ( real_doc != NULL ) {
+            recover = LibXML_get_recover(real_obj);
+
+            {
+                SV * newURI = sv_2mortal(newSVpvf("unknown-%12.12d", (void*)real_doc));
+                real_doc->URL = xmlStrdup((const xmlChar*)SvPV_nolen(newURI));
+            }
+
+            /* This SGML memory parser doesn't use a ctxt; there is no "well-formed"
+             * distinction, and if it manages to parse the SGML, it returns non-null. */
+            RETVAL = LibXML_NodeToSv( real_obj, (xmlNodePtr) real_doc );
         }
 
-        PmmSAXInitContext( ctxt, self );
-
-        docbParseDocument(ctxt);
-
-        PmmSAXCloseContext(ctxt);
-        xmlFreeParserCtxt(ctxt);
-                
-        sv_2mortal(LibXML_error);
-        
         LibXML_cleanup_callbacks();
         LibXML_cleanup_parser();
-
+        LibXML_report_error(saved_error, recover);
+    OUTPUT:
+        RETVAL
 
 SV*
-_parse_xml_chunk( self, svchunk, encoding="UTF-8" )
+parse_sgml_fh(self, fh, enc = &PL_sv_undef)
         SV * self
-        SV * svchunk
-        char * encoding
+        SV * fh
+        SV * enc
     PREINIT:
-        xmlChar *chunk;
-        xmlNodePtr rv = NULL;
-        xmlNodePtr fragment= NULL;
-        xmlNodePtr rv_end = NULL;
-        char * ptr;
         STRLEN len;
-        HV* real_obj = (HV *)SvRV(self);
-        SV** item    = NULL;
-        int recover;
+        char * encoding = NULL;
+        SV * saved_error;
+        HV * real_obj;
+        docbDocPtr real_doc;
+        int well_formed;
+        int recover = 0;
+    INIT:
+        if (SvPOK(enc)) {
+            encoding = SvPV(enc, len);
+            if (len <= 0) {
+                encoding = NULL;
+            }
+        }
     CODE:
-        if ( encoding == NULL ) encoding = "UTF-8";
-        ptr = SvPV(svchunk, len);
-        if (len == 0) {
-            croak("Empty string");
+        RETVAL = &PL_sv_undef;
+        LibXML_init_error(&saved_error);
+        real_obj = LibXML_init_parser(self);
+
+        {
+            int read_length;
+            char buffer[1024];
+            docbParserCtxtPtr ctxt;
+
+            read_length = LibXML_read_perl(fh, buffer, 4);
+            if (read_length <= 0) {
+                croak( "Empty Stream" );
+            }
+
+            ctxt = docbCreatePushParserCtxt(NULL, NULL, buffer, read_length, NULL,
+                                            xmlParseCharEncoding((const char*)encoding));
+            if (ctxt == NULL) {
+                LibXML_report_error(saved_error, 1);
+                croak("Could not create docbook SGML push parser context: %s",
+                      strerror(errno));
+            }
+            xs_warn( "context created\n");
+
+            ctxt->_private = (void*)self;
+            xs_warn( "context initialized \n");
+
+            {
+                int ret;
+                while ((read_length = LibXML_read_perl(fh, buffer, 1024))) {
+                    ret = docbParseChunk(ctxt, buffer, read_length, 0);
+                    if ( ret != 0 ) {
+                        break;
+                    }
+                }
+                ret = docbParseChunk(ctxt, buffer, 0, 1);
+                xs_warn( "document parsed \n");
+            }
+
+            well_formed = ctxt->wellFormed;
+            real_doc = ctxt->myDoc;
+            ctxt->myDoc = NULL;
+            docbFreeParserCtxt(ctxt);
         }
 
-        /* encode the chunk to UTF8 */
+        if ( real_doc != NULL ) {
+            recover = LibXML_get_recover(real_obj);
+
+            {
+                SV * newURI = sv_2mortal(newSVpvf("unknown-%12.12d", (void*)real_doc));
+                real_doc->URL = xmlStrdup((const xmlChar*)SvPV_nolen(newURI));
+            }
+
+            if ( recover || well_formed ) {
+                RETVAL = LibXML_NodeToSv( real_obj, (xmlNodePtr) real_doc );
+            } else {
+                xmlFreeDoc(real_doc);
+            }
+        }
+
+        LibXML_cleanup_callbacks();
+        LibXML_cleanup_parser();
+        LibXML_report_error(saved_error, recover);
+    OUTPUT:
+        RETVAL
+
+SV*
+parse_sgml_file(self, filename_sv, enc = &PL_sv_undef)
+        SV * self
+        SV * filename_sv
+        SV * enc
+    PREINIT:
+        STRLEN len;
+        char * filename;
+        char * encoding = NULL;
+        SV * saved_error;
+        HV * real_obj;
+        docbDocPtr real_doc;
+        int recover = 0;
+    INIT:
+        filename = SvPV(filename_sv, len);
+        if (len <= 0) {
+            croak("Empty filename");
+            XSRETURN_UNDEF;
+        }
+        if (SvPOK(enc)) {
+            encoding = SvPV(enc, len);
+            if (len <= 0) {
+                encoding = NULL;
+            }
+        }
+    CODE:
+        RETVAL = &PL_sv_undef;
+        LibXML_init_error(&saved_error);
+        real_obj = LibXML_init_parser(self);
+
+        real_doc = docbParseFile((const char *)filename, (const char *) encoding);
+
+        if ( real_doc != NULL ) {
+            recover = LibXML_get_recover(real_obj);
+
+            /* This SGML file parser doesn't use a ctxt; there is no "well-formed"
+             * distinction, and if it manages to parse the SGML, it returns non-null. */
+            RETVAL = LibXML_NodeToSv( real_obj, (xmlNodePtr) real_doc );
+        }
+
+        LibXML_cleanup_callbacks();
+        LibXML_cleanup_parser();
+        LibXML_report_error(saved_error, recover);
+    OUTPUT:
+        RETVAL
+
+void
+_parse_sax_sgml_file(self, filename_sv, enc = &PL_sv_undef)
+        SV * self
+        SV * filename_sv
+        SV * enc
+    PREINIT:
+        STRLEN len;
+        char * filename;
+        char * encoding = NULL;
+        SV * saved_error;
+        HV * real_obj;
+        int recover = 0;
+    INIT:
+        filename = SvPV(filename_sv, len);
+        if (len <= 0) {
+            croak("Empty filename");
+            XSRETURN_UNDEF;
+        }
+        if (SvPOK(enc)) {
+            encoding = SvPV(enc, len);
+            if (len <= 0) {
+                encoding = NULL;
+            }
+        }
+    CODE:
+        LibXML_init_error(&saved_error);
+        real_obj = LibXML_init_parser(self);
+        recover = LibXML_get_recover(real_obj);
+
+        {
+            docbParserCtxtPtr ctxt = docbCreateFileParserCtxt(filename, encoding);
+            if (ctxt == NULL) {
+                LibXML_report_error(saved_error, 1);
+                croak("Couldn't create file parser context for file \"%s\": %s",
+                      filename, strerror(errno));
+            }
+            xs_warn( "context created\n");
+
+            ctxt->sax = PSaxGetHandler();
+            PmmSAXInitContext( ctxt, self );
+            xs_warn( "context initialized \n");
+
+            {
+                docbParseDocument(ctxt);
+                xs_warn( "document parsed \n");
+            }
+
+            PmmSAXCloseContext(ctxt);
+            docbFreeParserCtxt(ctxt);
+        }
+
+        LibXML_cleanup_callbacks();
+        LibXML_cleanup_parser();
+        LibXML_report_error(saved_error, recover);
+
+SV*
+_parse_xml_chunk(self, svchunk, enc = &PL_sv_undef)
+        SV * self
+        SV * svchunk
+        SV * enc
+    PREINIT:
+        STRLEN len;
+        char * encoding = "UTF-8";
+        SV * saved_error;
+        HV * real_obj;
+        int recover = 0;
+        xmlChar * chunk;
+        xmlNodePtr rv = NULL;
+    INIT:
+        if (SvPOK(enc)) {
+            encoding = SvPV(enc, len);
+            if (len <= 0) {
+                encoding = "UTF-8";
+            }
+        }
+    CODE:
+        RETVAL = &PL_sv_undef;
+        LibXML_init_error(&saved_error);
+        real_obj = LibXML_init_parser(self);
+
         chunk = Sv2C(svchunk, (const xmlChar*)encoding);
 
         if ( chunk != NULL ) {
-            item = hv_fetch( real_obj, "XML_LIBXML_RECOVER", 18, 0 );
-            recover = ( item != NULL && SvTRUE(*item) ) ? 1 : 0;
+            recover = LibXML_get_recover(real_obj);
 
-            LibXML_init_parser(self);
             rv = domReadWellBalancedString( NULL, chunk, recover );
-            LibXML_cleanup_callbacks();
-            LibXML_cleanup_parser();    
-
-            sv_2mortal(LibXML_error);
-            if ( (int) rv == -1 ) {
-                LibXML_croak_error();
-            }
 
             if ( rv != NULL ) {
+                xmlNodePtr fragment= NULL;
+                xmlNodePtr rv_end = NULL;
+
                 /* now we append the nodelist to a document
                    fragment which is unbound to a Document!!!! */
-                item = hv_fetch( real_obj, "XML_LIBXML_GDOME", 16, 0 );
 
                 /* step 1: create the fragment */
                 fragment = xmlNewDocFragment( NULL );
+                RETVAL = LibXML_NodeToSv(real_obj, fragment);
 
-                if ( item != NULL && SvTRUE(*item) ) {  
-                    RETVAL = PmmNodeToGdomeSv( (xmlNodePtr)fragment );
-                }
-                else {              
-                    RETVAL = PmmNodeToSv(fragment,NULL);
-                }
                 /* step 2: set the node list to the fragment */
                 fragment->children = rv;
                 rv->parent = fragment;
@@ -1805,129 +1784,164 @@ _parse_xml_chunk( self, svchunk, encoding="UTF-8" )
                     rv_end = rv_end->next;
                 }
             }
-            else {
-                croak("bad chunk");
-            }
+
             /* free the chunk we created */
             xmlFree( chunk );
+        }
+
+        LibXML_cleanup_callbacks();
+        LibXML_cleanup_parser();
+        LibXML_report_error(saved_error, recover);
+
+	if (rv == NULL) {
+            croak("_parse_xml_chunk: chunk parsing failed");
         }
     OUTPUT:
         RETVAL
 
 void
-_parse_sax_xml_chunk( self, svchunk, encoding="UTF-8" )
+_parse_sax_xml_chunk(self, svchunk, enc = &PL_sv_undef)
         SV * self
         SV * svchunk
-        char * encoding
+        SV * enc
     PREINIT:
-        xmlChar *chunk;
-        xmlParserCtxtPtr ctxt;
-        char * ptr;
         STRLEN len;
+        char * ptr;
+        char * encoding = "UTF-8";
+        SV * saved_error;
+        HV * real_obj;
+        int recover = 0;
+        xmlChar * chunk;
         int retCode              = -1;
         xmlNodePtr nodes         = NULL;
         xmlSAXHandlerPtr handler = NULL;
     INIT:
-        if ( encoding == NULL ) encoding = "UTF-8";
+        if (SvPOK(enc)) {
+            encoding = SvPV(enc, len);
+            if (len <= 0) {
+                encoding = "UTF-8";
+            }
+        }
         ptr = SvPV(svchunk, len);
-        if (len == 0) {
+        if (len <= 0) {
             croak("Empty string");
         }
     CODE:
-        /* encode the chunk to UTF8 */
+        LibXML_init_error(&saved_error);
+        real_obj = LibXML_init_parser(self);
+        recover = LibXML_get_recover(real_obj);
+
         chunk = Sv2C(svchunk, (const xmlChar*)encoding);
 
         if ( chunk != NULL ) {
-            ctxt = xmlCreateMemoryParserCtxt(ptr, len);
+            xmlParserCtxtPtr ctxt = xmlCreateMemoryParserCtxt((const char*)ptr, len);
             if (ctxt == NULL) {
+                LibXML_report_error(saved_error, 1);
                 croak("Couldn't create memory parser context: %s", strerror(errno));
-            }   
-            PmmSAXInitContext( ctxt, self );         
+            }
+            xs_warn( "context created\n");
 
-            LibXML_init_parser(self);
+            PmmSAXInitContext( ctxt, self );
             handler = PSaxGetHandler();
 
-            retCode = xmlParseBalancedChunkMemory( NULL, 
+            retCode = xmlParseBalancedChunkMemory( NULL,
                                                    handler,
                                                    ctxt,
                                                    0,
                                                    chunk,
-                                                   &nodes );       
-            xmlFree( handler );            
+                                                   &nodes );
+
+            xmlFree( handler );
             PmmSAXCloseContext(ctxt);
             xmlFreeParserCtxt(ctxt);
 
-            LibXML_cleanup_callbacks();
-            LibXML_cleanup_parser();    
+            /* free the chunk we created */
             xmlFree( chunk );
+        }
 
+        LibXML_cleanup_callbacks();
+        LibXML_cleanup_parser();
+        LibXML_report_error(saved_error, recover);
 
-            if ( retCode == -1 ) {
-                LibXML_croak_error();
-            }
+	if (retCode == -1) {
+            croak("_parse_sax_xml_chunk: chunk parsing failed");
         }
 
 int
-_processXIncludes( self, doc )
+_processXIncludes(self, doc)
         SV * self
         SV * doc
     PREINIT:
-        xmlDocPtr real_doc = (xmlDocPtr)PmmSvNode(doc);
-        char * LibXML_ERROR_MSG;
-        STRLEN len;
-    CODE:
-        if ( real_doc == NULL ) {
+        xmlDocPtr real_doc;
+        SV * saved_error;
+        HV * real_obj;
+        int recover = 0;
+    INIT:
+        real_doc = (xmlDocPtr) PmmSvNode(doc);
+        if (real_doc == NULL) {
             croak("No document to process!");
+            XSRETURN_UNDEF;
         }
+    CODE:
+        RETVAL = 0;
+        LibXML_init_error(&saved_error);
+        real_obj = LibXML_init_parser(self);
+        recover = LibXML_get_recover(real_obj);
 
-        LibXML_init_parser(self);
+        RETVAL = xmlXIncludeProcess(real_doc);
 
-        RETVAL = xmlXIncludeProcess(real_doc);        
         LibXML_cleanup_callbacks();
         LibXML_cleanup_parser();
+        LibXML_report_error(saved_error, recover);
 
-        sv_2mortal( LibXML_error );
-
-        LibXML_croak_error();
-
-        if ( RETVAL < 0 ){
-            croak( "unknown error due XInclude" );
-            XSRETURN_UNDEF;            
-        }
-        else if ( RETVAL == 0 ) {
+        if ( RETVAL < 0 ) {
+            croak( "unknown error during XInclude processing" );
+            XSRETURN_UNDEF;
+        } else if ( RETVAL == 0 ) {
             RETVAL = 1;
         }
     OUTPUT:
         RETVAL
 
 SV*
-_start_push( self, with_sax=0 ) 
+_start_push(self, with_sax=0)
         SV * self
         int with_sax
     PREINIT:
+        SV * saved_error;
+        HV * real_obj;
+        int recover = 0;
         xmlParserCtxtPtr ctxt = NULL;
     CODE:
+        RETVAL = &PL_sv_undef;
+        LibXML_init_error(&saved_error);
+        real_obj = LibXML_init_parser(self);
+        recover = LibXML_get_recover(real_obj);
+
         /* create empty context */
-        LibXML_init_parser(self);
         ctxt = xmlCreatePushParserCtxt( NULL, NULL, NULL, 0, NULL );
 
         if ( with_sax == 1 ) {
             PmmSAXInitContext( ctxt, self );
         }
-        LibXML_cleanup_callbacks();
-        LibXML_cleanup_parser(); 
-        sv_2mortal(LibXML_error);
 
         RETVAL = PmmContextSv( ctxt );
+
+        LibXML_cleanup_callbacks();
+        LibXML_cleanup_parser();
+        LibXML_report_error(saved_error, recover);
     OUTPUT:
         RETVAL
 
 int
-_push( self, pctxt, data )
+_push(self, pctxt, data)
         SV * self
         SV * pctxt
         SV * data
     PREINIT:
+        SV * saved_error;
+        HV * real_obj;
+        int recover = 0;
         xmlParserCtxtPtr ctxt = NULL;
         STRLEN len = 0;
         char * chunk = NULL;
@@ -1940,39 +1954,42 @@ _push( self, pctxt, data )
         if ( data == &PL_sv_undef ) {
             XSRETURN_UNDEF;
         }
-    CODE:
         chunk = SvPV( data, len );
         if ( len <= 0 ) {
             xs_warn( "empty string" );
             XSRETURN_UNDEF;
         }
-        LibXML_init_error(); 
-        LibXML_init_parser(self);
+    CODE:
+        RETVAL = 0;
+        LibXML_init_error(&saved_error);
+        real_obj = LibXML_init_parser(self);
+        recover = LibXML_get_recover(real_obj);
+
         xmlParseChunk(ctxt, (const char *)chunk, len, 0);
+
         LibXML_cleanup_callbacks();
         LibXML_cleanup_parser();
-    
-        sv_2mortal(LibXML_error); 
+        LibXML_report_error(saved_error, recover);
 
         if ( ctxt->wellFormed == 0 ) {
-            LibXML_croak_error();
+            croak( "XML not well-formed in xmlParseChunk" );
+            XSRETURN_UNDEF;
         }
-
         RETVAL = 1;
     OUTPUT:
         RETVAL
 
 SV*
-_end_push( self, pctxt, restore ) 
+_end_push(self, pctxt, restore)
         SV * self
         SV * pctxt
         int restore
     PREINIT:
+        SV * saved_error;
+        HV * real_obj;
+        int well_formed;
         xmlParserCtxtPtr ctxt = NULL;
-        xmlDocPtr doc = NULL;
-        HV* real_obj = (HV *)SvRV(self);
-        SV ** item = hv_fetch( real_obj, "XML_LIBXML_GDOME", 16, 0 );
-        STRLEN len;
+        xmlDocPtr real_doc = NULL;
     INIT:
         ctxt = PmmSvContext( pctxt );
         if ( ctxt == NULL ) {
@@ -1980,63 +1997,68 @@ _end_push( self, pctxt, restore )
             XSRETURN_UNDEF;
         }
     CODE:
-        PmmNODE( SvPROXYNODE( pctxt ) ) = NULL;
-        LibXML_init_error(); 
-        LibXML_init_parser(self); 
+        RETVAL = &PL_sv_undef;
+        LibXML_init_error(&saved_error);
+        real_obj = LibXML_init_parser(self);
 
         xmlParseChunk(ctxt, "", 0, 1); /* finish the parse */
-        LibXML_cleanup_callbacks();
-        LibXML_cleanup_parser();
+        xs_warn( "Finished with push parser\n" );
 
-        sv_2mortal(LibXML_error);
-    
-        if ( SvCUR( LibXML_error ) > 0 && restore == 0 ) { 
-            xmlFreeDoc( ctxt->myDoc );
-            xmlFreeParserCtxt(ctxt); 
-            croak("%s",SvPV(LibXML_error, len));
-        }
-
-        doc = ctxt->myDoc;
+        well_formed = ctxt->wellFormed;
+        real_doc = ctxt->myDoc;
         ctxt->myDoc = NULL;
         xmlFreeParserCtxt(ctxt);
-        if ( doc == NULL ){
-            croak( "no document found!" );
-            XSRETURN_UNDEF;
+        PmmNODE( SvPROXYNODE( pctxt ) ) = NULL;
+
+        if ( real_doc != NULL ) {
+            if ( restore || well_formed ) {
+                RETVAL = LibXML_NodeToSv( real_obj, (xmlNodePtr) real_doc );
+            } else {
+                xmlFreeDoc(real_doc);
+                real_doc = NULL;
+            }
         }
 
-        if ( item != NULL && SvTRUE(*item) ) {  
-            RETVAL = PmmNodeToGdomeSv( (xmlNodePtr)doc );
-        }
-        else {
-            RETVAL = PmmNodeToSv((xmlNodePtr)doc, NULL);
+        LibXML_cleanup_callbacks();
+        LibXML_cleanup_parser();
+        LibXML_report_error(saved_error, restore);
+
+        if ( real_doc == NULL ){
+            croak( "no document found!" );
+            XSRETURN_UNDEF;
         }
     OUTPUT:
         RETVAL
 
 void
-_end_sax_push( self, pctxt ) 
+_end_sax_push(self, pctxt)
         SV * self
         SV * pctxt
     PREINIT:
+        SV * saved_error;
+        HV * real_obj;
         xmlParserCtxtPtr ctxt = NULL;
-        xmlDocPtr doc = NULL;
     INIT:
         ctxt = PmmSvContext( pctxt );
         if ( ctxt == NULL ) {
             croak( "parser context already freed" );
-            XSRETURN_UNDEF;
         }
     CODE:
-        PmmNODE( SvPROXYNODE( pctxt ) ) = NULL;
-        LibXML_init_parser(self);
+        LibXML_init_error(&saved_error);
+        real_obj = LibXML_init_parser(self);
 
         xmlParseChunk(ctxt, "", 0, 1); /* finish the parse */
-        LibXML_cleanup_callbacks();
-        LibXML_cleanup_parser();    
-        sv_2mortal(LibXML_error);
+        xs_warn( "Finished with SAX push parser\n" );
 
+        xmlFree(ctxt->sax);
+        ctxt->sax = NULL;
         PmmSAXCloseContext(ctxt);
         xmlFreeParserCtxt(ctxt);
+        PmmNODE( SvPROXYNODE( pctxt ) ) = NULL;
+
+        LibXML_cleanup_callbacks();
+        LibXML_cleanup_parser();
+        LibXML_report_error(saved_error, 0);
 
 SV*
 import_GDOME( dummy, sv_gdome, deep=1 )
@@ -2044,20 +2066,21 @@ import_GDOME( dummy, sv_gdome, deep=1 )
         SV * sv_gdome
         int deep
     PREINIT:
-        xmlNodePtr node  = NULL, retnode = NULL;
+        xmlNodePtr node  = NULL;
     INIT:
+        RETVAL = &PL_sv_undef;
 #ifndef XML_LIBXML_GDOME_SUPPORT
         croak( "GDOME Support not compiled" );
 #endif
         if ( sv_gdome == NULL || sv_gdome == &PL_sv_undef ) {
-            croak( "no XML::GDOME data found" );    
+            croak( "no XML::GDOME data found" );
         }
 #ifdef XML_LIBXML_GDOME_SUPPORT
         else {
             GdomeNode* gnode = NULL;
             gnode = (GdomeNode*)SvIV((SV*)SvRV( sv_gdome ));
             if ( gnode == NULL ) {
-                croak( "no XML::GDOME data found (datastructure empty)" );    
+                croak( "no XML::GDOME data found (datastructure empty)" );
             }
 
             node = gdome_xml_n_get_xmlNode( gnode );
@@ -2070,8 +2093,8 @@ import_GDOME( dummy, sv_gdome, deep=1 )
         if ( node->type == XML_NAMESPACE_DECL ) {
             const char * CLASS = "XML::LibXML::Namespace";
             RETVAL = sv_newmortal();
-            RETVAL = sv_setref_pv( RETVAL, 
-                                   CLASS, 
+            RETVAL = sv_setref_pv( RETVAL,
+                                   CLASS,
                                    (void*)xmlCopyNamespace((xmlNsPtr)node) );
         }
         else {
@@ -2079,25 +2102,26 @@ import_GDOME( dummy, sv_gdome, deep=1 )
         }
     OUTPUT:
         RETVAL
-        
+
 
 SV*
 export_GDOME( dummy, sv_libxml, deep=1 )
-        SV * dummy 
+        SV * dummy
         SV * sv_libxml
         int deep
     PREINIT:
         xmlNodePtr node  = NULL, retnode = NULL;
     INIT:
+        RETVAL = &PL_sv_undef;
 #ifndef XML_LIBXML_GDOME_SUPPORT
         croak( "GDOME Support not configured!" );
 #endif
         if ( sv_libxml == NULL || sv_libxml == &PL_sv_undef ) {
-            croak( "no XML::LibXML data found" );  
+            croak( "no XML::LibXML data found" );
         }
         node = PmmSvNode( sv_libxml );
         if ( node == NULL ) {
-            croak( "no XML::LibXML data found (empty structure)" );       
+            croak( "no XML::LibXML data found (empty structure)" );
         }
     CODE:
         retnode = PmmCloneNode( node, deep );
@@ -2105,9 +2129,9 @@ export_GDOME( dummy, sv_libxml, deep=1 )
             croak( "Copy node failed" );
         }
 
-        RETVAL =  PmmNodeToGdomeSv( retnode ); 
+        RETVAL =  PmmNodeToGdomeSv( retnode );
     OUTPUT:
-        RETVAL    
+        RETVAL
 
 
 int
@@ -2152,7 +2176,7 @@ _default_catalog( self, catalog )
 MODULE = XML::LibXML         PACKAGE = XML::LibXML::ParserContext
 
 void
-DESTROY( self ) 
+DESTROY( self )
         SV * self
     CODE:
         xs_warn( "DROP PARSER CONTEXT!" );
@@ -2166,12 +2190,14 @@ _toString(self, format=0)
         xmlDocPtr self
         int format
     PREINIT:
+        /* SV * saved_error; */
         xmlChar *result=NULL;
         int len=0;
         SV* internalFlag = NULL;
         int oldTagFlag = xmlSaveNoEmptyTags;
         xmlDtdPtr intSubset = NULL;
     CODE:
+        RETVAL = &PL_sv_undef;
         internalFlag = perl_get_sv("XML::LibXML::setTagCompression", 0);
         if( internalFlag ) {
             xmlSaveNoEmptyTags = SvTRUE(internalFlag);
@@ -2184,7 +2210,7 @@ _toString(self, format=0)
                 xmlUnlinkNode( (xmlNodePtr)intSubset );
         }
 
-        /* LibXML_init_error(); */
+        /* LibXML_init_error(&saved_error); */
 
         if ( format <= 0 ) {
             xs_warn( "use no formated toString!" );
@@ -2194,7 +2220,7 @@ _toString(self, format=0)
             int t_indent_var = xmlIndentTreeOutput;
             xs_warn( "use formated toString!" );
             xmlIndentTreeOutput = 1;
-            xmlDocDumpFormatMemory( self, &result, &len, format ); 
+            xmlDocDumpFormatMemory( self, &result, &len, format );
             xmlIndentTreeOutput = t_indent_var;
         }
 
@@ -2208,13 +2234,13 @@ _toString(self, format=0)
         }
 
         xmlSaveNoEmptyTags = oldTagFlag;
-/*        sv_2mortal( LibXML_error );
-        LibXML_croak_error();
-*/
-    	if (result == NULL) {
-	        xs_warn("Failed to convert doc to string");           
+
+        /* LibXML_report_error(saved_error, 0); */
+
+        if (result == NULL) {
+            xs_warn("Failed to convert doc to string");
             XSRETURN_UNDEF;
-    	} else {
+        } else {
             /* warn("%s, %d\n",result, len); */
             RETVAL = C2Sv( result, self->encoding );
             xmlFree(result);
@@ -2222,12 +2248,13 @@ _toString(self, format=0)
     OUTPUT:
         RETVAL
 
-int 
+int
 toFH( self, filehandler, format=0 )
         xmlDocPtr self
         SV * filehandler
         int format
     PREINIT:
+        SV * saved_error;
         xmlOutputBufferPtr buffer;
         const xmlChar * encoding = NULL;
         xmlCharEncodingHandlerPtr handler = NULL;
@@ -2235,7 +2262,6 @@ toFH( self, filehandler, format=0 )
         int oldTagFlag = xmlSaveNoEmptyTags;
         xmlDtdPtr intSubset = NULL;
         int t_indent_var = xmlIndentTreeOutput;
-        STRLEN len;
     CODE:
         internalFlag = perl_get_sv("XML::LibXML::setTagCompression", 0);
         if( internalFlag ) {
@@ -2264,7 +2290,7 @@ toFH( self, filehandler, format=0 )
         buffer = xmlOutputBufferCreateIO( (xmlOutputWriteCallback) &LibXML_output_write_handler,
                                           (xmlOutputCloseCallback)&LibXML_output_close_handler,
                                           filehandler,
-                                          handler ); 
+                                          handler );
 
         if ( format <= 0 ) {
             format = 0;
@@ -2274,9 +2300,9 @@ toFH( self, filehandler, format=0 )
             xmlIndentTreeOutput = 1;
         }
 
-        LibXML_init_error();
+        LibXML_init_error(&saved_error);
 
-        RETVAL = xmlSaveFormatFileTo( buffer, 
+        RETVAL = xmlSaveFormatFileTo( buffer,
                                       self,
                                       (const char *) encoding,
                                       format);
@@ -2289,30 +2315,30 @@ toFH( self, filehandler, format=0 )
                 xmlAddPrevSibling(self->children, (xmlNodePtr) intSubset);
             }
         }
-    
+
         xmlIndentTreeOutput = t_indent_var;
         xmlSaveNoEmptyTags = oldTagFlag;
-        sv_2mortal( LibXML_error );
-        LibXML_croak_error();
-    OUTPUT:
-        RETVAL    
 
-int 
+        LibXML_report_error(saved_error, 0);
+    OUTPUT:
+        RETVAL
+
+int
 toFile( self, filename, format=0 )
         xmlDocPtr self
         char * filename
         int format
     PREINIT:
+        SV * saved_error;
         SV* internalFlag = NULL;
         int oldTagFlag = xmlSaveNoEmptyTags;
-        STRLEN len;
     CODE:
         internalFlag = perl_get_sv("XML::LibXML::setTagCompression", 0);
         if( internalFlag ) {
             xmlSaveNoEmptyTags = SvTRUE(internalFlag);
         }
 
-        LibXML_init_error();
+        LibXML_init_error(&saved_error);
 
         if ( format <= 0 ) {
             xs_warn( "use no formated toFile!" );
@@ -2327,14 +2353,13 @@ toFile( self, filename, format=0 )
             xmlIndentTreeOutput = t_indent_var;
         }
 
-        xmlSaveNoEmptyTags = oldTagFlag;   
+        xmlSaveNoEmptyTags = oldTagFlag;
 
-        sv_2mortal( LibXML_error );
-        LibXML_croak_error();
+        LibXML_report_error(saved_error, 0);
 
-        if ( RETVAL > 0 ) 
+        if ( RETVAL > 0 )
             RETVAL = 1;
-        else 
+        else
             XSRETURN_UNDEF;
     OUTPUT:
         RETVAL
@@ -2343,21 +2368,21 @@ SV *
 toStringHTML(self)
         xmlDocPtr self
     ALIAS:
-       XML::LibXML::Document::serialize_html = 1 
+       XML::LibXML::Document::serialize_html = 1
     PREINIT:
+        SV * saved_error;
         xmlChar *result=NULL;
         STRLEN len = 0;
     CODE:
         xs_warn( "use no formated toString!" );
-        LibXML_init_error();
+        LibXML_init_error(&saved_error);
         htmlDocDumpMemory(self, &result, (int*)&len);
 
-        sv_2mortal( LibXML_error );
-        LibXML_croak_error();
+        LibXML_report_error(saved_error, 0);
 
-    	if (result == NULL) {
+        if (result == NULL) {
             XSRETURN_UNDEF;
-      	} else {
+        } else {
             /* warn("%s, %d\n",result, len); */
             RETVAL = newSVpvn((char *)result, (STRLEN)len);
             xmlFree(result);
@@ -2388,11 +2413,10 @@ setBaseURI( self, new_URI )
 SV*
 createDocument( CLASS, version="1.0", encoding=NULL )
         char * CLASS
-        char * version 
+        char * version
         char * encoding
     ALIAS:
         XML::LibXML::Document::new = 1
-        XML::LibXML::createDocument = 2
     PREINIT:
         xmlDocPtr doc=NULL;
     CODE:
@@ -2404,7 +2428,7 @@ createDocument( CLASS, version="1.0", encoding=NULL )
     OUTPUT:
         RETVAL
 
-SV* 
+SV*
 createInternalSubset( self, Pname, extID, sysID )
         xmlDocPtr self
         SV * Pname
@@ -2414,12 +2438,12 @@ createInternalSubset( self, Pname, extID, sysID )
         xmlDtdPtr dtd = NULL;
         xmlChar * name = NULL;
         xmlChar * externalID = NULL;
-        xmlChar * systemID = NULL; 
+        xmlChar * systemID = NULL;
     CODE:
         name = Sv2C( Pname, NULL );
         if ( name == NULL ) {
             XSRETURN_UNDEF;
-        }  
+        }
 
         externalID = Sv2C(extID, NULL);
         systemID   = Sv2C(sysID, NULL);
@@ -2437,7 +2461,7 @@ createInternalSubset( self, Pname, extID, sysID )
     OUTPUT:
         RETVAL
 
-SV* 
+SV*
 createExternalSubset( self, Pname, extID, sysID )
         xmlDocPtr self
         SV * Pname
@@ -2447,12 +2471,12 @@ createExternalSubset( self, Pname, extID, sysID )
         xmlDtdPtr dtd = NULL;
         xmlChar * name = NULL;
         xmlChar * externalID = NULL;
-        xmlChar * systemID = NULL; 
+        xmlChar * systemID = NULL;
     CODE:
         name = Sv2C( Pname, NULL );
         if ( name == NULL ) {
             XSRETURN_UNDEF;
-        }  
+        }
 
         externalID = Sv2C(extID, NULL);
         systemID   = Sv2C(sysID, NULL);
@@ -2471,7 +2495,7 @@ createExternalSubset( self, Pname, extID, sysID )
     OUTPUT:
         RETVAL
 
-SV* 
+SV*
 createDTD( self, Pname, extID, sysID )
         xmlDocPtr self
         SV * Pname
@@ -2481,12 +2505,12 @@ createDTD( self, Pname, extID, sysID )
         xmlDtdPtr dtd = NULL;
         xmlChar * name = NULL;
         xmlChar * externalID = NULL;
-        xmlChar * systemID = NULL; 
+        xmlChar * systemID = NULL;
     CODE:
         name = Sv2C( Pname, NULL );
         if ( name == NULL ) {
             XSRETURN_UNDEF;
-        }  
+        }
 
         externalID = Sv2C(extID, NULL);
         systemID   = Sv2C(sysID, NULL);
@@ -2509,9 +2533,6 @@ createDTD( self, Pname, extID, sysID )
 SV*
 createDocumentFragment( self )
         xmlDocPtr self
-    PREINIT:
-        xmlDocPtr real_doc;
-        xmlNodePtr fragment= NULL;
     CODE:
         RETVAL = PmmNodeToSv(xmlNewDocFragment(self), PmmPROXYNODE(self));
     OUTPUT:
@@ -2534,7 +2555,7 @@ createElement( self, name )
 
         newNode = xmlNewNode(NULL , elname);
         xmlFree(elname);
-        if ( newNode != NULL ) {        
+        if ( newNode != NULL ) {
             docfrag = PmmNewFragment( self );
             newNode->doc = self;
             xmlAddChild(PmmNODE(docfrag), newNode);
@@ -2564,7 +2585,7 @@ createRawElement( self, name )
 
         newNode = xmlNewDocNode(self,NULL , elname, NULL);
         xmlFree(elname);
-        if ( newNode != NULL ) {        
+        if ( newNode != NULL ) {
             docfrag = PmmNewFragment( self );
             xmlAddChild(PmmNODE(docfrag), newNode);
             RETVAL = PmmNodeToSv(newNode,docfrag);
@@ -2587,19 +2608,16 @@ createElementNS( self, nsURI, name )
         xmlChar * prefix       = NULL;
         xmlChar * localname    = NULL;
         xmlChar * eURI         = NULL;
-        const xmlChar * pchar  = NULL;
         xmlNsPtr ns            = NULL;
         ProxyNodePtr docfrag   = NULL;
         xmlNodePtr newNode     = NULL;
-        int err                = 0;
-        xmlChar * cur          = NULL;
     CODE:
         ename = nodeSv2C( name , (xmlNodePtr) self );
         if ( !LibXML_test_node_name( ename ) ) {
             xmlFree( ename );
             croak( "bad name" );
         }
-        
+
         eURI  = Sv2C( nsURI , NULL );
 
         if ( eURI != NULL && xmlStrlen(eURI)!=0 ){
@@ -2610,9 +2628,9 @@ createElementNS( self, nsURI, name )
 
             newNode = xmlNewNode( NULL , localname );
             newNode->doc = self;
-            
+
             ns = xmlSearchNsByHref( self, newNode, eURI );
-            if ( ns == NULL ) { 
+            if ( ns == NULL ) {
                 /* create a new NS if the NS does not already exists */
                 ns = xmlNewNs(newNode, eURI , prefix );
             }
@@ -2631,19 +2649,19 @@ createElementNS( self, nsURI, name )
             xmlFree(localname);
         }
         else {
-            xs_warn( " ordinary element " );    
+            xs_warn( " ordinary element " );
             /* ordinary element */
             localname = ename;
-        
+
             newNode = xmlNewNode( NULL , localname );
             newNode->doc = self;
         }
-        
+
         xmlSetNs(newNode, ns);
         docfrag = PmmNewFragment( self );
         xmlAddChild(PmmNODE(docfrag), newNode);
         RETVAL = PmmNodeToSv(newNode, docfrag);
-    
+
         if ( prefix != NULL ) {
             xmlFree(prefix);
         }
@@ -2665,19 +2683,16 @@ createRawElementNS( self, nsURI, name )
         xmlChar * prefix       = NULL;
         xmlChar * localname    = NULL;
         xmlChar * eURI         = NULL;
-        const xmlChar * pchar  = NULL;
         xmlNsPtr ns            = NULL;
         ProxyNodePtr docfrag   = NULL;
         xmlNodePtr newNode     = NULL;
-        int err                = 0;
-        xmlChar * cur          = NULL;
     CODE:
         ename = nodeSv2C( name , (xmlNodePtr) self );
         if ( !LibXML_test_node_name( ename ) ) {
             xmlFree( ename );
             croak( "bad name" );
         }
-        
+
         eURI  = Sv2C( nsURI , NULL );
 
         if ( eURI != NULL && xmlStrlen(eURI)!=0 ){
@@ -2687,9 +2702,9 @@ createRawElementNS( self, nsURI, name )
             }
 
             newNode = xmlNewDocNode( self,NULL , localname, NULL );
-            
+
             ns = xmlSearchNsByHref( self, newNode, eURI );
-            if ( ns == NULL ) { 
+            if ( ns == NULL ) {
                 /* create a new NS if the NS does not already exists */
                 ns = xmlNewNs(newNode, eURI , prefix );
             }
@@ -2708,18 +2723,18 @@ createRawElementNS( self, nsURI, name )
             xmlFree(localname);
         }
         else {
-            xs_warn( " ordinary element " );    
+            xs_warn( " ordinary element " );
             /* ordinary element */
             localname = ename;
-        
+
             newNode = xmlNewDocNode( self, NULL , localname, NULL );
         }
-        
+
         xmlSetNs(newNode, ns);
         docfrag = PmmNewFragment( self );
         xmlAddChild(PmmNODE(docfrag), newNode);
         RETVAL = PmmNodeToSv(newNode, docfrag);
-    
+
         if ( prefix != NULL ) {
             xmlFree(prefix);
         }
@@ -2738,13 +2753,12 @@ createTextNode( self, content )
         xmlNodePtr newNode;
         xmlChar * elname = NULL;
         ProxyNodePtr docfrag = NULL;
-        STRLEN len;
     CODE:
         elname = nodeSv2C( content , (xmlNodePtr) self );
         if ( elname != NULL || xmlStrlen(elname) > 0 ) {
             newNode = xmlNewDocText( self, elname );
             xmlFree(elname);
-            if ( newNode != NULL ) {        
+            if ( newNode != NULL ) {
                 docfrag = PmmNewFragment( self );
                 newNode->doc = self;
                 xmlAddChild(PmmNODE(docfrag), newNode);
@@ -2769,13 +2783,12 @@ createComment( self , content )
         xmlNodePtr newNode;
         xmlChar * elname = NULL;
         ProxyNodePtr docfrag = NULL;
-        STRLEN len;
     CODE:
         elname = nodeSv2C( content , (xmlNodePtr) self );
         if ( elname != NULL || xmlStrlen(elname) > 0 ) {
             newNode = xmlNewDocComment( self, elname );
             xmlFree(elname);
-            if ( newNode != NULL ) {        
+            if ( newNode != NULL ) {
                 docfrag = PmmNewFragment( self );
                 newNode->doc = self;
                 xmlAddChild(PmmNODE(docfrag), newNode);
@@ -2801,16 +2814,16 @@ createCDATASection( self, content )
         xmlNodePtr newNode;
         xmlChar * elname = NULL;
         ProxyNodePtr docfrag = NULL;
-    CODE:       
+    CODE:
         elname = nodeSv2C( content , (xmlNodePtr)self );
         if ( elname != NULL || xmlStrlen(elname) > 0 ) {
             newNode = xmlNewCDataBlock( self, elname, xmlStrlen(elname) );
             xmlFree(elname);
-            if ( newNode != NULL ) {        
-                newNode->doc = self;
+            if ( newNode != NULL ) {
                 docfrag = PmmNewFragment( self );
+                newNode->doc = self;
                 xmlAddChild(PmmNODE(docfrag), newNode);
-                xs_warn( newNode->name );
+                xs_warn( "[CDATA section]" );
                 RETVAL = PmmNodeToSv(newNode,docfrag);
             }
             else {
@@ -2831,7 +2844,7 @@ createEntityReference( self , pname )
     PREINIT:
         xmlNodePtr newNode;
         xmlChar * name = Sv2C( pname, NULL );
-        ProxyNodePtr docfrag = NULL;      
+        ProxyNodePtr docfrag = NULL;
     CODE:
         if ( name == NULL ) {
             XSRETURN_UNDEF;
@@ -2856,8 +2869,6 @@ createAttribute( self, pname, pvalue=&PL_sv_undef )
         xmlChar * name = NULL;
         xmlChar * value = NULL;
         xmlAttrPtr newAttr = NULL;
-        xmlChar * cur  = NULL;
-        int err = 0;
     CODE:
         name = nodeSv2C( pname , (xmlNodePtr) self );
         if ( !LibXML_test_node_name( name ) ) {
@@ -2867,7 +2878,7 @@ createAttribute( self, pname, pvalue=&PL_sv_undef )
 
         value = nodeSv2C( pvalue , (xmlNodePtr) self );
         newAttr = xmlNewDocProp( self, name, value );
-        RETVAL = PmmNodeToSv((xmlNodePtr)newAttr, NULL); 
+        RETVAL = PmmNodeToSv((xmlNodePtr)newAttr, NULL);
 
         xmlFree(name);
         if ( value ) {
@@ -2891,8 +2902,6 @@ createAttributeNS( self, URI, pname, pvalue=&PL_sv_undef )
         xmlChar * nsURI = NULL;
         xmlAttrPtr newAttr = NULL;
         xmlNsPtr ns = NULL;
-        xmlChar * cur  = NULL;
-        int err = 0;
     CODE:
         name = nodeSv2C( pname , (xmlNodePtr) self );
         if ( !LibXML_test_node_name( name ) ) {
@@ -2919,7 +2928,7 @@ createAttributeNS( self, URI, pname, pvalue=&PL_sv_undef )
                     ns = xmlNewNs(root, nsURI , prefix );
                 }
 
-                if ( ns == NULL ) { 
+                if ( ns == NULL ) {
                     xmlFree(nsURI);
                     xmlFree(localname);
                     if ( prefix ) {
@@ -2946,7 +2955,7 @@ createAttributeNS( self, URI, pname, pvalue=&PL_sv_undef )
                 if ( value ) {
                     xmlFree(value);
                 }
-            }   
+            }
             else {
                 croak( "can't create a new namespace on an attribute!" );
                 xmlFree(name);
@@ -2984,7 +2993,7 @@ createProcessingInstruction(self, name, value=&PL_sv_undef)
             XSRETURN_UNDEF;
         }
         v = nodeSv2C(value, (xmlNodePtr)self);
-        pinode = xmlNewPI(n,v);      
+        pinode = xmlNewPI(n,v);
         pinode->doc = self;
 
         RETVAL = PmmNodeToSv(pinode,NULL);
@@ -2996,22 +3005,21 @@ createProcessingInstruction(self, name, value=&PL_sv_undef)
 
 
 
-void 
+void
 _setDocumentElement( self , proxy )
         xmlDocPtr self
         SV * proxy
     PREINIT:
         xmlNodePtr elem, oelem;
-        SV* oldsv =NULL;
     INIT:
         elem = PmmSvNode(proxy);
         if ( elem == NULL ) {
             XSRETURN_UNDEF;
-        }          
+        }
     CODE:
         /* please correct me if i am wrong: the document element HAS to be
          * an ELEMENT NODE
-         */ 
+         */
         if ( elem->type == XML_ELEMENT_NODE ) {
             if ( self != elem->doc ) {
                 domImportNode( self, elem, 1 );
@@ -3065,7 +3073,7 @@ externalSubset( self )
         RETVAL = PmmNodeToSv((xmlNodePtr)dtd, PmmPROXYNODE(self));
     OUTPUT:
         RETVAL
-        
+
 SV *
 internalSubset( self )
         xmlDocPtr self
@@ -3095,11 +3103,12 @@ setExternalSubset( self, extdtd )
         }
     CODE:
         if ( dtd && dtd != self->extSubset ) {
-            if ( dtd->doc != self ) {
-                croak( "can't import DTDs" );
-                domImportNode( self, (xmlNodePtr) dtd,1);
+            if ( dtd->doc == NULL ) {
+                xmlSetTreeDoc( (xmlNodePtr) dtd, self );
+            } else if ( dtd->doc != self ) {
+                domImportNode( self, (xmlNodePtr) dtd,1); 
             }
-    
+
             if ( dtd == self->intSubset ) {
                 xmlUnlinkNode( (xmlNodePtr)dtd );
                 self->intSubset = NULL;
@@ -3130,7 +3139,7 @@ setInternalSubset( self, extdtd )
                 croak( "can't import DTDs" );
                 domImportNode( self, (xmlNodePtr) dtd,1);
             }
-    
+
             if ( dtd == self->extSubset ) {
                 self->extSubset = NULL;
             }
@@ -3152,14 +3161,14 @@ setInternalSubset( self, extdtd )
         }
 
 SV *
-removeInternalSubset( self ) 
+removeInternalSubset( self )
         xmlDocPtr self
     PREINIT:
         xmlDtdPtr dtd = NULL;
     CODE:
         dtd = xmlGetIntSubset(self);
         if ( !dtd ) {
-            XSRETURN_UNDEF;   
+            XSRETURN_UNDEF;
         }
         xmlUnlinkNode( (xmlNodePtr)dtd );
         self->intSubset = NULL;
@@ -3168,14 +3177,14 @@ removeInternalSubset( self )
         RETVAL
 
 SV *
-removeExternalSubset( self ) 
+removeExternalSubset( self )
         xmlDocPtr self
     PREINIT:
         xmlDtdPtr dtd = NULL;
     CODE:
         dtd = self->extSubset;
         if ( !dtd ) {
-            XSRETURN_UNDEF;   
+            XSRETURN_UNDEF;
         }
         self->extSubset = NULL;
         RETVAL = PmmNodeToSv( (xmlNodePtr)dtd, PmmPROXYNODE(self) );
@@ -3183,15 +3192,15 @@ removeExternalSubset( self )
         RETVAL
 
 SV *
-importNode( self, node, dummy=0 ) 
+importNode( self, node, dummy=0 )
         xmlDocPtr self
         xmlNodePtr node
         int dummy
     PREINIT:
         xmlNodePtr ret = NULL;
         ProxyNodePtr docfrag = NULL;
-    CODE:   
-        if ( node->type == XML_DOCUMENT_NODE 
+    CODE:
+        if ( node->type == XML_DOCUMENT_NODE
              || node->type == XML_HTML_DOCUMENT_NODE ) {
             croak( "Can't import Documents!" );
             XSRETURN_UNDEF;
@@ -3210,14 +3219,14 @@ importNode( self, node, dummy=0 )
         RETVAL
 
 SV *
-adoptNode( self, node ) 
+adoptNode( self, node )
         xmlDocPtr self
         xmlNodePtr node
     PREINIT:
         xmlNodePtr ret = NULL;
         ProxyNodePtr docfrag = NULL;
     CODE:
-        if ( node->type == XML_DOCUMENT_NODE 
+        if ( node->type == XML_DOCUMENT_NODE
              || node->type == XML_HTML_DOCUMENT_NODE ) {
             croak( "Can't adopt Documents!" );
             XSRETURN_UNDEF;
@@ -3257,7 +3266,7 @@ setEncoding( self, encoding )
     CODE:
         if ( self->encoding != NULL ) {
             xmlFree( (xmlChar*) self->encoding );
-        }   
+        }
         self->encoding = xmlStrdup( (const xmlChar *)encoding );
         charset = (int)xmlParseCharEncoding( (const char*)self->encoding );
         if ( charset > 0 ) {
@@ -3266,10 +3275,10 @@ setEncoding( self, encoding )
         else {
             ((ProxyNodePtr)self->_private)->encoding = XML_CHAR_ENCODING_ERROR;
         }
-        
+
 
 int
-standalone( self ) 
+standalone( self )
         xmlDocPtr self
     CODE:
         RETVAL = self->standalone;
@@ -3292,7 +3301,7 @@ setStandalone( self, value = 0 )
         }
 
 char*
-version( self ) 
+version( self )
          xmlDocPtr self
     ALIAS:
         XML::LibXML::Document::getVersion = 1
@@ -3331,18 +3340,19 @@ int
 is_valid(self, ...)
         xmlDocPtr self
     PREINIT:
+        SV * saved_error;
         xmlValidCtxt cvp;
         xmlDtdPtr dtd;
         SV * dtd_sv;
-        STRLEN n_a, len;
     CODE:
-        LibXML_init_error();
+        LibXML_init_error(&saved_error);
+
         cvp.userData = (void*)PerlIO_stderr();
         cvp.error = (xmlValidityErrorFunc)LibXML_validity_error;
         cvp.warning = (xmlValidityWarningFunc)LibXML_validity_warning;
 
-        /* we need to initialize the node stack, because perl might 
-         * already messed it up.
+        /* we need to initialize the node stack, because perl might
+         * already have messed it up.
          */
         cvp.nodeNr = 0;
         cvp.nodeTab = NULL;
@@ -3359,7 +3369,8 @@ is_valid(self, ...)
         else {
             RETVAL = xmlValidateDocument(&cvp, self);
         }
-        sv_2mortal(LibXML_error);
+
+        /* LibXML_report_error(saved_error, 1); */
     OUTPUT:
         RETVAL
 
@@ -3367,17 +3378,18 @@ int
 validate(self, ...)
         xmlDocPtr self
     PREINIT:
+        SV * saved_error;
         xmlValidCtxt cvp;
         xmlDtdPtr dtd;
         SV * dtd_sv;
-        STRLEN n_a, len;
     CODE:
-        LibXML_init_error();
+        LibXML_init_error(&saved_error);
+
         cvp.userData = (void*)PerlIO_stderr();
         cvp.error = (xmlValidityErrorFunc)LibXML_validity_error;
         cvp.warning = (xmlValidityWarningFunc)LibXML_validity_warning;
-        /* we need to initialize the node stack, because perl might 
-         * already messed it up.
+        /* we need to initialize the node stack, because perl might
+         * already have messed it up.
          */
         cvp.nodeNr = 0;
         cvp.nodeTab = NULL;
@@ -3397,14 +3409,37 @@ validate(self, ...)
         else {
             RETVAL = xmlValidateDocument(&cvp, self);
         }
-        sv_2mortal(LibXML_error);
 
-        if (RETVAL == 0) {
-            LibXML_croak_error();
-        }
+        LibXML_report_error(saved_error, RETVAL);
     OUTPUT:
         RETVAL
 
+SV*
+cloneNode( self, deep=0 ) 
+        xmlDocPtr self
+        int deep
+    PREINIT:
+        xmlDocPtr ret = NULL;
+    CODE:
+        ret = xmlCopyDoc( self, deep );
+        if ( ret == NULL ) {
+            XSRETURN_UNDEF;
+        }
+        RETVAL = PmmNodeToSv((xmlNodePtr)ret, NULL); 
+    OUTPUT:
+        RETVAL
+
+int
+indexElements ( self )
+        xmlDocPtr self
+     CODE:
+#if LIBXML_VERSION >= 20508
+        RETVAL = xmlXPathOrderDocElems( self );
+#else
+        RETVAL = -2;
+#endif
+     OUTPUT:
+        RETVAL
 
 MODULE = XML::LibXML         PACKAGE = XML::LibXML::Node
 
@@ -3446,8 +3481,6 @@ localname( self )
         XML::LibXML::Node::getLocalName = 1
         XML::LibXML::Attr::name         = 2
         XML::LibXML::Node::localName    = 3
-    PREINIT:
-        xmlChar * lname;
     CODE:
         if (    self->type == XML_ELEMENT_NODE
              || self->type == XML_ATTRIBUTE_NODE
@@ -3466,11 +3499,9 @@ prefix( self )
         xmlNodePtr self
     ALIAS:
         XML::LibXML::Node::getPrefix = 1
-    PREINIT:
-        xmlChar * prefix;
     CODE:
         if( self->ns != NULL
-            && self->ns->prefix != NULL ) {            
+            && self->ns->prefix != NULL ) {
             RETVAL = C2Sv(self->ns->prefix, NULL);
         }
         else {
@@ -3495,10 +3526,10 @@ namespaceURI( self )
         }
         else {
             XSRETURN_UNDEF;
-        }        
+        }
     OUTPUT:
         RETVAL
-        
+
 
 SV*
 lookupNamespaceURI( self, svprefix=&PL_sv_undef )
@@ -3583,7 +3614,7 @@ setNodeName( self , value )
         xmlFree(string);
 
 void
-setRawName( self, value ) 
+setRawName( self, value )
         xmlNodePtr self
         SV * value
     PREINIT:
@@ -3609,8 +3640,8 @@ setRawName( self, value )
 
 
 SV*
-nodeValue( self, useDomEncoding = &PL_sv_undef ) 
-        xmlNodePtr self 
+nodeValue( self, useDomEncoding = &PL_sv_undef )
+        xmlNodePtr self
         SV * useDomEncoding
     ALIAS:
         XML::LibXML::Attr::value     = 1
@@ -3621,8 +3652,8 @@ nodeValue( self, useDomEncoding = &PL_sv_undef )
     PREINIT:
         xmlChar * content = NULL;
     CODE:
-        content = domGetNodeValue( self ); 
-        
+        content = domGetNodeValue( self );
+
         if ( content != NULL ) {
             if ( SvTRUE(useDomEncoding) ) {
                 RETVAL = nodeC2Sv(content, self);
@@ -3638,8 +3669,8 @@ nodeValue( self, useDomEncoding = &PL_sv_undef )
     OUTPUT:
         RETVAL
 
-int 
-nodeType( self ) 
+int
+nodeType( self )
         xmlNodePtr self
     ALIAS:
         XML::LibXML::Node::getType = 1
@@ -3657,18 +3688,18 @@ parentNode( self )
         XML::LibXML::Attr::getOwnerElement = 3
     CODE:
         RETVAL = PmmNodeToSv( self->parent,
-                              PmmOWNERPO( PmmPROXYNODE(self) ) ); 
+                              PmmOWNERPO( PmmPROXYNODE(self) ) );
     OUTPUT:
         RETVAL
 
 SV*
-nextSibling( self ) 
+nextSibling( self )
         xmlNodePtr self
     ALIAS:
         getNextSibling = 1
     CODE:
         RETVAL = PmmNodeToSv( self->next,
-                              PmmOWNERPO(PmmPROXYNODE(self)) ); 
+                              PmmOWNERPO(PmmPROXYNODE(self)) );
     OUTPUT:
         RETVAL
 
@@ -3679,7 +3710,7 @@ previousSibling( self )
         getPreviousSibling = 1
     CODE:
         RETVAL = PmmNodeToSv( self->prev,
-                              PmmOWNERPO( PmmPROXYNODE(self) ) ); 
+                              PmmOWNERPO( PmmPROXYNODE(self) ) );
     OUTPUT:
         RETVAL
 
@@ -3699,7 +3730,7 @@ _childNodes( self )
             xs_warn("childnodes start");
             while ( cld ) {
                 if( wantarray != G_SCALAR ) {
-	                element = PmmNodeToSv(cld, PmmOWNERPO(PmmPROXYNODE(self)) );
+                    element = PmmNodeToSv(cld, PmmOWNERPO(PmmPROXYNODE(self)) );
                     XPUSHs(sv_2mortal(element));
                 }
                 cld = cld->next;
@@ -3717,7 +3748,7 @@ firstChild( self )
         getFirstChild = 1
     CODE:
         RETVAL = PmmNodeToSv( self->children,
-                              PmmOWNERPO( PmmPROXYNODE(self) ) ); 
+                              PmmOWNERPO( PmmPROXYNODE(self) ) );
     OUTPUT:
         RETVAL
 
@@ -3728,7 +3759,7 @@ lastChild( self )
         getLastChild = 1
     CODE:
         RETVAL = PmmNodeToSv( self->last,
-                              PmmOWNERPO( PmmPROXYNODE(self) ) ); 
+                              PmmOWNERPO( PmmPROXYNODE(self) ) );
     OUTPUT:
         RETVAL
 
@@ -3762,10 +3793,10 @@ _attributes( self )
                 if ( wantarray != G_SCALAR ) {
                     /* namespace handling is kinda odd:
                      * as soon we have a namespace isolated from its
-                     * owner, we loose the context. therefore it is 
+                     * owner, we loose the context. therefore it is
                      * forbidden to access the NS information directly.
                      * instead the use will recieve a copy of the real
-                     * namespace, that can be destroied and is not 
+                     * namespace, that can be destroied and is not
                      * bound to a document.
                      *
                      * this avoids segfaults in the end.
@@ -3773,8 +3804,8 @@ _attributes( self )
                     xmlNsPtr tns = xmlCopyNamespace(ns);
                     if ( tns != NULL ) {
                         element = sv_newmortal();
-                        XPUSHs(sv_setref_pv( element, 
-                                             (char *)CLASS, 
+                        XPUSHs(sv_setref_pv( element,
+                                             (char *)CLASS,
                                              (void*)tns));
                     }
                 }
@@ -3786,7 +3817,7 @@ _attributes( self )
             XPUSHs( sv_2mortal(newSViv(len)) );
         }
 
-int 
+int
 hasChildNodes( self )
         xmlNodePtr self
     CODE:
@@ -3799,7 +3830,7 @@ hasChildNodes( self )
     OUTPUT:
         RETVAL
 
-int 
+int
 hasAttributes( self )
         xmlNodePtr self
     CODE:
@@ -3830,7 +3861,7 @@ ownerDocument( self )
         RETVAL
 
 SV*
-ownerNode( self ) 
+ownerNode( self )
         xmlNodePtr self
     ALIAS:
         XML::LibXML::Node::getOwner = 1
@@ -3851,7 +3882,7 @@ normalize( self )
 
 
 SV*
-insertBefore( self, nNode, ref ) 
+insertBefore( self, nNode, ref )
         xmlNodePtr self
         xmlNodePtr nNode
         SV * ref
@@ -3880,7 +3911,7 @@ insertBefore( self, nNode, ref )
     OUTPUT:
         RETVAL
 
-SV* 
+SV*
 insertAfter( self, nNode, ref )
         xmlNodePtr self
         xmlNodePtr nNode
@@ -3910,7 +3941,7 @@ insertAfter( self, nNode, ref )
         RETVAL
 
 SV*
-replaceChild( self, nNode, oNode ) 
+replaceChild( self, nNode, oNode )
         xmlNodePtr self
         xmlNodePtr nNode
         xmlNodePtr oNode
@@ -3949,7 +3980,7 @@ replaceChild( self, nNode, oNode )
     OUTPUT:
         RETVAL
 
-SV* 
+SV*
 replaceNode( self,nNode )
         xmlNodePtr self
         xmlNodePtr nNode
@@ -3977,9 +4008,9 @@ replaceNode( self,nNode )
             else {
                 /* create document fragment */
                 docfrag = PmmNewFragment( self->doc );
-                xmlAddChild( PmmNODE(docfrag), ret ); 
+                xmlAddChild( PmmNODE(docfrag), ret );
             }
-                
+
             RETVAL = PmmNodeToSv(ret, docfrag);
             if ( nNode->_private != NULL ) {
                 PmmFixOwner( PmmPROXYNODE(nNode),
@@ -3995,7 +4026,7 @@ replaceNode( self,nNode )
         RETVAL
 
 SV*
-removeChild( self, node ) 
+removeChild( self, node )
         xmlNodePtr self
         xmlNodePtr node
     PREINIT:
@@ -4029,7 +4060,7 @@ removeChildNodes( self )
             /* this following piece is the function of domAppendChild()
              * but in this special case we can avoid most of the logic of
              * that function.
-             */ 
+             */
             if ( fragment->children != NULL ) {
                 xs_warn("unlink node!\n");
                 domAddNodeToList( elem, fragment->last, NULL );
@@ -4046,6 +4077,7 @@ removeChildNodes( self )
         self->children = self->last = NULL;
         if ( PmmREFCNT(docfrag) <= 0 ) {
             xs_warn( "have not references left" );
+            PmmREFCNT_inc( docfrag );
             PmmREFCNT_dec( docfrag );
         }
 
@@ -4056,7 +4088,6 @@ unbindNode( self )
         XML::LibXML::Node::unlink = 1
         XML::LibXML::Node::unlinkNode = 2
     PREINIT:
-        ProxyNodePtr dfProxy  = NULL;
         ProxyNodePtr docfrag     = NULL;
     CODE:
         if ( self->type != XML_DOCUMENT_NODE
@@ -4074,7 +4105,7 @@ appendChild( self, nNode )
         xmlNodePtr self
         xmlNodePtr nNode
     PREINIT:
-        xmlNodePtr test = NULL, rNode;
+        xmlNodePtr rNode;
     CODE:
         if (self->type == XML_DOCUMENT_NODE ) {
             /* NOT_SUPPORTED_ERR
@@ -4096,7 +4127,7 @@ appendChild( self, nNode )
         if ( rNode == NULL ) {
             XSRETURN_UNDEF;
         }
-           
+
         RETVAL = PmmNodeToSv( nNode,
                               PmmOWNERPO(PmmPROXYNODE(self)) );
         PmmFixOwner( SvPROXYNODE(RETVAL), PmmPROXYNODE(self) );
@@ -4157,7 +4188,7 @@ addSibling( self, nNode )
         RETVAL
 
 SV*
-cloneNode( self, deep=0 ) 
+cloneNode( self, deep=0 )
         xmlNodePtr self
         int deep
     PREINIT:
@@ -4175,19 +4206,19 @@ cloneNode( self, deep=0 )
         }
         else {
             doc = self->doc;
-            
+
             if ( doc != NULL ) {
                 xmlSetTreeDoc(ret, doc);
             }
-            
+
             docfrag = PmmNewFragment( doc );
             xmlAddChild( PmmNODE(docfrag), ret );
-            RETVAL = PmmNodeToSv(ret, docfrag); 
-        }   
+            RETVAL = PmmNodeToSv(ret, docfrag);
+        }
     OUTPUT:
         RETVAL
 
-int 
+int
 isSameNode( self, oNode )
         xmlNodePtr self
         xmlNodePtr oNode
@@ -4236,7 +4267,7 @@ toString( self, format=0, useDomEncoding = &PL_sv_undef )
         int oldTagFlag = xmlSaveNoEmptyTags;
     CODE:
         internalFlag = perl_get_sv("XML::LibXML::setTagCompression", 0);
-    
+
         if ( internalFlag ) {
             xmlSaveNoEmptyTags = SvTRUE(internalFlag);
         }
@@ -4258,7 +4289,7 @@ toString( self, format=0, useDomEncoding = &PL_sv_undef )
         if ( xmlBufferLength(buffer) > 0 ) {
             ret = xmlBufferContent( buffer );
         }
-        
+
         xmlSaveNoEmptyTags = oldTagFlag;
 
         if ( ret != NULL ) {
@@ -4267,12 +4298,12 @@ toString( self, format=0, useDomEncoding = &PL_sv_undef )
             }
             else {
                 RETVAL = C2Sv((xmlChar*)ret, NULL) ;
-            }        
+            }
             xmlBufferFree( buffer );
         }
         else {
             xmlBufferFree( buffer );
-	        xs_warn("Failed to convert doc to string");           
+            xs_warn("Failed to convert doc to string");
             XSRETURN_UNDEF;
         }
     OUTPUT:
@@ -4280,11 +4311,12 @@ toString( self, format=0, useDomEncoding = &PL_sv_undef )
 
 
 SV *
-_toStringC14N(self, comments, xpath)
+toStringC14N(self, comments=0, xpath = &PL_sv_undef)
         xmlNodePtr self
         int comments
         SV * xpath
     PREINIT:
+        /* SV * saved_error; */
         xmlChar *result               = NULL;
         xmlChar *nodepath             = NULL;
         xmlXPathContextPtr child_ctxt = NULL;
@@ -4295,7 +4327,7 @@ _toStringC14N(self, comments, xpath)
         /* due to how c14n is implemented, the nodeset it receives must
           include child nodes; ie, child nodes aren't assumed to be rendered.
           so we use an xpath expression to find all of the child nodes. */
-        
+
         if ( self->doc == NULL ) {
             croak("Node passed to toStringC14N must be part of a document");
         }
@@ -4311,12 +4343,15 @@ _toStringC14N(self, comments, xpath)
             nodepath = NULL;
         }
 
-        if ( nodepath == NULL 
-             && self->type != XML_DOCUMENT_NODE 
-             && self->type != XML_HTML_DOCUMENT_NODE 
+        if ( nodepath == NULL
+             && self->type != XML_DOCUMENT_NODE
+             && self->type != XML_HTML_DOCUMENT_NODE
              && self->type != XML_DOCB_DOCUMENT_NODE
            ) {
-            nodepath = xmlStrdup( ".//*" );         
+            if (comments)
+                nodepath = xmlStrdup( "(.//node() | .//@* | .//namespace::*)" );
+            else
+                nodepath = xmlStrdup( "(.//node() | .//@* | .//namespace::*)[not(self::comment())]" );
         }
 
         if ( nodepath != NULL ) {
@@ -4325,7 +4360,7 @@ _toStringC14N(self, comments, xpath)
                  || self->type == XML_DOCB_DOCUMENT_NODE ) {
                 refNode = xmlDocGetRootElement( self->doc );
             }
-        
+
             child_ctxt = xmlXPathNewContext(self->doc);
             if (!child_ctxt) {
                 if ( nodepath != NULL ) {
@@ -4333,7 +4368,7 @@ _toStringC14N(self, comments, xpath)
                 }
                 croak("Failed to create xpath context");
             }
-    
+
             child_ctxt->node = self;
             /* get the namespace information */
             if (self->type == XML_DOCUMENT_NODE) {
@@ -4361,7 +4396,7 @@ _toStringC14N(self, comments, xpath)
                 croak("2 Failed to compile xpath expression");
             }
 
-            nodelist = child_xpath->nodesetval;        
+            nodelist = child_xpath->nodesetval;
             if ( nodelist == NULL ) {
                 xmlFree( nodepath );
                 xmlXPathFreeObject(child_xpath);
@@ -4372,8 +4407,9 @@ _toStringC14N(self, comments, xpath)
                 croak( "cannot canonize empty nodeset!" );
             }
         }
-        /* LibXML_init_error(); */
-        
+
+        /* LibXML_init_error(&saved_error); */
+
         xmlC14NDocDumpMemory( self->doc,
                               nodelist,
                               0, NULL,
@@ -4393,8 +4429,7 @@ _toStringC14N(self, comments, xpath)
             xmlFree( nodepath );
         }
 
-        /* sv_2mortal( LibXML_error ); */
-        /* LibXML_croak_error(); */
+        /* LibXML_report_error(saved_error, 0); */
 
         if (result == NULL) {
              croak("Failed to convert doc to string in doc->toStringC14N");
@@ -4431,7 +4466,7 @@ string_value ( self, useDomEncoding = &PL_sv_undef )
 
 double
 to_number ( self )
-        xmlNodePtr self 
+        xmlNodePtr self
     CODE:
         RETVAL = xmlXPathCastNodeToNumber(self);
     OUTPUT:
@@ -4443,12 +4478,11 @@ _find( pnode, pxpath )
         SV* pnode
         SV * pxpath
     PREINIT:
+        SV * saved_error;
         xmlNodePtr node = PmmSvNode(pnode);
         ProxyNodePtr owner = NULL;
         xmlXPathObjectPtr found = NULL;
         xmlNodeSetPtr nodelist = NULL;
-        SV* element = NULL ;
-        STRLEN n_a;
         STRLEN len = 0 ;
         xmlChar * xpath = nodeSv2C(pxpath, node);
     INIT:
@@ -4457,7 +4491,7 @@ _find( pnode, pxpath )
         }
         if ( !(xpath && xmlStrlen(xpath)) ) {
             xs_warn( "bad xpath\n" );
-            if ( xpath ) 
+            if ( xpath )
                 xmlFree(xpath);
             croak( "empty XPath found" );
             XSRETURN_UNDEF;
@@ -4470,13 +4504,10 @@ _find( pnode, pxpath )
             domNodeNormalize( PmmOWNER(SvPROXYNODE(pnode)) );
         }
 
-        LibXML_init_error();
+        LibXML_init_error(&saved_error);
 
         found = domXPathFind( node, xpath );
         xmlFree( xpath );
-
-        sv_2mortal( LibXML_error );
-        LibXML_croak_error();
 
         if (found) {
             switch (found->type) {
@@ -4487,14 +4518,14 @@ _find( pnode, pxpath )
                     nodelist = found->nodesetval;
                     if ( nodelist ) {
                         if ( nodelist->nodeNr > 0 ) {
-                            int i = 0 ;
+                            int i;
                             const char * cls = "XML::LibXML::Node";
                             xmlNodePtr tnode;
                             SV * element;
-                        
+
                             owner = PmmOWNERPO(SvPROXYNODE(pnode));
                             len = nodelist->nodeNr;
-                            for( i ; i < len; i++){
+                            for( i=0 ; i < len; i++){
                                 /* we have to create a new instance of an
                                  * objectptr. and then
                                  * place the current node into the new
@@ -4521,11 +4552,11 @@ _find( pnode, pxpath )
                                 else {
                                     element = PmmNodeToSv(tnode, owner);
                                 }
-    
+
                                 XPUSHs( sv_2mortal(element) );
                             }
                         }
-                        xmlXPathFreeNodeSet( found->nodesetval );  
+                        xmlXPathFreeNodeSet( found->nodesetval );
                         found->nodesetval = NULL;
                     }
                     break;
@@ -4552,15 +4583,15 @@ _find( pnode, pxpath )
             }
             xmlXPathFreeObject(found);
         }
-        else {
-            LibXML_croak_error();
-        }
+
+        LibXML_report_error(saved_error, 0);
 
 void
 _findnodes( pnode, perl_xpath )
         SV* pnode
-        SV * perl_xpath 
+        SV * perl_xpath
     PREINIT:
+        SV * saved_error;
         xmlNodePtr node = PmmSvNode(pnode);
         ProxyNodePtr owner = NULL;
         xmlNodeSetPtr nodelist = NULL;
@@ -4573,11 +4604,11 @@ _findnodes( pnode, perl_xpath )
         }
         if ( !(xpath && xmlStrlen(xpath)) ) {
             xs_warn( "bad xpath\n" );
-            if ( xpath ) 
+            if ( xpath )
                 xmlFree(xpath);
             croak( "empty XPath found" );
             XSRETURN_UNDEF;
-        }   
+        }
     PPCODE:
         if ( node->doc ) {
             domNodeNormalize( xmlDocGetRootElement(node->doc ) );
@@ -4586,26 +4617,23 @@ _findnodes( pnode, perl_xpath )
             domNodeNormalize( PmmOWNER(SvPROXYNODE(pnode)) );
         }
 
-        LibXML_init_error();
+        LibXML_init_error(&saved_error);
 
         nodelist = domXPathSelect( node, xpath );
         xmlFree(xpath);
 
-        sv_2mortal( LibXML_error );
-        LibXML_croak_error();
-
         if ( nodelist ) {
             if ( nodelist->nodeNr > 0 ) {
-                int i = 0 ;
+                int i;
                 const char * cls = "XML::LibXML::Node";
                 xmlNodePtr tnode;
                 owner = PmmOWNERPO(SvPROXYNODE(pnode));
                 len = nodelist->nodeNr;
-                for( i ; i < len; i++){
-                    /* we have to create a new instance of an objectptr. 
-                     * and then place the current node into the new object. 
+                for(i=0 ; i < len; i++){
+                    /* we have to create a new instance of an objectptr.
+                     * and then place the current node into the new object.
                      * afterwards we can push the object to the array!
-                     */ 
+                     */
                     element = NULL;
                     tnode = nodelist->nodeTab[i];
                     if (tnode->type == XML_NAMESPACE_DECL) {
@@ -4625,20 +4653,19 @@ _findnodes( pnode, perl_xpath )
                     else {
                         element = PmmNodeToSv(tnode, owner);
                     }
-                        
+
                     XPUSHs( sv_2mortal(element) );
                 }
             }
             xmlXPathFreeNodeSet( nodelist );
         }
-        else {
-            LibXML_croak_error();
-        }
+
+        LibXML_report_error(saved_error, 0);
 
 void
 getNamespaces( pnode )
         SV * pnode
-    ALIAS:  
+    ALIAS:
         namespaces = 1
     PREINIT:
         xmlNodePtr node;
@@ -4669,7 +4696,7 @@ getNamespaces( pnode )
 SV *
 getNamespace( node )
         xmlNodePtr node
-    ALIAS:  
+    ALIAS:
         localNamespace = 1
         localNS        = 2
     PREINIT:
@@ -4695,7 +4722,7 @@ getNamespace( node )
         RETVAL
 
 
-SV * 
+SV *
 nodePath( self )
         xmlNodePtr self
     PREINIT:
@@ -4716,7 +4743,7 @@ line_number( self )
         RETVAL = xmlGetLineNo( self );
     OUTPUT:
         RETVAL
-        
+
 MODULE = XML::LibXML         PACKAGE = XML::LibXML::Element
 
 SV*
@@ -4759,20 +4786,20 @@ _setNamespace(self, namespaceURI, namespacePrefix = &PL_sv_undef, flag = 1 )
         if ( xmlStrlen( nsPrefix ) == 0 ) {
             xmlFree(nsPrefix);
             nsPrefix = NULL;
-        } 
-        if ( ns = xmlSearchNsByHref(node->doc, node, nsURI) ) {
+        }
+        if ( (ns = xmlSearchNsByHref(node->doc, node, nsURI)) ) {
             if ( ns->prefix == nsPrefix               /* both are NULL then */
-                 || xmlStrEqual( ns->prefix, nsPrefix ) ) {            
+                 || xmlStrEqual( ns->prefix, nsPrefix ) ) {
                 RETVAL = 1;
             }
-            else if ( ns = xmlNewNs( node, nsURI, nsPrefix ) ) {
+            else if ( (ns = xmlNewNs( node, nsURI, nsPrefix )) ) {
                 RETVAL = 1;
             }
             else {
                 RETVAL = 0;
             }
         }
-        else if ( ns = xmlNewNs( node, nsURI, nsPrefix ) )
+        else if ( (ns = xmlNewNs( node, nsURI, nsPrefix )) )
             RETVAL = 1;
         else
             RETVAL = 0;
@@ -4786,7 +4813,7 @@ _setNamespace(self, namespaceURI, namespacePrefix = &PL_sv_undef, flag = 1 )
     OUTPUT:
         RETVAL
 
-int 
+int
 hasAttribute( self, attr_name )
         xmlNodePtr self
         SV * attr_name
@@ -4807,13 +4834,13 @@ hasAttribute( self, attr_name )
     OUTPUT:
         RETVAL
 
-int 
+int
 hasAttributeNS( self, namespaceURI, attr_name )
         xmlNodePtr self
         SV * namespaceURI
         SV * attr_name
     PREINIT:
-        xmlChar * name; 
+        xmlChar * name;
         xmlChar * nsURI;
     CODE:
         name = nodeSv2C(attr_name, self );
@@ -4835,7 +4862,7 @@ hasAttributeNS( self, namespaceURI, attr_name )
         }
 
         xmlFree(name);
-        xmlFree(nsURI);        
+        xmlFree(nsURI);
     OUTPUT:
         RETVAL
 
@@ -4852,12 +4879,12 @@ getAttribute( self, attr_name, doc_enc = 0 )
         if( !name ) {
             XSRETURN_UNDEF;
         }
-        
+
         ret = xmlGetProp(self, name);
         xmlFree(name);
 
         if ( ret ) {
-            if ( doc_enc == 1 ) { 
+            if ( doc_enc == 1 ) {
                 RETVAL = nodeC2Sv(ret, self);
             }
             else {
@@ -4879,8 +4906,6 @@ _setAttribute( self, attr_name, attr_value )
     PREINIT:
         xmlChar * name  = NULL;
         xmlChar * value = NULL;
-        xmlChar * cur   = NULL;
-        int err = 0;
     CODE:
         name  = nodeSv2C(attr_name, self );
 
@@ -4889,10 +4914,10 @@ _setAttribute( self, attr_name, attr_value )
             croak( "bad name" );
         }
         value = nodeSv2C(attr_value, self );
-       
+
         xmlSetProp( self, name, value );
         xmlFree(name);
-        xmlFree(value);        
+        xmlFree(value);
 
 
 void
@@ -4911,7 +4936,7 @@ removeAttribute( self, attr_name )
                 xmlUnlinkNode((xmlNodePtr)xattr);
                 if ( xattr->_private ) {
                     PmmFixOwner((ProxyNodePtr)xattr->_private, NULL);
-                }  
+                }
                 else {
                     xmlFreeProp(xattr);
                 }
@@ -4919,7 +4944,7 @@ removeAttribute( self, attr_name )
             xmlFree(name);
         }
 
-SV* 
+SV*
 getAttributeNode( self, attr_name )
         xmlNodePtr self
         SV * attr_name
@@ -5005,7 +5030,7 @@ getAttributeNS( self, namespaceURI, attr_name )
             xmlFree(nsURI);
             XSRETURN_UNDEF;
         }
-        if ( nsURI && xmlStrlen(nsURI) ) {     
+        if ( nsURI && xmlStrlen(nsURI) ) {
             ret = xmlGetNsProp( self, name, nsURI );
         }
         else {
@@ -5036,12 +5061,11 @@ setAttributeNS( self, namespaceURI, attr_name, attr_value )
         xmlChar * nsURI;
         xmlChar * name  = NULL;
         xmlChar * value = NULL;
-        const xmlChar * pchar = NULL;
         xmlNsPtr ns         = NULL;
         xmlChar * localname = NULL;
         xmlChar * prefix    = NULL;
     INIT:
-        name  = nodeSv2C( attr_name, self );        
+        name  = nodeSv2C( attr_name, self );
 
         if ( !LibXML_test_node_name(name) ) {
             xmlFree(name);
@@ -5049,13 +5073,13 @@ setAttributeNS( self, namespaceURI, attr_name, attr_value )
         }
 
         nsURI = nodeSv2C( namespaceURI, self );
-        localname = xmlSplitQName2(name, &prefix); 
+        localname = xmlSplitQName2(name, &prefix);
         if ( localname ) {
-            xmlFree( name ); 
+            xmlFree( name );
             name = localname;
         }
     CODE:
-        value = nodeSv2C( attr_value, self ); 
+        value = nodeSv2C( attr_value, self );
 
         if ( nsURI && xmlStrlen(nsURI) ) {
             xs_warn( "found uri" );
@@ -5088,9 +5112,9 @@ setAttributeNS( self, namespaceURI, attr_name, attr_value )
         }
         else {
             /* warn( "set attribute %s->%s", name, value ); */
-            xmlSetNsProp( self, ns, name, value );            
+            xmlSetNsProp( self, ns, name, value );
         }
-        
+
         if ( prefix ) {
             xmlFree( prefix );
         }
@@ -5136,7 +5160,7 @@ removeAttributeNS( self, namespaceURI, attr_name )
         xmlFree( name );
 
 
-SV* 
+SV*
 getAttributeNodeNS( self,namespaceURI, attr_name )
         xmlNodePtr self
         SV * namespaceURI
@@ -5147,7 +5171,7 @@ getAttributeNodeNS( self,namespaceURI, attr_name )
         xmlAttrPtr ret = NULL;
     CODE:
         nsURI = nodeSv2C(namespaceURI, self );
-        name = nodeSv2C(attr_name, self );  
+        name = nodeSv2C(attr_name, self );
         if ( !name ) {
             xmlFree(nsURI);
             XSRETURN_UNDEF;
@@ -5159,7 +5183,7 @@ getAttributeNodeNS( self,namespaceURI, attr_name )
 
         ret = xmlHasNsProp( self, name, nsURI );
         xmlFree(name);
-        xmlFree(nsURI);        
+        xmlFree(nsURI);
 
         if ( ret ) {
             RETVAL = PmmNodeToSv( (xmlNodePtr)ret,
@@ -5290,7 +5314,7 @@ appendTextChild( self, strname, strcontent=&PL_sv_undef, nsURI=&PL_sv_undef )
             xmlFree(name);
             XSRETURN_UNDEF;
         }
-    CODE: 
+    CODE:
         content = nodeSv2C(strcontent, self);
         if ( content &&  xmlStrlen( content ) == 0 ) {
             xmlFree(content);
@@ -5303,12 +5327,12 @@ appendTextChild( self, strname, strcontent=&PL_sv_undef, nsURI=&PL_sv_undef )
 
         xmlNewChild( self, NULL, name, encstr );
 
-        if ( encstr ) 
+        if ( encstr )
             xmlFree(encstr);
         xmlFree(name);
 
 SV *
-addNewChild( self, namespaceURI, nodename ) 
+addNewChild( self, namespaceURI, nodename )
         xmlNodePtr self
         SV * namespaceURI
         SV * nodename
@@ -5328,7 +5352,7 @@ addNewChild( self, namespaceURI, nodename )
             xmlFree(name);
             XSRETURN_UNDEF;
         }
- 
+
         nsURI = nodeSv2C(namespaceURI, self);
         if ( nsURI &&  xmlStrlen( nsURI ) == 0 ) {
             xmlFree(nsURI);
@@ -5336,7 +5360,7 @@ addNewChild( self, namespaceURI, nodename )
         }
 
         if ( nsURI != NULL ) {
-            localname = xmlSplitQName2(name, &prefix); 
+            localname = xmlSplitQName2(name, &prefix);
             ns = xmlSearchNsByHref(self->doc, self, nsURI);
 
             newNode = xmlNewDocNode(self->doc,
@@ -5345,7 +5369,7 @@ addNewChild( self, namespaceURI, nodename )
                                 NULL);
             if ( ns == NULL )  {
                 newNode->ns = xmlNewNs(newNode, nsURI, prefix);
-            }     
+            }
 
             xmlFree(localname);
             xmlFree(prefix);
@@ -5372,7 +5396,7 @@ addNewChild( self, namespaceURI, nodename )
             newNode->prev = prev;
             self->last = newNode;
         }
-     	RETVAL = PmmNodeToSv(newNode, PmmOWNERPO(PmmPROXYNODE(self)) );
+        RETVAL = PmmNodeToSv(newNode, PmmOWNERPO(PmmPROXYNODE(self)) );
     OUTPUT:
         RETVAL
 
@@ -5402,7 +5426,7 @@ new( CLASS, content )
         RETVAL
 
 SV *
-substringData( self, offset, length ) 
+substringData( self, offset, length )
         xmlNodePtr self
         int offset
         int length
@@ -5417,13 +5441,13 @@ substringData( self, offset, length )
             data = domGetNodeValue( self );
             len = xmlStrlen( data );
             if ( data != NULL && len > 0 && len > offset ) {
-                if ( dl > len ) 
+                if ( dl > len )
                     dl = offset + len;
 
                 substr = xmlStrsub( data, offset, dl );
                 RETVAL = C2Sv( (const xmlChar*)substr, NULL );
                 xmlFree( substr );
-            }   
+            }
             else {
                 XSRETURN_UNDEF;
             }
@@ -5439,7 +5463,7 @@ setData( self, value )
         xmlNodePtr self
         SV * value
     ALIAS:
-        XML::LibXML::Attr::setValue = 1 
+        XML::LibXML::Attr::setValue = 1
         XML::LibXML::PI::_setData = 2
     PREINIT:
         xmlChar * encstr = NULL;
@@ -5448,18 +5472,17 @@ setData( self, value )
         domSetNodeValue( self, encstr );
         xmlFree(encstr);
 
-void 
+void
 appendData( self, value )
         xmlNodePtr self
         SV * value
     PREINIT:
-        xmlChar * data = NULL;
         xmlChar * encstring = NULL;
         int strlen = 0;
     CODE:
         encstring = Sv2C( value,
                           self->doc!=NULL ? self->doc->encoding : NULL );
-            
+
        if ( encstring != NULL ) {
             strlen = xmlStrlen( encstring );
             xmlTextConcat( self, encstring, strlen );
@@ -5467,7 +5490,7 @@ appendData( self, value )
         }
 
 void
-insertData( self, offset, value ) 
+insertData( self, offset, value )
         xmlNodePtr self
         int offset
         SV * value
@@ -5503,9 +5526,9 @@ insertData( self, offset, value )
                             new = xmlStrdup( encstring );
                         }
 
-                        if ( after != NULL ) 
+                        if ( after != NULL )
                             new = xmlStrcat(new, after );
-    
+
                         domSetNodeValue( self, new );
 
                         xmlFree( new );
@@ -5561,7 +5584,7 @@ deleteData( self, offset, length )
         }
 
 void
-replaceData( self, offset,length, value ) 
+replaceData( self, offset,length, value )
         xmlNodePtr self
         int offset
         int length
@@ -5600,14 +5623,14 @@ replaceData( self, offset,length, value )
 
                         after = xmlStrsub(data, dl1, dl2 );
                         new = xmlStrcat(new, after );
-    
+
                         domSetNodeValue( self, new );
 
                         xmlFree( new );
                         xmlFree( after );
                     }
                     else {
-                        /* replace until end! */ 
+                        /* replace until end! */
                         if ( offset > 0 ) {
                             new = xmlStrsub(data, 0, offset );
                             new = xmlStrcat(new, encstring );
@@ -5628,7 +5651,7 @@ replaceData( self, offset,length, value )
 MODULE = XML::LibXML         PACKAGE = XML::LibXML::Comment
 
 SV *
-new( CLASS, content ) 
+new( CLASS, content )
         const char * CLASS
         SV * content
     PREINIT:
@@ -5681,10 +5704,9 @@ SV*
 new( CLASS )
         char * CLASS
     PREINIT:
-        SV * frag_sv = NULL;
         xmlNodePtr real_doc=NULL;
     CODE:
-        real_doc = xmlNewDocFragment( NULL ); 
+        real_doc = xmlNewDocFragment( NULL );
         RETVAL = PmmNodeToSv( real_doc, NULL );
     OUTPUT:
         RETVAL
@@ -5723,7 +5745,7 @@ parentElement( attrnode )
         XML::LibXML::Attr::nextSibling = 4
         XML::LibXML::Attr::previousSibling = 5
     CODE:
-        /* override the original parentElement(), since this an attribute is 
+        /* override the original parentElement(), since this an attribute is
          * not part of the main tree
          */
 
@@ -5753,7 +5775,7 @@ _setNamespace(self, namespaceURI, namespacePrefix = &PL_sv_undef )
             XSRETURN_UNDEF;
         }
         nsPrefix = nodeSv2C(namespacePrefix, (xmlNodePtr)node);
-        if ( ns = xmlSearchNsByHref(node->doc, node->parent, nsURI) )
+        if ( (ns = xmlSearchNsByHref(node->doc, node->parent, nsURI)) )
             RETVAL = 1;
         else
             RETVAL = 0;
@@ -5786,8 +5808,8 @@ new(CLASS, namespaceURI, namespacePrefix=&PL_sv_undef)
         ns = xmlNewNs(NULL, nsURI, nsPrefix);
         if ( ns ) {
             RETVAL = sv_newmortal();
-            RETVAL = sv_setref_pv( RETVAL, 
-                                   CLASS, 
+            RETVAL = sv_setref_pv( RETVAL,
+                                   CLASS,
                                    (void*)ns);
         }
         xmlFree(nsURI);
@@ -5800,7 +5822,7 @@ void
 DESTROY(self)
         SV * self
     PREINIT:
-        xmlNsPtr ns = (xmlNsPtr)SvIV(SvRV(self)); 
+        xmlNsPtr ns = (xmlNsPtr)SvIV(SvRV(self));
     CODE:
         xs_warn( "DESTROY NS" );
         if (ns) {
@@ -5843,7 +5865,7 @@ localname(self)
     ALIAS:
         name = 1
         getLocalName = 2
-        getName = 3 
+        getName = 3
         getPrefix = 4
     PREINIT:
         xmlNsPtr ns = (xmlNsPtr)SvIV(SvRV(self));
@@ -5867,7 +5889,7 @@ _isEqual(self, ref)
        if ( ns == ons ) {
            RETVAL = 1;
        }
-       else if ( xmlStrEqual(ns->href, ons->href) 
+       else if ( xmlStrEqual(ns->href, ons->href)
             && xmlStrEqual(ns->prefix, ons->prefix) ) {
            RETVAL = 1;
        }
@@ -5885,41 +5907,51 @@ new(CLASS, external, system)
     ALIAS:
         parse_uri = 1
     PREINIT:
+        SV * saved_error;
         xmlDtdPtr dtd = NULL;
     CODE:
-        LibXML_error = sv_2mortal(newSVpv("", 0));
+        LibXML_init_error(&saved_error);
         dtd = xmlParseDTD((const xmlChar*)external, (const xmlChar*)system);
         if ( dtd == NULL ) {
             XSRETURN_UNDEF;
+        } else {
+            xmlSetTreeDoc((xmlNodePtr)dtd, NULL);
+            RETVAL = PmmNodeToSv( (xmlNodePtr) dtd, NULL );
         }
-        xmlSetTreeDoc((xmlNodePtr)dtd, NULL);
-        RETVAL = PmmNodeToSv( (xmlNodePtr) dtd, NULL );
+        LibXML_report_error(saved_error, 0);
     OUTPUT:
         RETVAL
+
+void
+DESTROY( node )
+        SV * node
+    CODE:
+        xs_warn("DESTROY DTD NODE\n");
+        PmmREFCNT_dec(SvPROXYNODE(node));
 
 SV *
 parse_string(CLASS, str, ...)
         char * CLASS
         char * str
     PREINIT:
-        STRLEN n_a;
+        SV * saved_error;
         xmlDtdPtr res;
         SV * encoding_sv;
         xmlParserInputBufferPtr buffer;
         xmlCharEncoding enc = XML_CHAR_ENCODING_NONE;
         xmlChar * new_string;
-        STRLEN len;
     CODE:
-        LibXML_init_error();
+        LibXML_init_error(&saved_error);
         if (items > 2) {
             encoding_sv = ST(2);
             if (items > 3) {
                 croak("parse_string: too many parameters");
             }
             /* warn("getting encoding...\n"); */
-            enc = xmlParseCharEncoding(SvPV(encoding_sv, n_a));
+            enc = xmlParseCharEncoding(SvPV_nolen(encoding_sv));
             if (enc == XML_CHAR_ENCODING_ERROR) {
-                croak("Parse of encoding %s failed: %s", SvPV(encoding_sv, n_a), SvPV(LibXML_error, n_a));
+                LibXML_report_error(saved_error, 1);
+                croak("Parse of encoding %s failed", SvPV_nolen(encoding_sv));
             }
         }
         buffer = xmlAllocParserInputBuffer(enc);
@@ -5932,16 +5964,270 @@ parse_string(CLASS, str, ...)
 
         res = xmlIOParseDTD(NULL, buffer, enc);
 
-        /* NOTE: For some reason freeing this InputBuffer causes a segfault! */
-        /* xmlFreeParserInputBuffer(buffer); */
+        /* NOTE: xmlIOParseDTD is documented to free its InputBuffer */
         xmlFree(new_string);
 
-        sv_2mortal( LibXML_error );
-        LibXML_croak_error();
-
+        LibXML_report_error(saved_error, 0);
         if (res == NULL) {
             croak("no DTD parsed!");
         }
         RETVAL = PmmNodeToSv((xmlNodePtr)res, NULL);
     OUTPUT:
         RETVAL
+
+
+#ifdef HAVE_SCHEMAS
+
+MODULE = XML::LibXML         PACKAGE = XML::LibXML::RelaxNG
+
+void 
+DESTROY( self ) 
+        xmlRelaxNGPtr self
+    CODE:
+        xmlRelaxNGFree( self );
+
+
+xmlRelaxNGPtr
+parse_location( self, url )
+        SV * self
+        char * url
+    PREINIT:
+        SV * saved_error;
+        const char * CLASS = "XML::LibXML::RelaxNG";
+        xmlRelaxNGParserCtxtPtr rngctxt = NULL;
+    CODE:
+        LibXML_init_error(&saved_error);
+
+        rngctxt = xmlRelaxNGNewParserCtxt( url );
+        if ( rngctxt == NULL ) {
+            croak( "failed to initialize RelaxNG parser" );
+        }
+
+        /* Register Error callbacks */
+        xmlRelaxNGSetParserErrors( rngctxt,
+                                  (xmlRelaxNGValidityErrorFunc)LibXML_error_handler,
+                                  (xmlRelaxNGValidityWarningFunc)LibXML_error_handler,
+                                  rngctxt );
+
+        RETVAL = xmlRelaxNGParse( rngctxt );
+        xmlRelaxNGFreeParserCtxt( rngctxt );
+
+        LibXML_report_error(saved_error, (RETVAL != NULL));
+    OUTPUT:
+        RETVAL
+
+
+xmlRelaxNGPtr
+parse_buffer( self, perlstring )
+        SV * self
+        SV * perlstring
+    PREINIT:
+        SV * saved_error;
+        const char * CLASS = "XML::LibXML::RelaxNG";
+        xmlRelaxNGParserCtxtPtr rngctxt = NULL;
+        char * string = NULL;
+        STRLEN len    = 0;
+    INIT:
+        string = SvPV( perlstring, len );
+        if ( string == NULL ) {
+            croak( "cannot parse empty string" );
+        }
+    CODE:
+        LibXML_init_error(&saved_error);
+
+        rngctxt = xmlRelaxNGNewMemParserCtxt( string,len );
+        if ( rngctxt == NULL ) {
+            croak( "failed to initialize RelaxNG parser" );
+        }
+
+        /* Register Error callbacks */
+        xmlRelaxNGSetParserErrors( rngctxt,
+                                  (xmlRelaxNGValidityErrorFunc)LibXML_error_handler,
+                                  (xmlRelaxNGValidityWarningFunc)LibXML_error_handler,
+                                  rngctxt );
+
+        RETVAL = xmlRelaxNGParse( rngctxt );
+        xmlRelaxNGFreeParserCtxt( rngctxt );
+
+        LibXML_report_error(saved_error, (RETVAL != NULL));
+    OUTPUT:
+        RETVAL
+
+
+xmlRelaxNGPtr
+parse_document( self, doc )
+        SV * self
+        xmlDocPtr doc
+    PREINIT:
+        SV * saved_error;
+        const char * CLASS = "XML::LibXML::RelaxNG";
+        xmlRelaxNGParserCtxtPtr rngctxt = NULL;
+    CODE:
+        LibXML_init_error(&saved_error);
+
+        rngctxt = xmlRelaxNGNewDocParserCtxt( doc );
+        if ( rngctxt == NULL ) {
+            croak( "failed to initialize RelaxNG parser" );
+        }
+
+        /* Register Error callbacks */
+        xmlRelaxNGSetParserErrors( rngctxt,
+                                  (xmlRelaxNGValidityErrorFunc)  LibXML_error_handler,
+                                  (xmlRelaxNGValidityWarningFunc)LibXML_error_handler,
+                                  rngctxt );
+
+        RETVAL = xmlRelaxNGParse( rngctxt );
+        xmlRelaxNGFreeParserCtxt( rngctxt );
+
+        LibXML_report_error(saved_error, (RETVAL != NULL));
+    OUTPUT:
+        RETVAL
+
+int
+validate( self, doc )
+        xmlRelaxNGPtr self
+        xmlDocPtr doc
+    PREINIT:
+        SV * saved_error;
+        xmlRelaxNGValidCtxtPtr vctxt = NULL;
+    CODE:
+        LibXML_init_error(&saved_error);
+
+        vctxt  = xmlRelaxNGNewValidCtxt( self );
+        if ( vctxt == NULL ) {
+            croak( "cannot initialize the validation context" );
+        }
+
+        /* Register Error callbacks */
+        xmlRelaxNGSetValidErrors( vctxt,
+                                  (xmlRelaxNGValidityErrorFunc)LibXML_error_handler,
+                                  (xmlRelaxNGValidityWarningFunc)LibXML_error_handler,
+                                  vctxt );
+
+        RETVAL = xmlRelaxNGValidateDoc( vctxt, doc );
+        xmlRelaxNGFreeValidCtxt( vctxt );
+
+        LibXML_report_error(saved_error, 0);
+        if ( RETVAL == 1 ) {
+            XSRETURN_UNDEF;
+        }
+        if ( RETVAL == -1 ) {
+            croak( "API Error" );
+            XSRETURN_UNDEF;
+        }
+    OUTPUT:
+        RETVAL
+
+
+MODULE = XML::LibXML         PACKAGE = XML::LibXML::Schema
+
+void 
+DESTROY( self ) 
+        xmlSchemaPtr self
+    CODE:
+        xmlSchemaFree( self );
+
+
+xmlSchemaPtr
+parse_location( self, url )
+        SV * self
+        char * url
+    PREINIT:
+        SV * saved_error;
+        const char * CLASS = "XML::LibXML::Schema";
+        xmlSchemaParserCtxtPtr rngctxt = NULL;
+    CODE:
+        LibXML_init_error(&saved_error);
+
+        rngctxt = xmlSchemaNewParserCtxt( url );
+        if ( rngctxt == NULL ) {
+            croak( "failed to initialize Schema parser" );
+        }
+
+        /* Register Error callbacks */
+        xmlSchemaSetParserErrors( rngctxt,
+                                  (xmlSchemaValidityErrorFunc)LibXML_error_handler,
+                                  (xmlSchemaValidityWarningFunc)LibXML_error_handler,
+                                  rngctxt );
+
+        RETVAL = xmlSchemaParse( rngctxt );
+        xmlSchemaFreeParserCtxt( rngctxt );
+
+        LibXML_report_error(saved_error, (RETVAL != NULL));
+    OUTPUT:
+        RETVAL
+
+
+xmlSchemaPtr
+parse_buffer( self, perlstring )
+        SV * self
+        SV * perlstring
+    PREINIT:
+        SV * saved_error;
+        const char * CLASS = "XML::LibXML::Schema";
+        xmlSchemaParserCtxtPtr rngctxt = NULL;
+        char * string = NULL;
+        STRLEN len    = 0;
+    INIT:
+        string = SvPV( perlstring, len );
+        if ( string == NULL ) {
+            croak( "cannot parse empty string" );
+        }
+    CODE:
+        LibXML_init_error(&saved_error);
+
+        rngctxt = xmlSchemaNewMemParserCtxt( string,len );
+        if ( rngctxt == NULL ) {
+            croak( "failed to initialize Schema parser" );
+        }
+
+        /* Register Error callbacks */
+        xmlSchemaSetParserErrors( rngctxt,
+                                  (xmlSchemaValidityErrorFunc)LibXML_error_handler,
+                                  (xmlSchemaValidityWarningFunc)LibXML_error_handler,
+                                  NULL );
+
+        RETVAL = xmlSchemaParse( rngctxt );
+        xmlSchemaFreeParserCtxt( rngctxt );
+
+        LibXML_report_error(saved_error, (RETVAL != NULL));
+    OUTPUT:
+        RETVAL
+
+
+int
+validate( self, doc )
+        xmlSchemaPtr self
+        xmlDocPtr doc
+    PREINIT:
+        SV * saved_error;
+        xmlSchemaValidCtxtPtr vctxt = NULL;
+    CODE:
+        LibXML_init_error(&saved_error);
+
+        vctxt  = xmlSchemaNewValidCtxt( self );
+        if ( vctxt == NULL ) {
+            croak( "cannot initialize the validation context" );
+        }
+
+        /* Register Error callbacks */
+        xmlSchemaSetValidErrors( vctxt,
+                                  (xmlSchemaValidityErrorFunc)LibXML_error_handler,
+                                  (xmlSchemaValidityWarningFunc)LibXML_error_handler,
+                                  NULL );
+
+        RETVAL = xmlSchemaValidateDoc( vctxt, doc );
+        xmlSchemaFreeValidCtxt( vctxt );
+
+        LibXML_report_error(saved_error, 0);
+        if ( RETVAL > 0 ) {
+            XSRETURN_UNDEF;
+        }
+        if ( RETVAL == -1 ) {
+            croak( "API Error" );
+            XSRETURN_UNDEF;
+        }
+    OUTPUT:
+        RETVAL
+
+#endif /* HAVE_SCHEMAS */

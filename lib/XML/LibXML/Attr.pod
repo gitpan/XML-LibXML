@@ -24,7 +24,7 @@ the class relies on the W3C DOM documentation.
   $attr = XML::LibXML::Attr->new($name [,$value]);
 
 Class constructor. If you need to work with iso encoded strings, you should
-allways use the createAttrbute of XML::LibXML::Document.
+always use the createAttrbute of XML::LibXML::Document.
 
 
 =item B<getValue>
@@ -56,9 +56,9 @@ Alias for getValue()
 
   $attr->setValue( $string );
 
-This is needed to set a new attributevalue. If iso encoded strings are passed
+This is needed to set a new attribute value. If iso encoded strings are passed
 as parameter, the node has to be bound to a document, otherwise the encoding
-might be wrong done.
+might be done incorrectly.
 
 
 
@@ -71,7 +71,7 @@ might be wrong done.
   $node = $attr->getOwnerElement();
 
 returns the node the attribute belongs to. If the attribute is not bound to a
-node, undef will be returned. Overwriting the underlaying implementation, the
+node, undef will be returned. Overwriting the underlying implementation, the
 parentNode function will return undef, instead of the owner element.
 
 
@@ -99,10 +99,10 @@ Matt Sergeant,
 Christian Glahn, 
 =head1 VERSION
 
-1.56
+1.57
 
 =head1 COPYRIGHT
 
-2001-2002, AxKit.com Ltd; 2001-2003 Christian Glahn, All rights reserved.
+2001-2004, AxKit.com Ltd; 2002-2004 Christian Glahn, All rights reserved.
 
 =cut

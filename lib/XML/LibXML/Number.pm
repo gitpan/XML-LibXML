@@ -1,4 +1,4 @@
-# $Id: Number.pm,v 1.1 2001/08/07 07:34:24 matt Exp $
+# $Id: Number.pm,v 1.2 2003/11/07 16:35:34 pajas Exp $
 
 package XML::LibXML::Number;
 use XML::LibXML::Boolean;
@@ -13,11 +13,11 @@ use overload
 sub new {
     my $class = shift;
     my $number = shift;
-    if ($number !~ /^\s*(\d+(\.\d*)?|\.\d+)\s*$/) {
+    if ($number !~ /^\s*(-\s*)?(\d+(\.\d*)?|\.\d+)\s*$/) {
         $number = undef;
     }
     else {
-        $number =~ s/^\s*(.*)\s*$/$1/;
+        $number =~ s/\s+//g;
     }
     bless \$number, $class;
 }

@@ -1,4 +1,4 @@
-/* $Id: dom.c,v 1.53 2003/06/23 19:37:17 phish Exp $ */
+/* $Id: dom.c,v 1.56 2004/02/14 18:35:13 pajas Exp $ */
 #include <libxml/tree.h>
 #include <libxml/encoding.h>
 #include <libxml/xmlerror.h>
@@ -11,10 +11,10 @@
 #include <libxml/globals.h>
 #include <stdio.h>
 
-#define warn(string) fprintf(stderr, string) 
+/* #define warn(string) fprintf(stderr, string) */
 
 #ifdef XS_WARNINGS
-#define xs_warn(string) fprintf(stderr, string) 
+#define xs_warn(string) warn(string) 
 #else
 #define xs_warn(string)
 #endif
@@ -473,8 +473,8 @@ domAppendChild( xmlNodePtr self,
 
     if ( !(domTestHierarchy(self, newChild)
            && domTestDocument(self, newChild))){
-        xs_warn("HIERARCHIY_REQUEST_ERR\n"); 
-        xmlGenericError(xmlGenericErrorContext,"HIERARCHIY_REQUEST_ERR\n");
+        xs_warn("HIERARCHY_REQUEST_ERR\n"); 
+        xmlGenericError(xmlGenericErrorContext,"HIERARCHY_REQUEST_ERR\n");
         return NULL;
     }
 
@@ -553,8 +553,8 @@ domReplaceChild( xmlNodePtr self, xmlNodePtr new, xmlNodePtr old ) {
 
     if ( !(domTestHierarchy(self, new)
            && domTestDocument(self, new))){
-        xs_warn("HIERARCHIY_REQUEST_ERR\n"); 
-        xmlGenericError(xmlGenericErrorContext,"HIERARCHIY_REQUEST_ERR\n");
+        xs_warn("HIERARCHY_REQUEST_ERR\n"); 
+        xmlGenericError(xmlGenericErrorContext,"HIERARCHY_REQUEST_ERR\n");
         return NULL;
     }
     
@@ -595,7 +595,7 @@ domInsertBefore( xmlNodePtr self,
     if ( self == NULL || newChild == NULL ) {
         return NULL;
     }
-   
+
     if ( refChild != NULL ) {
         if ( refChild->parent != self
              || (  newChild->type     == XML_DOCUMENT_FRAG_NODE 
@@ -606,9 +606,13 @@ domInsertBefore( xmlNodePtr self,
         }
     }
 
+    if ( self->children == NULL ) {
+        return domAppendChild( self, newChild );
+    }
+   
     if ( !(domTestHierarchy( self, newChild )
            && domTestDocument( self, newChild ))) {
-        xmlGenericError(xmlGenericErrorContext,"HIERARCHIY_REQUEST_ERR\n");
+        xmlGenericError(xmlGenericErrorContext,"HIERARCHY_REQUEST_ERR\n");
         return NULL;
     }
 
@@ -664,7 +668,7 @@ domReplaceNode( xmlNodePtr oldNode, xmlNodePtr newNode ) {
          * wrong node type
          * new node is parent of itself
          */
-        xmlGenericError(xmlGenericErrorContext,"HIERARCHIY_REQUEST_ERR\n");
+        xmlGenericError(xmlGenericErrorContext,"HIERARCHY_REQUEST_ERR\n");
         return NULL;
     }
         
@@ -974,6 +978,20 @@ domSetAttributeNode( xmlNodePtr node, xmlAttrPtr attr ) {
 }
 
 int
+domNodeNormalizeList( xmlNodePtr nodelist )
+{
+    if ( nodelist == NULL ) 
+        return(0);
+
+    while ( nodelist ){
+        if ( domNodeNormalize( nodelist ) == 0 )
+            return(0);
+        nodelist = nodelist->next;
+    }
+    return(1);
+}
+
+int
 domNodeNormalize( xmlNodePtr node )
 {
     xmlNodePtr next = NULL;
@@ -1004,20 +1022,6 @@ domNodeNormalize( xmlNodePtr node )
     default:
         break;
     }    
-    return(1);
-}
-
-int
-domNodeNormalizeList( xmlNodePtr nodelist )
-{
-    if ( nodelist == NULL ) 
-        return(0);
-
-    while ( nodelist ){
-        if ( domNodeNormalize( nodelist ) == 0 )
-            return(0);
-        nodelist = nodelist->next;
-    }
     return(1);
 }
 

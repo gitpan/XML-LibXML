@@ -79,9 +79,9 @@ the type "text", "cdata" or "comment".
   $text->substringData($offset, $length);
 
 Extracts a range of data from the node. (DOM Spec) This function takes the two
-parameters $offset and $length and returns the substring if available.
+parameters $offset and $length and returns the substring, if available.
 
-If the node contains no data or $offset referes to an nonexisting string index,
+If the node contains no data or $offset refers to an nonexisting string index,
 this function will return undef. If $length is out of range substringData will
 return the data starting at $offset instead of causing an error.
 
@@ -145,7 +145,7 @@ method allows more perlish code :)
 
 The functions takes two parameters: $string and optional the $all flag. If $all
 is not set, undef or 0, deleteDataString will remove only the first occourance
-of $string. If $all is TRUE deleteDataString will remove all occourences of
+of $string. If $all is TRUE deleteDataString will remove all occurrences of
 $string from the node data.
 
 
@@ -197,7 +197,7 @@ NOTE: This is a shortcut for
    $node->setData( $datastr );
 
 This function can make things easier to read for simple replacements. For more
-complex variants it is recommented to use the code snippet above.
+complex variants it is recommended to use the code snippet above.
 
 
 
@@ -209,10 +209,10 @@ Matt Sergeant,
 Christian Glahn, 
 =head1 VERSION
 
-1.56
+1.57
 
 =head1 COPYRIGHT
 
-2001-2002, AxKit.com Ltd; 2001-2003 Christian Glahn, All rights reserved.
+2001-2004, AxKit.com Ltd; 2002-2004 Christian Glahn, All rights reserved.
 
 =cut

@@ -1,6 +1,6 @@
 /**
  * perl-libxml-mm.h
- * $Id: perl-libxml-mm.h,v 1.9 2002/10/04 09:13:47 phish Exp $
+ * $Id: perl-libxml-mm.h,v 1.10 2004/01/19 22:45:54 phish Exp $
  *
  * Basic concept:
  * perl varies in the implementation of UTF8 handling. this header (together
@@ -83,6 +83,21 @@ PmmREFCNT_dec( ProxyNodePtr node );
 
 SV*
 PmmNodeToSv( xmlNodePtr node, ProxyNodePtr owner );
+
+/* PmmFixProxyEncoding
+ * TYPE
+ *    Method
+ * PARAMETER
+ *    @dfProxy: The proxystructure to fix.
+ *
+ * DESCRIPTION
+ *
+ * This little helper allows to fix the proxied encoding information
+ * after a not standard operation was done. This is required for
+ * XML::LibXSLT
+ */
+void
+PmmFixProxyEncoding( ProxyNodePtr dfProxy );
 
 /* PmmSvNodeExt
  * TYPE 

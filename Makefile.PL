@@ -1,5 +1,5 @@
 # -------------------------------------------------------------------------- #
-# $Id: Makefile.PL,v 1.40 2003/08/19 20:33:57 phish Exp $
+# $Id: Makefile.PL,v 1.42 2004/02/26 18:52:36 phish Exp $
 # -------------------------------------------------------------------------- #
 # Makefile.PL for XML::LibXML.
 # This file is required to generate a localized Makefile
@@ -43,6 +43,10 @@ while($_ = shift) {
     my ($key, $val) = split(/=/, $_, 2);
     $config{$key} = $val;
 }
+
+$extralibdir = $config{EXTRALIBDIR};
+delete $config{EXTRALIBDIR};
+
 # -------------------------------------------------------------------------- #
 
 # -------------------------------------------------------------------------- #
@@ -76,15 +80,24 @@ if ( $] >= 5.006 ) {
 #
 # NOTE: All versions, the tests pass will be marked as working.
 #
+
+$skipsaxinstall = $ENV{SKIP_SAX_INSTALL} || $config{SKIP_SAX_INSTALL};
+delete $config{SKIP_SAX_INSTALL};
+
 unless ( $is_Win32 ) { # cannot get config in W32
     my @blacklist = (
-                     [2,4,20,0],
-                     [2,4,24,1],
                      [2,4,25,0],
                      [2,4,30,1],
                      [2,5,4,1],
-                     [2,5,5,0], # known as broken
-                     [2,5,10,1],
+                     [2,5,5,0], # tests pass, but known as broken
+                     [2,5,11,1],
+                     [2,6,0,0],
+                     [2,6,2,1],
+                     [2,6,3,0],
+                     [2,6,4,0], # schema error
+                     [2,6,5,0], # broken xincludes
+                     [2,6,7,1],
+
                     );
     my $xml2cfg = "xml2-config";
     my $libprefix = $ENV{XMLPREFIX} || $config{XMLPREFIX};
@@ -284,19 +297,32 @@ EOF
 }
 
 sub MY::install {
-    package MY;
-    my $script = shift->SUPER::install(@_);
-    $script =~ s/install :: (.*)$/install :: $1 install_sax_driver/m;
-    $script .= <<"INSTALL";
+   package MY;
+   my $script = shift->SUPER::install(@_);
+   unless ( $::skipsaxinstall ) {
+     $script =~ s/install :: (.*)$/install :: $1 install_sax_driver/m;
+     $script .= <<"INSTALL";
 
 install_sax_driver :
 \t\@\$(PERL) -MXML::SAX -e "XML::SAX->add_parser(q(XML::LibXML::SAX::Parser))->save_parsers()"
 \t\@\$(PERL) -MXML::SAX -e "XML::SAX->add_parser(q(XML::LibXML::SAX))->save_parsers()"
- 
+
 INSTALL
- 
-    return $script;
+   } else {
+     warn "Note: 'make install' will skip XML::LibXML::SAX registration with XML::SAX!\n";
+   }
+   return $script;
 }
+
+sub MY::test {
+   package MY;
+   my $script = shift->SUPER::test(@_);
+   if ( $::extralibdir ) {
+      $script =~ s/(\$\(TEST_VERBOSE\),)/$1 \'$::extralibdir\',/m;
+   }
+   return $script;
+}
+
 # -------------------------------------------------------------------------- #
 
 # -------------------------------------------------------------------------- #

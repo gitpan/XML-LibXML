@@ -1,4 +1,4 @@
-# $Id: 24c14n.t,v 1.1 2003/06/28 10:08:37 phish Exp $
+# $Id: 24c14n.t,v 1.2 2003/11/10 10:38:27 pajas Exp $
 
 ##
 # these testcases are for xml canonization interfaces.
@@ -19,7 +19,7 @@ my $parser = XML::LibXML->new;
     my $c14n_res = $doc->toStringC14N();
     ok( $c14n_res, "<a><b></b> <c></c>  </a>" );
 
-    my $c14n_res = $doc->toStringC14N(1);
+    $c14n_res = $doc->toStringC14N(1);
     ok( $c14n_res, "<a><b></b> <c></c> <!-- d --> </a>" );
 }
 
@@ -28,7 +28,7 @@ my $parser = XML::LibXML->new;
     
     my $c14n_res = $doc->toStringC14N();
     ok( $c14n_res, '<a><b></b> &gt;e&amp;f&lt; </a>' );
-    my $c14n_res = $doc->toStringC14N(1);
+    $c14n_res = $doc->toStringC14N(1);
     ok( $c14n_res, '<a><b></b> &gt;e&amp;f&lt;<!-- d --> </a>' );
 }
 

@@ -4,6 +4,8 @@ XML::LibXML - Perl Binding for libxml2
 
 =head1 SYNOPSIS
 
+  $Version_String = XML::LibXML::LIBXML_DOTTED_VERSION;
+  $Version_ID = XML::LibXML::LIBXML_VERSION;
   $libxmlnode = XML::LibXML->import_GDOME( $node, $deep );
   $gdomenode = XML::LibXML->export_GDOME( $node, $deep );
 
@@ -102,9 +104,47 @@ XML::LibXML Processing Instructions
 XML::LibXML DTD Support
 
 
+=item B<XML::LibXML::RelaxNG>
+
+XML::LibXML frontend for RelaxNG schema validation
+
+
 =item B<XML::LibXMLguts>
 
-Internal of the Perl Layer for libxml2
+Internal of the Perl Layer for libxml2 (not done yet)
+
+
+
+=back
+
+
+=head1 VERSION INFORMATION
+
+Sometimes it is usefull to figure out, for which version XML::LibXML was
+compiled for. In most cases this is for debugging or to check if a given
+installation meets all functionality for the package. The functiones
+XML::LibXML::LIBXML_DOTTED_VERSION and XML::LibXML::LIBXML_VERSION provide this
+version information. Both functions simply pass through the values of the
+similar named macros of libxml2.
+
+=over 4
+
+=item B<XML::LibXML::LIBXML_DOTTED_VERSION>
+
+  $Version_String = XML::LibXML::LIBXML_DOTTED_VERSION;
+
+Returns the Versionstring of the libxml2 version XML::LibXML was compiled for.
+This will be "2.6.2" for "libxml2 2.6.2".
+
+
+=item B<XML::LibXML::LIBXML_VERSION>
+
+  $Version_ID = XML::LibXML::LIBXML_VERSION;
+
+Returns the version id of the libxml2 version XML::LibXML was compiled for.
+This will be "20602" for "libxml2 2.6.2". Don't mix this version id with
+$XML::LibXML::VERSION. The latter contains the version of XML::LibXML itself
+while the first contains the version of libxml2 XML::LibXML was compiled for.
 
 
 
@@ -152,9 +192,9 @@ exchange nodes from one DOM to the other. The concept of this exchange is
 pretty similar to the function cloneNode(): The particular node is copied on
 the lowlevel to the opposite DOM implementation.
 
-Since the DOM implementations cannot coexist with in one document, one is
-forced to copy each node that should be used. Because of keeping allways two
-nodes this may cause quite an impact on a machines memory useage.
+Since the DOM implementations cannot coexist within one document, one is forced
+to copy each node that should be used. Because you are always keeping two nodes
+this may cause quite an impact on a machines memory usage.
 
 XML::LibXML provides two functions to export or import GDOME nodes:
 import_GDOME() and export_GDOME(). Both function have two parameters: the node
@@ -163,9 +203,9 @@ and a flag for recursive import. The flag works as in cloneNode().
 The two functions allow to export and import XML::GDOME nodes explicitly,
 however, XML::LibXML allows also the transparent import of XML::GDOME nodes in
 functions such as appendChild(), insertAfter() and so on. While native nodes
-are automaticly adopted in most functions XML::GDOME nodes are allways cloned
-in advance. Thus if the original node is modified after the operation, the node
-in the XML::LibXML document will not have this information.
+are automaticly adopted in most functions XML::GDOME nodes are always cloned in
+advance. Thus if the original node is modified after the operation, the node in
+the XML::LibXML document will not have this information.
 
 =over 4
 
@@ -192,10 +232,10 @@ Matt Sergeant,
 Christian Glahn, 
 =head1 VERSION
 
-1.56
+1.57
 
 =head1 COPYRIGHT
 
-2001-2002, AxKit.com Ltd; 2001-2003 Christian Glahn, All rights reserved.
+2001-2004, AxKit.com Ltd; 2002-2004 Christian Glahn, All rights reserved.
 
 =cut

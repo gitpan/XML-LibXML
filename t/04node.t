@@ -1,4 +1,4 @@
-# $Id: 04node.t,v 1.12 2003/06/23 19:37:17 phish Exp $
+# $Id: 04node.t,v 1.13 2004/01/19 22:45:55 phish Exp $
 
 ##
 # this test checks the DOM Node interface of XML::LibXML
@@ -11,7 +11,7 @@
 
 use Test;
 
-BEGIN { plan tests => 125 };
+BEGIN { plan tests => 127 };
 use XML::LibXML;
 use XML::LibXML::Common qw(:libxml);
 
@@ -152,6 +152,7 @@ print "# 1.1 Node Attributes\n";
         ok( $xn );
         ok( $xn->isSameNode($inode) );
 
+
         $node->insertBefore( $jnode, undef );
         my @ta  = $node->childNodes();
         $xn = pop @ta;
@@ -188,6 +189,21 @@ print "# 1.1 Node Attributes\n";
         ok(scalar(@cn), 5);
         ok( $cn2[3]->isSameNode($inode) );
     }
+
+    {
+        print "\ntest\n" ;
+        my ($inode, $jnode );
+
+        $inode = $doc->createElement("kungfoo"); # already tested
+        $jnode = $doc->createElement("foobar"); 
+
+        my $xn = $inode->insertBefore( $jnode, undef);
+        ok( $xn );
+        ok( $xn->isSameNode( $jnode ) );
+        print( "# ". $xn->toString() );
+        
+    }
+
     {
         print "# 2.1.2 Document Fragment\n";
 

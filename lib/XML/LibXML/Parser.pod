@@ -61,7 +61,7 @@ XML::LibXML::Parser - Parsing XML Data with XML::LibXML
 =head1 PARSING
 
 A XML document is read into a datastructure such as a DOM tree by a piece of
-software, called parser. XML::LibXML currently provides four diffrent parser
+software, called a parser. XML::LibXML currently provides four diffrent parser
 interfaces:
 
 
@@ -198,7 +198,7 @@ Similar to parse_file() but parses SGML strings.
 
 =back
 
-Parsing HTML may causes problems, especially if the ampersand ('&') is used.
+Parsing HTML may cause problems, especially if the ampersand ('&') is used.
 This is a common problem if HTML code is parsed that contains links to
 CGI-scripts. Such links cause the parser to throw errors. In such cases libxml2
 still parses the entire document as there was no error, but the error causes
@@ -278,12 +278,12 @@ XML::LibXML provides a push parser interface. Rather than pulling the data from
 a given source the push parser waits for the data to be pushed into it.
 
 This allows one to parse large documents without waiting for the parser to
-finish. The interface is especially usefull if a program needs to preprocess
-the incoming pieces of XML (e.g. to detect document boundaries).
+finish. The interface is especially useful if a program needs to preprocess the
+incoming pieces of XML (e.g. to detect document boundaries).
 
 While XML::LibXML parse_*() functions force the data to be a wellformed XML,
 the push parser will take any arbitrary string that contains some XML data. The
-only requirement is that all the pushed strings are together a wellformed
+only requirement is that all the pushed strings are together a well formed
 document. With the push parser interface a programm can interrupt the parsing
 process as required, where the parse_*() functions give not enough flexibility.
 
@@ -315,7 +315,7 @@ will be returned as the following exable describes:
 
 =back
 
-Internally XML::LibXML provides three functions that controll the push parser
+Internally XML::LibXML provides three functions that control the push parser
 process:
 
 =over 4
@@ -331,7 +331,7 @@ Initializes the push parser.
 
   $parser->push(@data);
 
-This function pushs the data stored inside the array to libxml2's parse. Each
+This function pushes the data stored inside the array to libxml2's parser. Each
 entry in @data must be a normal scalar!
 
 
@@ -352,13 +352,13 @@ $restore is 1, the push parser can be used to restore broken or non well formed
      # ...
   }
 
-This can be anoing if the closing tag misses by accident. The following code
-will restore the document:
+This can be annoying if the closing tag is missed by accident. The following
+code will restore the document:
 
   eval {
       $parser->push( "<foo>", "bar" );
       $doc = $parser->finish_push(1);   # will return the data parsed
-                                        # unless an error happend
+                                        # unless an error happened
   };
   
   print $doc->toString(); # returns "<foo>bar</foo>"
@@ -402,9 +402,9 @@ If you want a streaming SAX parser look at the XML::LibXML::SAX man page
 =head1 SERIALIZATION
 
 XML::LibXML provides some functions to serialize nodes and documents. The
-serialization functions themself are described at the XML::LibXML::Node manpage
-or the XML::LibXML::Document manpage. XML::LibXML checks three global flags
-that alter the serialization process:
+serialization functions are described on the XML::LibXML::Node manpage or the
+XML::LibXML::Document manpage. XML::LibXML checks three global flags that alter
+the serialization process:
 
 
 =over 4
@@ -464,14 +464,14 @@ Turn validation on (or off). Defaults to off.
 
 Turn the parsers recover mode on (or off). Defaults to off.
 
-This allows to parse broken XML data into memory. This switch will only work
-with XML data rather than HTML data. Also the validation will be switched off
-automaticly.
+This allows one to parse broken XML data into memory. This switch will only
+work with XML data rather than HTML data. Also the validation will be switched
+off automaticly.
 
 The recover mode helps to recover documents that are almost wellformed very
 efficiently. That is for example a document that forgets to close the document
 tag (or any other tag inside the document). The recover mode of XML::LibXML has
-problems though to restore documents that are more like well ballanced chunks.
+problems restoring documents that are more like well ballanced chunks.
 
 XML::LibXML will only parse until the first fatal error occours.
 
@@ -531,8 +531,8 @@ By default, this option is enabled.
 
   $parser->expand_xinclude(1);
 
-Expands XIinclude tags imidiatly while parsing the document. This flag assures
-that the parser callbacks are used while parsing the included document.
+Expands XIinclude tags immediately while parsing the document. This flag
+assures that the parser callbacks are used while parsing the included document.
 
 
 =item B<load_catalog>
@@ -541,7 +541,7 @@ that the parser callbacks are used while parsing the included document.
 
 Will use $catalog_file as a catalog during all parsing processes. Using a
 catalog will significantly speed up parsing processes if many external
-ressources are loaded into the parsed documents (such as DTDs or XIncludes).
+resources are loaded into the parsed documents (such as DTDs or XIncludes).
 
 Note that catalogs will not be available if an external entity handler was
 specified. At the current state it is not possible to make use of both types of
@@ -692,8 +692,8 @@ global callbacks.
 
 =head1 ERROR REPORTING
 
-XML::LibXML throws exceptions during parseing, validation or XPath processing
-(and some other occations). These errors can be catched by using eval blocks.
+XML::LibXML throws exceptions during parsing, validation or XPath processing
+(and some other occations). These errors can be caught by using eval blocks.
 The error then will be stored in $@. Alternatively one can use the
 get_last_error() function of XML::LibXML. It will return the same string that
 is stored in $@. Using get_last_error() makes it still nessecary to eval the
@@ -716,7 +716,7 @@ instance:
 
 However, XML::LibXML exceptions are global. That means if get_last_error() is
 called on an parser instance, the last global error will be returned. This is
-not nessecarily the error caused by the parser instance itself.
+not necessarily the error caused by the parser instance itself.
 
 =head1 AUTHORS
 
@@ -724,10 +724,10 @@ Matt Sergeant,
 Christian Glahn, 
 =head1 VERSION
 
-1.56
+1.57
 
 =head1 COPYRIGHT
 
-2001-2002, AxKit.com Ltd; 2001-2003 Christian Glahn, All rights reserved.
+2001-2004, AxKit.com Ltd; 2002-2004 Christian Glahn, All rights reserved.
 
 =cut

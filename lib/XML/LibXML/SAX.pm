@@ -1,4 +1,4 @@
-# $Id: SAX.pm,v 1.6 2003/08/19 21:06:31 phish Exp $
+# $Id: SAX.pm,v 1.7 2004/02/14 18:35:12 pajas Exp $
 # Copyright (c) 2001-2002, AxKit.com Ltd. All rights reserved.
 package XML::LibXML::SAX;
 
@@ -10,7 +10,7 @@ $VERSION = '1.00';
 use XML::LibXML;
 use XML::SAX::Base;
 
-@ISA = qw(XML::SAX::Base);
+use base qw(XML::SAX::Base);
 
 use Carp;
 use IO::File;

@@ -49,16 +49,17 @@ XML::LibXML::Document - XML::LibXML DOM Document Class
   my @nodelist = $doc->getElementsByTagName($nsURI,$tagname);
   my @nodelist = $doc->getElementsByLocalName($localname);
   my $node = $doc->getElementsById($id);
+  $dom->indexElements();
 
 
 =head1 DESCRIPTION
 
 The Document Class is in most cases the result of a parsing process. But
 sometimes it is necessary to create a Document from scratch. The DOM Document
-Class provides functions that are conform to the DOM Core naming style.
+Class provides functions that conform to the DOM Core naming style.
 
 It inherits all functions from XML::LibXML::Node as specified in the DOM
-specification. This enables to access the nodes beside the root element on
+specification. This enables access to the nodes besides the root element on
 document level - a DTD for example. The support for these nodes is limited at
 the moment.
 
@@ -69,7 +70,7 @@ to a document, it is quite safe that all strings have the correct encoding. If
 an unbound textnode with an iso encoded string is created (e.g. with
 $CLASS->new()), the toString function may not return the expected result.
 
-All this seems like a limitation as long UTF8 encoding is ashured. If iso
+All this seems like a limitation as long as UTF8 encoding is assured. If iso
 encoded strings come into play it is much safer to use the node creation
 functions of XML::LibXML::Document.
 
@@ -87,7 +88,7 @@ alias for createDocument()
   $dom = XML::LibXML::Document->createDocument( $version, $encoding );
 
 The constructor for the document class. As Parameter it takes the version
-string and (optionally) the ecoding string. Simply calling createDocument()
+string and (optionally) the encoding string. Simply calling createDocument()
 will create the document:
 
   <?xml version="your version" encoding="your encoding"?>
@@ -102,8 +103,8 @@ code:
   <?xml version="1.0"?>              
 
 Alternatively one can call this constructor directly from the XML::LibXML class
-level, to avoid some typing. This will not cause any effect to the class
-instance, which is alway XML::LibXML::Document.
+level, to avoid some typing. This will not have any effect on the class
+instance, which is always XML::LibXML::Document.
 
    my $document = XML::LibXML->createDocument( "1.0", "UTF8" );
 
@@ -131,10 +132,10 @@ Optionally this function can be accessed by actualEncoding or getEncoding.
 From time to time it is useful to change the effective encoding of a document.
 This method provides the interface to manipulate the encoding of a document.
 
-Note that this function has to be used very careful, since you can't simply
+Note that this function has to be used very carefully, since you can't simply
 convert one encoding in any other, since some (or even all) characters may not
 exist in the new encoding. XML::LibXML will not test if the operation is
-allowed or possible for the given document. The only switching ashured to work
+allowed or possible for the given document. The only switching assured to work
 is to UTF8.
 
 
@@ -170,8 +171,8 @@ set it to -1 to remove the standalone attribute from the XML declaration.
 
   my $compression = $doc->compression;
 
-libxml2 allows to read documents directly from gziped files. In this case the
-compression variable is set to the compression level of that file (0-8). If
+libxml2 allows reading of documents directly from gziped files. In this case
+the compression variable is set to the compression level of that file (0-8). If
 XML::LibXML parsed a different source or the file wasn't compressed, the
 returned value will be -1.
 
@@ -201,7 +202,7 @@ used. The format parameter can have three different values if it is used:
 
 If $format is 0, than the document is dumped as it was originally parsed
 
-If $format is 1, libxml2 will add ignoreable whitespaces, so the nodes content
+If $format is 1, libxml2 will add ignorable whitespaces, so the nodes content
 is easier to read. Existing text nodes will not be altered
 
 If $format is 2 (or higher), libxml2 will act as $format == 1 but it add a
@@ -218,14 +219,14 @@ by using setEncoding()
 =item B<toStringC14N>
 
 $c14nstr = $doc->toStringC14N($comment_flag,$xpath); A variation to toString,
-that returns the canonized from of the given document.
+that returns the canonized form of the given document.
 
 
 =item B<serialize>
 
   $str = $doc->serialze($format); 
 
-Alternative form of toString(). This function name added to be more conform
+Alternative form of toString(). This function name added to be more conformant
 with libxml2's examples.
 
 
@@ -241,7 +242,7 @@ Alternative form of toStringC14N().
   $state = $doc->toFile($filename, $format);
 
 This function is similar to toString(), but it writes the document directly
-into a filesystem. This function is very usefull, if one needs to store large
+into a filesystem. This function is very useful, if one needs to store large
 documents.
 
 The format parameter has the same behaviour as in toString().
@@ -276,8 +277,8 @@ Alternative form of toStringHTML().
 
   $bool = $dom->is_valid();
 
-Returns either TRUE or FALSE depending on the DOM Tree is a valid Document or
-not.
+Returns either TRUE or FALSE depending on whether the DOM Tree is a valid
+Document or not.
 
 You may also pass in a XML::LibXML::Dtd object, to validate against an external
 DTD:
@@ -389,11 +390,11 @@ Since this method is quite long one may use its short form createPI().
 
   my $entref = $doc->createEntityReference($refname);
 
-If a docuemnt has a DTD specified, one can create entity refereferences by
-using this function. If one wants to add a entity reference to the document,
-this reference has to be created by this function.
+If a document has a DTD specified, one can create entity references by using
+this function. If one wants to add a entity reference to the document, this
+reference has to be created by this function.
 
-An entity reference is unique to a document and cannot passed to other
+An entity reference is unique to a document and cannot be passed to other
 documents as other nodes can be passed.
 
 NOTE: A text content containing something that looks like an entity reference,
@@ -438,7 +439,7 @@ will cause the following declaration to be created on the document:
 
   $dtd = $document->createExternalSubset( $rootnode, $public, $system);
 
-This function is similar to createInternalSubset() but this DTD is concidered
+This function is similar to createInternalSubset() but this DTD is considered
 to be external and is therefore not added to the document itself. Nevertheless
 it can be used for validation purposes.
 
@@ -559,7 +560,8 @@ In SCALAR context this function returns a XML::LibXML::NodeList object.
 
   my @nodelist = $doc->getElementsByLocalName($localname);
 
-This allows to fetch all nodes from a given document with the given Localname.
+This allows the fetching of all nodes from a given document with the given
+Localname.
 
 In SCALAR context this function returns a XML::LibXML::NodeList object.
 
@@ -568,9 +570,27 @@ In SCALAR context this function returns a XML::LibXML::NodeList object.
 
   my $node = $doc->getElementsById($id);
 
-This allows to fetch the node at a given position in the DOM.
+This allows the fetching of the node at a given position in the DOM.
 
 Note: The Id of a node might change while manipulating the document.
+
+
+=item B<indexElements>
+
+  $dom->indexElements();
+
+This function causes libxml2 to stamp all elements in a document with their
+document position index which considerably speeds up XPath queries for large
+documents. It should only be used with static documents that won't be further
+changed by any DOM methods, because once a document is indexed, XPath will
+always prefer the index to other methods of determining the document order of
+nodes. XPath could therefore return improperly ordered node-lists when applied
+on a document that has been changed after being indexed. It is of course
+possible to use this method to re-index a modified document before using it
+with XPath again. This function is not a part of the DOM specification.
+
+This function returns number of elements indexed, -1 if error occurred, or -2
+if this feature is not available in the running libxml2.
 
 
 
@@ -582,10 +602,10 @@ Matt Sergeant,
 Christian Glahn, 
 =head1 VERSION
 
-1.56
+1.57
 
 =head1 COPYRIGHT
 
-2001-2002, AxKit.com Ltd; 2001-2003 Christian Glahn, All rights reserved.
+2001-2004, AxKit.com Ltd; 2002-2004 Christian Glahn, All rights reserved.
 
 =cut

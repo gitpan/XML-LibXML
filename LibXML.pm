@@ -1,4 +1,4 @@
-# $Id: LibXML.pm,v 1.94 2003/08/23 00:07:06 phish Exp $
+# $Id: LibXML.pm,v 1.99 2004/02/14 18:35:14 pajas Exp $
 
 package XML::LibXML;
 
@@ -14,7 +14,7 @@ use XML::LibXML::NodeList;
 use IO::Handle; # for FH reads called as methods
 
 
-$VERSION = "1.56";
+$VERSION = "1.57";
 require Exporter;
 require DynaLoader;
 
@@ -122,6 +122,26 @@ sub new {
     }
 
     return $self;
+}
+
+#-------------------------------------------------------------------------#
+# DOM Level 2 document constructor                                        #
+#-------------------------------------------------------------------------#
+
+sub createDocument {
+   my $self = shift;
+   if (!@_ or $_[0] =~ m/^\d\.\d$/) {
+     # for backward compatibility
+     return XML::LibXML::Document->new(@_);
+   }
+   else {
+     # DOM API: createDocument(namespaceURI, qualifiedName, doctype?)
+     my $doc = XML::LibXML::Document-> new;
+     my $el = $doc->createElementNS(shift, shift);
+     $doc->setDocumentElement($el);
+     $doc->setExternalSubset(shift) if @_;
+     return $doc;
+   }
 }
 
 #-------------------------------------------------------------------------#
@@ -297,7 +317,7 @@ sub _auto_expand {
          and  $self->{XML_LIBXML_EXPAND_XINCLUDE} == 1 ) {
         $self->{_State_} = 1;
         eval { $self->processXIncludes($result); };
-            my $err = $@;
+        my $err = $@;
         $self->{_State_} = 0;
         if ($err) {
             $result = undef;
@@ -341,9 +361,8 @@ sub parse_string {
     if ( defined $self->{SAX} ) {
         my $string = shift;
         $self->{SAX_ELSTACK} = [];
-        eval {
-            $self->_parse_sax_string($string);
-        };
+        eval { $result = $self->_parse_sax_string($string); };
+
         my $err = $@;
         $self->{_State_} = 0;
         if ($err) {
@@ -387,7 +406,7 @@ sub parse_fh {
             croak $err;
         }
 
-        $result = $self->_auto_expand( $result,, $self->{XML_LIBXML_BASE_URI} );
+        $result = $self->_auto_expand( $result, $self->{XML_LIBXML_BASE_URI} );
     }
 
     return $result;
@@ -623,14 +642,6 @@ sub find {
 sub setOwnerDocument {
     my ( $self, $doc ) = @_;
     $doc->adoptNode( $self );
-}
-
-sub toStringC14N {
-    my $self = shift;
-    my ($comments, $xpath) = @_;
-
-    $comments = 0 unless defined $comments;
-    return $self->_toStringC14N( $comments, $xpath );
 }
 
 sub serialize_c14n {
@@ -1158,7 +1169,45 @@ sub fatal_error {
 
 1;
 
-#-------------------------------------------------------------------------#
-# XML::LibXML Parser documentation                                        #
-#-------------------------------------------------------------------------#
+package XML::LibXML::RelaxNG;
+
+sub new {
+    my $class = shift;
+    my %args = @_;
+
+    my $self = undef;
+    if ( defined $args{location} ) {
+        $self = $class->parse_location( $args{location} );
+    }
+    elsif ( defined $args{string} ) {
+        $self = $class->parse_buffer( $args{string} );
+    }
+    elsif ( defined $args{DOM} ) {
+        $self = $class->parse_document( $args{DOM} );
+    }
+
+    return $self;
+}
+
+1;
+
+package XML::LibXML::Schema;
+
+sub new {
+    my $class = shift;
+    my %args = @_;
+
+    my $self = undef;
+    if ( defined $args{location} ) {
+        $self = $class->parse_location( $args{location} );
+    }
+    elsif ( defined $args{string} ) {
+        $self = $class->parse_buffer( $args{string} );
+    }
+
+    return $self;
+}
+
+1;
+
 __END__
