@@ -1,4 +1,4 @@
-# $Id: LibXML.pm,v 1.2 2001/05/18 11:16:19 matt Exp $
+# $Id: LibXML.pm,v 1.6 2001/06/02 22:27:42 matt Exp $
 
 package XML::LibXML;
 
@@ -6,7 +6,7 @@ use strict;
 use vars qw($VERSION @ISA @EXPORT);
 use Carp;
 
-$VERSION = "0.91";
+$VERSION = "0.92";
 require Exporter;
 require DynaLoader;
 
@@ -47,19 +47,15 @@ sub parse_string {
     my $self = shift;
     croak("parse already in progress") if $self->{_State_};
     $self->{_State_} = 1;
-    $self->_prepare();
     my $result;
     eval {
         $result = $self->_parse_string(@_);
     };
     my $err = $@;
+    $self->{_State_} = 0;
     if ($err) {
-        $self->{_State_} = 0;
-        $self->_release();
         croak $err;
     }
-    $self->{_State_} = 0;
-    $self->_release();
     return $result;
 }
 
@@ -67,19 +63,15 @@ sub parse_fh {
     my $self = shift;
     croak("parse already in progress") if $self->{_State_};
     $self->{_State_} = 1;
-    $self->_prepare();
     my $result;
     eval {
         $result = $self->_parse_fh(@_);
     };
     my $err = $@;
+    $self->{_State_} = 0;
     if ($err) {
-        $self->{_State_} = 0;
-        $self->_release();
         croak $err;
     }
-    $self->{_State_} = 0;
-    $self->_release();
     return $result;
 }
 
@@ -87,19 +79,15 @@ sub parse_file {
     my $self = shift;
     croak("parse already in progress") if $self->{_State_};
     $self->{_State_} = 1;
-    $self->_prepare();
     my $result;
     eval {
         $result = $self->_parse_file(@_);
     };
     my $err = $@;
+    $self->{_State_} = 0;
     if ($err) {
-        $self->{_State_} = 0;
-        $self->_release();
         croak $err;
     }
-    $self->{_State_} = 0;
-    $self->_release();
     return $result;
 }
 
@@ -129,6 +117,9 @@ sub XML_XINCLUDE_END(){20;}
 @XML::LibXML::Text::ISA         = 'XML::LibXML::Node';
 @XML::LibXML::Comment::ISA      = 'XML::LibXML::Text';
 @XML::LibXML::CDATASection::ISA = 'XML::LibXML::Text';
+@XML::LibXML::NoGCDocument::ISA  = 'XML::LibXML::Document';
+
+sub XML::LibXML::NoGCDocument::DESTROY () { }
 
 1;
 __END__

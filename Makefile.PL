@@ -1,4 +1,4 @@
-# $Id: Makefile.PL,v 1.2 2001/05/18 11:27:45 matt Exp $
+# $Id: Makefile.PL,v 1.3 2001/06/02 22:27:04 matt Exp $
 
 use ExtUtils::MakeMaker;
 use Config;
@@ -66,18 +66,13 @@ RPMs, as this is where the headers (.h files) are.
 DEATH
 }
 
-# have_library("xml2", "ghttp_get_header_names");
-
-print "creating POD files\n";
-
-system($^X, "example/xml2pod.pl");
-
 WriteMakefile(
     'NAME'	=> 'XML::LibXML',
     'VERSION_FROM' => 'LibXML.pm', # finds $VERSION
     'AUTHOR'    => 'Matt Sergeant',
     'ABSTRACT'  => 'Interface to Gnome libxml2 xml parsing and DOM library',
     'OBJECT'    => '$(O_FILES)', # add the DOM extensions to libxml2
+    'dist'      => { PREOP => "$^X -Iblib/arch -Iblib/lib example/xml2pod.pl" },
     %config,
 );
 
