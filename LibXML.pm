@@ -1,4 +1,4 @@
-# $Id: LibXML.pm,v 1.20 2001/08/07 08:54:56 matt Exp $
+# $Id: LibXML.pm,v 1.27 2001/11/14 11:26:22 matt Exp $
 
 package XML::LibXML;
 
@@ -7,7 +7,7 @@ use vars qw($VERSION @ISA @EXPORT);
 use Carp;
 use XML::LibXML::NodeList;
 
-$VERSION = "1.00";
+$VERSION = "1.30";
 require Exporter;
 require DynaLoader;
 
@@ -44,7 +44,82 @@ sub new {
     my $class = shift;
     my %options = @_;
     my $self = bless \%options, $class;
+    $self->{XML_LIBXML_PARSER_OBJECT} = $self->_init_parser();
     return $self;
+}
+
+sub XML::LibXML::DESTROY {
+    my $self = shift;
+    $self->_delete_parser( $self->{XML_LIBXML_PARSER_OBJECT} );
+    $self->{XML_LIBXML_PARSER_OBJECT} = undef;
+}
+
+sub match_callback {
+    my $self = shift;
+    return $self->{XML_LIBXML_MATCH_CB} = shift;
+}
+
+sub read_callback {
+    my $self = shift;
+    return $self->{XML_LIBXML_READ_CB} = shift;
+}
+
+sub close_callback {
+    my $self = shift;
+    return $self->{XML_LIBXML_CLOSE_CB} = shift;
+}
+
+sub open_callback {
+    my $self = shift;
+    return $self->{XML_LIBXML_OPEN_CB} = shift;
+}
+
+sub callbacks {
+    my $self = shift;
+    if (@_) {
+        my ($match, $open, $read, $close) = @_;
+        @{$self}{qw(XML_LIBXML_MATCH_CB XML_LIBXML_OPEN_CB XML_LIBXML_READ_CB XML_LIBXML_CLOSE_CB)} = ($match, $open, $read, $close);
+    }
+    else {
+        return @{$self}{qw(XML_LIBXML_MATCH_CB XML_LIBXML_OPEN_CB XML_LIBXML_READ_CB XML_LIBXML_CLOSE_CB)};
+    }
+}
+
+sub validation {
+    my $self = shift;
+    return $self->_validation( $self->{XML_LIBXML_PARSER_OBJECT}, @_ );
+}
+
+sub expand_entities {
+    my $self = shift;
+    return $self->_expand_entities( $self->{XML_LIBXML_PARSER_OBJECT}, @_ );
+}
+
+sub keep_blanks {
+    my $self = shift;
+    return $self->_keep_blanks( $self->{XML_LIBXML_PARSER_OBJECT}, @_ );
+}
+
+
+sub pedantic_parser {
+    my $self = shift;
+    return $self->_pedantic_parser( $self->{XML_LIBXML_PARSER_OBJECT}, @_ );
+}
+
+sub load_ext_dtd {
+    my $self = shift;
+    return $self->_load_ext_dtd( $self->{XML_LIBXML_PARSER_OBJECT}, @_ );
+}
+
+sub complete_attributes {
+    my $self = shift;
+    return $self->_complete_attributes( $self->{XML_LIBXML_PARSER_OBJECT}, @_ );
+}
+
+sub expand_xinclude  {
+    my $self = shift;
+    $self->{XML_LIBXML_EXPAND_XINCLUDE} = shift;
+    return $self->{XML_LIBXML_EXPAND_XINCLUDE};
 }
 
 sub parse_string {
@@ -53,7 +128,29 @@ sub parse_string {
     $self->{_State_} = 1;
     my $result;
     eval {
-        $result = $self->_parse_string(@_);
+        $self->_match_callback( $self->{XML_LIBXML_PARSER_OBJECT},
+                                $self->{XML_LIBXML_MATCH_CB} )
+          if $self->{XML_LIBXML_MATCH_CB};
+        $self->_read_callback( $self->{XML_LIBXML_PARSER_OBJECT},
+                               $self->{XML_LIBXML_READ_CB} )
+          if $self->{XML_LIBXML_READ_CB};
+        $self->_open_callback( $self->{XML_LIBXML_PARSER_OBJECT},
+                               $self->{XML_LIBXML_OPEN_CB} )
+          if $self->{XML_LIBXML_OPEN_CB};
+        $self->_close_callback( $self->{XML_LIBXML_PARSER_OBJECT},
+                                $self->{XML_LIBXML_CLOSE_CB} )
+          if $self->{XML_LIBXML_CLOSE_CB};
+
+        $self->_prepare_parser( $self->{XML_LIBXML_PARSER_OBJECT} );
+
+        $result = $self->_parse_string( @_ );
+        $result->_fix_extra;
+        if ( $self->{XML_LIBXML_EXPAND_XINCLUDE} ) {
+# warn "use xinclude!" ;
+            $result->process_xinclude();
+        }
+        $self->_cleanup_parser_callbacks( $self->{XML_LIBXML_PARSER_OBJECT} );
+
     };
     my $err = $@;
     $self->{_State_} = 0;
@@ -69,7 +166,30 @@ sub parse_fh {
     $self->{_State_} = 1;
     my $result;
     eval {
-        $result = $self->_parse_fh(@_);
+        $self->_match_callback( $self->{XML_LIBXML_PARSER_OBJECT},
+                                $self->{XML_LIBXML_MATCH_CB} )
+          if $self->{XML_LIBXML_MATCH_CB};
+        $self->_read_callback( $self->{XML_LIBXML_PARSER_OBJECT},
+                               $self->{XML_LIBXML_READ_CB} )
+          if $self->{XML_LIBXML_READ_CB};
+        $self->_open_callback( $self->{XML_LIBXML_PARSER_OBJECT},
+                               $self->{XML_LIBXML_OPEN_CB} )
+          if $self->{XML_LIBXML_OPEN_CB};
+        $self->_close_callback( $self->{XML_LIBXML_PARSER_OBJECT},
+                                $self->{XML_LIBXML_CLOSE_CB} )
+          if $self->{XML_LIBXML_CLOSE_CB};
+
+        $self->_prepare_parser( $self->{XML_LIBXML_PARSER_OBJECT} );
+
+        $result = $self->_parse_fh( @_ );
+
+        $result->_fix_extra;
+        if ( $self->{XML_LIBXML_EXPAND_XINCLUDE} ) {
+            warn "use xinclude!" ;
+            $result->process_xinclude();
+        }
+        $self->_cleanup_parser_callbacks( $self->{XML_LIBXML_PARSER_OBJECT} );
+
     };
     my $err = $@;
     $self->{_State_} = 0;
@@ -85,7 +205,29 @@ sub parse_file {
     $self->{_State_} = 1;
     my $result;
     eval {
+        $self->_match_callback( $self->{XML_LIBXML_PARSER_OBJECT},
+                                $self->{XML_LIBXML_MATCH_CB} )
+          if $self->{XML_LIBXML_MATCH_CB};
+        $self->_read_callback( $self->{XML_LIBXML_PARSER_OBJECT},
+                               $self->{XML_LIBXML_READ_CB} )
+          if $self->{XML_LIBXML_READ_CB};
+        $self->_open_callback( $self->{XML_LIBXML_PARSER_OBJECT},
+                               $self->{XML_LIBXML_OPEN_CB} )
+          if $self->{XML_LIBXML_OPEN_CB};
+        $self->_close_callback( $self->{XML_LIBXML_PARSER_OBJECT},
+                                $self->{XML_LIBXML_CLOSE_CB} )
+          if $self->{XML_LIBXML_CLOSE_CB};
+
+        $self->_prepare_parser( $self->{XML_LIBXML_PARSER_OBJECT} );
+
         $result = $self->_parse_file(@_);
+        $result->_fix_extra;
+        if ( $self->{XML_LIBXML_EXPAND_XINCLUDE} ) {
+            # warn "use xinclude!" ;
+            $result->process_xinclude();
+        }
+        $self->_cleanup_parser_callbacks( $self->{XML_LIBXML_PARSER_OBJECT} );
+
     };
     my $err = $@;
     $self->{_State_} = 0;
@@ -93,6 +235,83 @@ sub parse_file {
         croak $err;
     }
     return $result;
+}
+
+sub parse_html_string {
+    my $self = shift;
+    $self->_match_callback( $self->{XML_LIBXML_PARSER_OBJECT},
+                            $self->{XML_LIBXML_MATCH_CB} )
+      if $self->{XML_LIBXML_MATCH_CB};
+    $self->_read_callback( $self->{XML_LIBXML_PARSER_OBJECT},
+                           $self->{XML_LIBXML_READ_CB} )
+      if $self->{XML_LIBXML_READ_CB};
+    $self->_open_callback( $self->{XML_LIBXML_PARSER_OBJECT},
+                           $self->{XML_LIBXML_OPEN_CB} )
+      if $self->{XML_LIBXML_OPEN_CB};
+    $self->_close_callback( $self->{XML_LIBXML_PARSER_OBJECT},
+                            $self->{XML_LIBXML_CLOSE_CB} )
+      if $self->{XML_LIBXML_CLOSE_CB};
+
+    $self->_prepare_parser( $self->{XML_LIBXML_PARSER_OBJECT} );
+
+    my $retval = $self->_parse_html_string( @_ );
+
+    $self->_cleanup_parser_callbacks( $self->{XML_LIBXML_PARSER_OBJECT} );
+
+    return $retval;
+}
+
+sub parse_html_fh {
+    my $self = shift;
+    $self->_match_callback( $self->{XML_LIBXML_PARSER_OBJECT},
+                            $self->{XML_LIBXML_MATCH_CB} )
+      if $self->{XML_LIBXML_MATCH_CB};
+    $self->_read_callback( $self->{XML_LIBXML_PARSER_OBJECT},
+                           $self->{XML_LIBXML_READ_CB} )
+      if $self->{XML_LIBXML_READ_CB};
+    $self->_open_callback( $self->{XML_LIBXML_PARSER_OBJECT},
+                           $self->{XML_LIBXML_OPEN_CB} )
+      if $self->{XML_LIBXML_OPEN_CB};
+    $self->_close_callback( $self->{XML_LIBXML_PARSER_OBJECT},
+                            $self->{XML_LIBXML_CLOSE_CB} )
+      if $self->{XML_LIBXML_CLOSE_CB};
+    $self->_prepare_parser( $self->{XML_LIBXML_PARSER_OBJECT} );
+
+    my $retval = $self->_parse_html_fh( @_ );
+    $self->_cleanup_parser_callbacks( $self->{XML_LIBXML_PARSER_OBJECT} );
+
+    return $retval;
+}
+
+sub parse_html_file {
+    my $self = shift;
+    $self->_match_callback( $self->{XML_LIBXML_PARSER_OBJECT},
+                            $self->{XML_LIBXML_MATCH_CB} )
+      if $self->{XML_LIBXML_MATCH_CB};
+    $self->_read_callback( $self->{XML_LIBXML_PARSER_OBJECT},
+                           $self->{XML_LIBXML_READ_CB} )
+      if $self->{XML_LIBXML_READ_CB};
+    $self->_open_callback( $self->{XML_LIBXML_PARSER_OBJECT},
+                           $self->{XML_LIBXML_OPEN_CB} )
+      if $self->{XML_LIBXML_OPEN_CB};
+    $self->_close_callback( $self->{XML_LIBXML_PARSER_OBJECT},
+                            $self->{XML_LIBXML_CLOSE_CB} )
+      if $self->{XML_LIBXML_CLOSE_CB};
+
+    $self->_prepare_parser( $self->{XML_LIBXML_PARSER_OBJECT} );
+
+    my $retval = $self->_parse_html_file( @_ );
+    $self->_cleanup_parser_callbacks( $self->{XML_LIBXML_PARSER_OBJECT} );
+    return $retval;
+}
+
+sub processXIncludes {
+    my $self = shift;
+    my $dom  = shift;
+
+    $self->_prepare_parser( $self->{XML_LIBXML_PARSER_OBJECT} );
+    $dom->process_xinclude();
+    $self->_cleanup_parser_callbacks( $self->{XML_LIBXML_PARSER_OBJECT} );
 }
 
 sub XML_ELEMENT_NODE(){1;}
@@ -124,6 +343,7 @@ sub XML_XINCLUDE_END(){20;}
 @XML::LibXML::Attr::ISA             = 'XML::LibXML::Node';
 @XML::LibXML::DocumentFragment::ISA = 'XML::LibXML::Node';
 @XML::LibXML::Dtd::ISA              = 'XML::LibXML::Node';
+@XML::LibXML::PI::ISA               = 'XML::LibXML::Node';
 
 
 sub XML::LibXML::Node::iterator {
@@ -158,6 +378,22 @@ sub XML::LibXML::Node::find {
     my ($node, $xpath) = @_;
     my ($type, @params) = $node->_find($xpath);
     return $type->new(@params);
+}
+
+sub XML::LibXML::PI::setData {
+    my $pi = shift;
+
+    my $string = "";
+    if ( scalar @_ == 1 ) {
+        $string = shift;
+    }
+    else {
+        my %h = @_;
+        $string = join " ", map {$_.'="'.$h{$_}.'"'} keys %h;
+    }
+
+    # the spec says any char but "?>" [17]
+    $pi->_setData( $string ) unless  $string =~ /\?>/;
 }
 
 1;
@@ -196,13 +432,13 @@ parameters to get the current value.
 
 =head2 validation
 
-  XML::LibXML->validation(1);
+  $parser->validation(1);
 
 Turn validation on (or off). Defaults to off.
 
 =head2 expand_entities
 
-  XML::LibXML->expand_entities(0);
+  $parser->expand_entities(0);
 
 Turn entity expansion on or off, enabled by default. If entity expansion
 is off, any external parsed entities in the document are left as entities.
@@ -210,44 +446,59 @@ Probably not very useful for most purposes.
 
 =head2 keep_blanks
 
-  XML::LibXML->keep_blanks(0);
+ $parser->keep_blanks(0);
 
 Allows you to turn off XML::LibXML's default behaviour of maintaining
 whitespace in the document.
 
 =head2 pedantic_parser
 
-  XML::LibXML->pedantic_parser(1);
+  $parser->pedantic_parser(1);
 
 You can make XML::LibXML more pedantic if you want to.
 
 =head2 load_ext_dtd
 
-  XML::LibXML->load_ext_dtd(1);
+  $parser->load_ext_dtd(1);
 
 Load external DTD subsets while parsing.
 
+=head2 complete_attributes
+
+  $parser->complete_attributes(1);
+
+Complete the elements attributes lists with the ones defaulted from the DTDs.
+By default, this option is enabled.
+
+=head2 expand_xinclude
+
+  $parser->expand_xinclude
+
+Expands XIinclude tags imidiatly while parsing the document. This flag
+ashures that the parser callbacks are used while parsing the included
+Document.
+
 =head2 match_callback
 
-  XML::LibXML->match_callback($subref);
+  $parser->match_callback($subref);
 
 Sets a "match" callback. See L<"Input Callbacks"> below.
 
 =head2 open_callback
 
-  XML::LibXML->open_callback($subref);
+  $parser->open_callback($subref);
 
 Sets an open callback. See L<"Input Callbacks"> below.
 
 =head2 read_callback
 
-  XML::LibXML->read_callback($subref);
+  $parser->read_callback($subref);
 
 Sets a read callback. See L<"Input Callbacks"> below.
 
 =head2 close_callback
 
-  XML::LibXML->close_callback($subref);
+  $parser->close_callback($subref);
 
 Sets a close callback. See L<"Input Callbacks"> below.
 
@@ -296,12 +547,14 @@ Here, C<$fh> can be an IOREF, or a subclass of IO::Handle.
 
 =head1 PARSING HTML
 
-As of version 0.96, XML::LibXML is capable of parsing HTML into a regular
-XML DOM. This gives you the full power of XML::LibXML on HTML documents.
+As of version 0.96, XML::LibXML is capable of parsing HTML into a
+regular XML DOM. This gives you the full power of XML::LibXML on HTML
+documents.
 
-The methods work in exactly the same way as the methods above, and return
-exactly the same type of object. If you wish to dump the resulting document
-as HTML again, you can use C<$doc->toStringHTML()> to do that.
+The methods work in exactly the same way as the methods above, and
+return exactly the same type of object. If you wish to dump the
+resulting document as HTML again, you can use C<$doc->toStringHTML()>
+to do that.
 
 =head2 parse_html_string
 
@@ -314,6 +567,20 @@ as HTML again, you can use C<$doc->toStringHTML()> to do that.
 =head2 parse_html_file
 
   my $doc = $parser->parse_html_file($filename);
+
+=head2 Extra parsing methods
+
+B<processXIncludes>
+
+  $parser->processXIncludes( $doc );
+
+While the document class implements a separate XInclude processing,
+this method, is stricly related to the parser. The use of this method
+is only required, if the parser implements special callbacks that
+should to be used for the XInclude as well.
+
+If expand_xincludes is set to 1, the method is only required to process
+XIncludes appended to the DOM after its original parsing.
 
 =head1 XML::LibXML::Document
 
@@ -330,12 +597,13 @@ DTD specified in the DOCTYPE declaration
 
 =head2 C<$doc-E<gt>is_valid($dtd)>
 
-Same as the above, but allows you to pass in a DTD created from 
+Same as the above, but allows you to pass in a DTD created from
 L<"XML::LibXML::Dtd">.
 
 =head2 C<$doc-E<gt>process_xinclude>
 
-Process any xinclude tags in the file.
+Process any xinclude tags in the file. (currently using B<only> libxml2's
+default callbacks)
 
 =head1 XML::LibXML::Dtd
 
@@ -359,6 +627,12 @@ This means that if you decide not to use your own callbacks (see C<match()>),
 then you can revert to the default way of handling input. This allows, for
 example, to only handle certain URI schemes.
 
+Callbacks are only used on files, but not on strings or filehandles. This is
+because LibXML requires the match event to find out about which callback set
+is shall be used for the current input stream. LibXML can decide this only
+before the stream is open. For LibXML strings and filehandles are already
+opened streams.
+
 The following callbacks are defined:
 
 =head2 match(uri)
@@ -371,7 +645,8 @@ Open something and return it to handle that resource.
 
 =head2 read(handle, bytes)
 
-Read a certain number of bytes from the resource.
+Read a certain number of bytes from the resource. This callback is
+called even if the entire Document has already read.
 
 =head2 close(handle)
 
@@ -382,13 +657,13 @@ Close the handle associated with the resource.
 This is a purely fictitious example that uses a MyScheme::Handler object
 that responds to methods similar to an IO::Handle.
 
-  XML::LibXML->match_callback(\&match_uri);
+  $parser->match_callback(\&match_uri);
   
-  XML::LibXML->open_callback(\&open_uri);
+  $parser->open_callback(\&open_uri);
   
-  XML::LibXML->read_callback(\&read_uri);
+  $parser->read_callback(\&read_uri);
   
-  XML::LibXML->close_callback(\&close_uri);
+  $parser->close_callback(\&close_uri);
   
   sub match_uri {
     my $uri = shift;
@@ -412,6 +687,8 @@ that responds to methods similar to an IO::Handle.
     my $handler = shift;
     close($handler);
   }
+
+A more realistic example can be found in the L<"example"> directory
 
 =head1 Encoding
 
@@ -452,6 +729,86 @@ This Function transforms an UTF-8 encoded string the specified
 encoding.  While transforms to ISO encodings may cause errors if the
 given stirng contains unsupported characters, this function can
 transform to UTF-16 encodings as well.
+
+=head1 Processing Instructions - XML::LibXML::PI
+
+Processing instructions are implemented with XML::LibXML with read and
+write access ;) The PI data is the PI without the PI target (as
+specified in XML 1.0 [17]) as a string. This string can be accessed with
+L<getData> as implemented in XML::LibXML::Node.
+
+The write access is aware about the fact, that many processing
+instructions have attribute like data. Therefor L<setData> provides
+besides the DOM spec conform Interface to pass a set of named
+parameter. So the code segment
+
+    my $pi = $dom->createProcessingInstruction("abc");
+    $pi->setData(foo=>'bar', foobar=>'foobar');
+    $dom->appendChild( $pi );
+
+will result the following PI in the DOM:
+
+    <?abc foo="bar" foobar="foobar"?>
+
+The same can be done with
+
+   $pi->setData( 'foo="bar" foobar="foobar"' );
+
+Which is how it is specified in the L<DOM specification>. This three
+step interface creates temporary a node in perl space. This can be
+avoided while using the B<insertProcessingInstruction> method.
+Instead of the three calls described above, the call
+C<$dom->insertProcessingInstruction("abc",'foo="bar" foobar="foobar"');>
+will have the same result as above.
+
+Currently only the B<setData()> function accepts named parameters,
+while only strings are accepted by the other methods.
+
+=head2 createProcessingInstruction
+
+B<SYNOPSIS:>
+
+   $pinode = $dom->createProcessingInstruction( $target );
+
+or
+
+   $pinode = $dom->createProcessingInstruction( $target, $data );
+
+This function creates a new PI and returns this node. The PI is bound
+to the DOM, but is not appended to the DOM itself. To add the PI to
+the DOM, one needs to use B<appendChild()> directly on the dom itself.
+
+=head2 insertProcessingInstruction
+
+B<SYNOPSIS:>
+
+  $dom->insertProcessingInstruction( $target, $data );
+
+Creates a processing instruction and inserts it directly to the
+DOM. The function does not return a node.
+
+=head2 createPI
+
+alias for createProcessingInstruction
+
+=head2 insertPI
+
+alias for insertProcessingInstruction
+
+=head2 setData
+
+B<SYNOPSIS:>
+
+   $pinode->setData( $data_string );
+
+or
+
+   $pinode->setData( name=>string_value [...] );
+
+This method allows to change the content data of a PI. Additionaly to
+the interface specified for DOM Level2, the method provides a named
+parameter interface to set the data. This parameterlist is converted
+into a string before it is appended to the PI.
 
 =head1 AUTHOR
 

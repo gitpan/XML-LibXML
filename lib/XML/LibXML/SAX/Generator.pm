@@ -1,8 +1,12 @@
-# $Id: Generator.pm,v 1.2 2001/08/06 09:59:13 matt Exp $
+# $Id: Generator.pm,v 1.3 2001/11/14 10:59:58 matt Exp $
 
 package XML::LibXML::SAX::Generator;
 
+use strict;
+
 use XML::LibXML;
+
+warn("This class (", __PACKAGE__, ") is deprecated!");
 
 sub new {
     my $class = shift;

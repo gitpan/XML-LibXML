@@ -1,4 +1,4 @@
-# $Id: Makefile.PL,v 1.9 2001/07/19 19:09:18 matt Exp $
+# $Id: Makefile.PL,v 1.12 2001/11/14 11:26:22 matt Exp $
 
 use ExtUtils::MakeMaker;
 use Config;
@@ -19,12 +19,18 @@ my $DEBUG = delete $config{DEBUG};
 # get libs and inc from gnome-config
 eval {
     print "running xml2-config... ";
+    my $ver = backtick('xml2-config --version');
+    my ($major, $minor, $point) = $ver =~ /(\d+).(\d+)\.(\d+)/g;
+    die "VERSION" unless $major > 2 || $minor > 4 || $point >= 8;
     $config{LIBS} ||= backtick('xml2-config --libs');
     $config{INC} ||= backtick('xml2-config --cflags');
     print "ok\n";
 };
 if ($@) {
     print "failed\n";
+    if ($@ =~ /^VERSION/) {
+        die "XML::LibXML needs libxml2 version 2.4.8 or higher\n";
+    }
     warn "*** ", $@ if $DEBUG;
     warn "using fallback values for LIBS and INC\n";
     # backtick fails if gnome-config didn't exist...
@@ -80,6 +86,7 @@ WriteMakefile(
     'VERSION_FROM' => 'LibXML.pm', # finds $VERSION
     'AUTHOR'    => 'Matt Sergeant',
     'ABSTRACT'  => 'Interface to Gnome libxml2 xml parsing and DOM library',
+    'PREREQ_PM' => { 'XML::SAX' => 0 },
     'OBJECT'    => '$(O_FILES)', # add the DOM extensions to libxml2
     'dist'      => { PREOP => "$^X -Iblib/arch -Iblib/lib example/xml2pod.pl" },
     %config,
@@ -101,6 +108,21 @@ docs : pure_all
 EOF
     return $str;
 }
+
+sub MY::install {
+    package MY;
+    my $script = shift->SUPER::install(@_);
+    $script =~ s/install :: (.*)$/install :: $1 install_sax_driver/m;
+    $script .= <<"INSTALL";
+
+install_sax_driver :
+\t\@\$(PERL) -MXML::SAX -e "XML::SAX->add_parser(q(XML::LibXML::SAX::Parser))->save_parsers()"
+ 
+INSTALL
+ 
+    return $script;
+}
+
 
 ###################################################################
 # Functions
@@ -266,8 +288,9 @@ use Test; BEGIN { plan tests => 1; } END { ok(\$loaded) }
 use Conftest; \$loaded++;
 EOT
     close($cfile);
-    xsystem("$^X Makefile.PL " . join(' ', map { "'$_=$config{$_}'" } keys %config));
-    xsystem("$Config{make} test 'OTHERLDFLAGS=$opt'");
+    my $quote = $is_Win32 ? '"' : "'";
+    xsystem("$^X Makefile.PL " . join(' ', map { "${quote}$_=$config{$_}${quote}" } keys %config));
+    xsystem("$Config{make} test ${quote}OTHERLDFLAGS=${opt}${quote}");
 }
 
 sub try_link {
@@ -289,6 +312,7 @@ sub have_library {
     my $result;
     if ($func) {
         my $libs = $is_Win32 ? " $lib.lib  " : "-l$lib";
+#        my $libs = "-l$lib";
         if ($is_Win32) {
             $result = try_link(<<"SRC", $libs);
 #include <windows.h>
