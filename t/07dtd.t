@@ -1,9 +1,10 @@
-# $Id: 07dtd.t,v 1.2 2002/05/08 00:27:07 phish Exp $
+# $Id: 07dtd.t,v 1.3 2002/09/02 11:08:03 phish Exp $
 
 use Test;
 
 BEGIN { plan tests => 20 };
 use XML::LibXML;
+use XML::LibXML::Common qw(:libxml);
 
 {
     my $doc = XML::LibXML::Document->new;

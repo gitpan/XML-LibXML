@@ -1,4 +1,4 @@
-# $Id: 03doc.t,v 1.3 2002/05/24 10:15:35 phish Exp $
+# $Id: 03doc.t,v 1.5 2002/09/02 11:08:03 phish Exp $
 
 ##
 # this test checks the DOM Document interface of XML::LibXML
@@ -12,8 +12,9 @@
 use Test;
 use strict;
 
-BEGIN { plan tests => 63 };
+BEGIN { plan tests => 78 };
 use XML::LibXML;
+use XML::LibXML::Common qw(:libxml);
 
 {
     print "# 1. Document Attributes\n";
@@ -135,6 +136,14 @@ use XML::LibXML;
         ok($pi->textContent, "bar");
     }
 
+    {
+        my $pi = $doc->createProcessingInstruction( "foo" );
+        ok($pi);
+        ok($pi->nodeType, XML_PI_NODE);
+        ok($pi->nodeName, "foo");
+        ok( $pi->textContent, undef);
+    }
+
 }
 
 {
@@ -197,5 +206,40 @@ use XML::LibXML;
 }
 
 {
-    print "# 4. Document Storing\n";
+    print "# 4. Document Storeing\n";
+    my $parser = XML::LibXML->new;
+    my $doc = $parser->parse_string("<foo>bar</foo>");  
+
+    ok( $doc );
+
+    print "# 4.1 to file handle\n";
+    {
+        require IO::File;
+        my $fh = new IO::File;
+        if ( $fh->open( "> example/testrun.xml" ) ) {
+            $doc->toFH( $fh );
+            $fh->close;
+            ok(1);
+            # now parse the file to check, if succeeded
+            my $tdoc = $parser->parse_file( "example/testrun.xml" );
+            ok( $tdoc );
+            ok( $tdoc->documentElement );
+            ok( $tdoc->documentElement->nodeName, "foo" );
+            ok( $tdoc->documentElement->textContent, "bar" );
+            unlink "example/testrun.xml" ;
+        }
+    }
+
+    print "# 4.2 to named file\n";
+    {
+        $doc->toFile( "example/testrun.xml" );
+        ok(1);
+        # now parse the file to check, if succeeded
+        my $tdoc = $parser->parse_file( "example/testrun.xml" );
+        ok( $tdoc );
+        ok( $tdoc->documentElement );
+        ok( $tdoc->documentElement->nodeName, "foo" );
+        ok( $tdoc->documentElement->textContent, "bar" );
+        unlink "example/testrun.xml" ;        
+    }
 }

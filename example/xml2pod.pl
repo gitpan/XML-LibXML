@@ -1,5 +1,6 @@
 #!/usr/bin/perl -w
 use XML::LibXML;
+use XML::LibXML::Common qw(:libxml);
 use File::Path;
 use File::Basename;
 
@@ -99,9 +100,9 @@ sub handle_package {
             handle_section( $tnode );
         }
     }
-    print "=back" . endl;
+    print endl."=back" if $mflag == 1;
 
-    print "=head1 AUTHOR". endl;
+    print endl . "=head1 AUTHOR" . endl;
     print join ", ", map { $_->string_value } ($node->findnodes("/module/authors/author"));
     print endl;
 
@@ -122,6 +123,7 @@ sub handle_package {
 
 sub handle_paragraph {
     my $node = shift;
+    print endl;
     foreach my $e ( $node->childNodes ) {
         if ( $e->getType == XML_TEXT_NODE ) {
             my $data;
@@ -137,6 +139,7 @@ sub handle_paragraph {
             }
         }
     }
+    print endl;
 }
 
 sub handle_method {

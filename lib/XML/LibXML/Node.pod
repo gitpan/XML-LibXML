@@ -1,6 +1,6 @@
 =head1 NAME
 
-XML::LibXML::Node - "virtual" Base Class DOM-Nodes
+XML::LibXML::Node - abstract Base Class DOM-Nodes
 
 =head1 synopsis
 
@@ -42,14 +42,17 @@ XML::LibXML::Node - "virtual" Base Class DOM-Nodes
  $uri = $node->namespaceURI()
  $boolean = $node->hasAttributes();
  @attributelist = $node->attributes();
- $nsnode = $node->lookupNamespaceURI( $URI );
- $nsnode = $node->lookupNamespacePrefix( $prefix );
- $node->iterator( \&nodehandler );
+ $URI = $node->lookupNamespaceURI( $prefix );
+ $prefix = $node->lookupNamespacePrefix( $URI );
+ $iter = $node->iterator;
  $node->normalize;
  @nslist = $node->getNamespaces;
+ $node->removeChildNodes();
 
 
 =head1 DESCRIPTION
+
+
 
 
 LibXML::Node defines functions that are common to all
@@ -63,6 +66,8 @@ without a parent. This may causes confusion with
 "unbound" nodes.
 
 
+
+
 =head2 Methods
 
 =over 4
@@ -70,12 +75,18 @@ without a parent. This may causes confusion with
 =item B<nodeName>
 
 
+
+
 Returns the node's name. This Function is aware
 about namesaces and returns the full name of the
 current node (I<prefix:localname>)
 
 
+
+
 =item B<setNodeName>
+
+
 
 
 In very limited situation it is usefull to change
@@ -84,35 +95,59 @@ throw an error. This Function is aware about
 namespaces.
 
 
+
+
 =item B<isSameNode>
+
+
 
 
 returns TRUE (1) if the given nodes refer to the same
 nodestructure, otherwise FALSE (0) is returned.
 
 
+
+
 =item B<isEqual>
 
 
+
+
 depraced version of isSameNode().
+
+
+
+
 
 B<NOTE> isEqual will change behaviour to
 follow the DOM specification
 
 
+
+
 =item B<nodeValue>
+
+
 
 
 If the node has any content (such as stored in a
 I<text node>) it can get requested through
 this function.
 
+
+
+
+
 B<NOTE:> Element Nodes have no content per
 definition. To get the text value of an Element
 use textContent() instead!
 
 
+
+
 =item B<textContent>
+
+
 
 
 this function returns the content of all text
@@ -120,7 +155,11 @@ nodes in the descendants of the given node as
 spacified in DOM.
 
 
+
+
 =item B<nodeType>
+
+
 
 
 Retrun the node's type. The possible types are
@@ -130,7 +169,11 @@ is a numeric value. Therefore it differst with the
 result of perl ref function.
 
 
+
+
 =item B<unbindNode>
+
+
 
 
 Unbinds the Node from its siblings and Parent, but
@@ -142,7 +185,11 @@ context it is and inserted into a (hidden)
 document-fragment.
 
 
+
+
 =item B<removeChild>
+
+
 
 
 This will unbind the Child Node from its parent
@@ -151,7 +198,11 @@ node. If I<oldNode> is not a child of the
 given Node the function will fail.
 
 
+
+
 =item B<replaceChild>
+
+
 
 
 Replaces the I<$oldNode> with the
@@ -162,13 +213,21 @@ node is not part of the document, the node will be
 imported first.
 
 
+
+
 =item B<replaceNode>
+
+
 
 
 This function is very similar to replaceChild(), but it replaces the node itself rather than a childnode. This is useful if a node found by any XPath function, should be replaced.
 
 
+
+
 =item B<appendChild>
+
+
 
 
 The function will add the I<$childnode> to
@@ -180,14 +239,22 @@ new node is not part of the document, the node
 will be imported first.
 
 
+
+
 =item B<addSibling>
+
+
 
 
 addSibling() allows to add an additional node to
 the end of a nodelist, defined by the given node.
 
 
+
+
 =item B<cloneNode>
+
+
 
 
 B<cloneNode> creates a copy of
@@ -196,7 +263,11 @@ the function will copy all childnodes as well. If
 $deep is 0 only the current node will be copied.
 
 
+
+
 =item B<attributes>
+
+
 
 
 This function returns all attributes assigned to
@@ -205,27 +276,43 @@ scalar context, it will return a
 XML::LibXML::NodeList.
 
 
+
+
 =item B<parentNode>
+
+
 
 
 Returns simply the Parent Node of the current
 node.
 
 
+
+
 =item B<nextSibling>
+
+
 
 
 Returns the next sibling if any .
 
 
+
+
 =item B<previousSibling>
+
+
 
 
 Analogous to B<getNextSibling> the function
 returns the previous sibling if any.
 
 
+
+
 =item B<hasChildNodes>
+
+
 
 
 If the current node has Childnodes this function
@@ -233,28 +320,44 @@ returns TRUE (1), otherwise it returns FALSE (0,
 not undef).
 
 
+
+
 =item B<firstChild>
+
+
 
 
 If a node has childnodes this function will return
 the first node in the childlist.
 
 
+
+
 =item B<lastChild>
+
+
 
 
 If the I<$node> has childnodes this function
 returns the last child node.
 
 
+
+
 =item B<ownerDocument>
+
+
 
 
 Through this function it is allways possible to
 access the document the current node is bound to.
 
 
+
+
 =item B<getOwner>
+
+
 
 
 This function returns the node the current node is
@@ -262,12 +365,20 @@ associated with. In the very most cases this will
 be a document node or a document fragment node.
 
 
+
+
 =item B<setOwnerDocument>
+
+
 
 
 This function binds a node to another DOM. This
 method unbinds the node first, if it is allready
 bound to another document.
+
+
+
+
 
 This function is the oposite calling of
 XML::LibXML::Document's adoptNode()
@@ -275,7 +386,11 @@ function. Because of this it has the same
 limitations with Entity References as adoptNode().
 
 
+
+
 =item B<insertBefore>
+
+
 
 
 The method inserts I<$newNode> before
@@ -287,7 +402,11 @@ case, if the new node is not part of the document,
 the node will be imported first.
 
 
+
+
 =item B<insertAfter>
+
+
 
 
 The method inserts I<$newNode> after
@@ -296,7 +415,11 @@ undefined, the newNode will be set as the new last
 child of the parent node.
 
 
+
+
 =item B<findnodes>
+
+
 
 
 B<findnodes> performs the xpath statement on
@@ -305,7 +428,11 @@ array. In scalar context returns a
 I<XML::LibXML::NodeList> object.
 
 
+
+
 =item B<find>
+
+
 
 
 B<find> performs the xpath expression using
@@ -322,38 +449,59 @@ overload feature to "do the right thing" in
 different contexts.
 
 
+
+
 =item B<findvalue>
+
+
 
 
 B<findvalue> is exactly equivalent to:
 
+
+
  $node->find( $xpath )->to_literal;
                 
+
+
 That is, it returns the literal value of the
 results. This enables you to ensure that you get a
 string back from your search, allowing certain
 shortcuts. This could be used as the equivalent of
-<xsl:value-of select="some_xpath"/>.
+XSLT's <xsl:value-of select="some_xpath"/>.
+
+
 
 
 =item B<childNodes>
+
+
 
 
 B<getChildnodes> implements a more intuitive
 interface to the childnodes of the current
 node. It enables you to pass all children directly
 to a I<map> or I<grep>. If this
-function is called in scalar context, the number
-of childnodes will be returned.
+function is called in scalar context, a
+I<XML::LibXML::NodeList> object will be
+returned.
+
+
 
 
 =item B<toString>
+
+
 
 
 This is the equivalent to
 I<XML::LibXML::Document::toString> for a
 single node. This means a node and all its
 childnodes will be dumped into the result string.
+
+
+
+
 
 Additionally to the $format flag of
 XML::LibXML::Document, this version accepts the
@@ -363,81 +511,139 @@ encoding (the encoding of the document) rather
 than UTF8.
 
 
+
+
 =item B<localname>
+
+
 
 
 Returns the local name of a tag. This is the part
 behind the colon.
 
 
+
+
 =item B<prefix>
+
+
 
 
 Returns the prefix of a tag. This is the part
 before the colon.
 
 
+
+
 =item B<namespaceURI>
+
+
 
 
 returns the URI of the current namespace.
 
 
+
+
 =item B<hasAttributes>
+
+
 
 
 returns 1 (TRUE) if the current node has any
 attributes set, otherwise 0 (FALSE) is returned.
 
 
+
+
 =item B<attributes>
 
 
-returns all attributes of a given node
 
-if this function is called in array context the
-attribute nodes are returned as an array hash.
+
+Returns all attributes of a given node.
+
+
+
+
+
+If this function is called in array context the
+attribute nodes are returned as an array. In
+scalar context the function will return a
+I<XML::LibXML::NamedNodeMap> object.
+
+
 
 
 =item B<lookupNamespaceURI>
 
 
-Find a namespace by its URI starting at the
+
+
+Find a namespace URI by its prefix starting at the
 current node.
+
+
 
 
 =item B<lookupNamespacePrefix>
 
 
-Find a namespace by its prefix starting at the
+
+
+Find a namespace prefix by its URI starting at the
 current node.
 
-B<NOTE> Only the namespace URIs are
-unique. The prefix is only document related.
+
+
+
+
+B<NOTE> Only the namespace URIs are ment to be
+unique. The prefix is only document related. also document might has more than a single prefix defined for a namespace.
+
+
 
 
 =item B<iterator>
 
 
-This is little helper function, that lets one
-define a function, that will be processed on the
-current node and all its children. The function
-will recieve as its only parameter the node to
-proceed. The function uses inorder proceeding to
-traverse the subtree. Therefore you can't reach
-the childnodes anymore, if the nodehandler removes
-childnodes.
 
- $node->iterator( sub { print $_[0]->nodeName(),"\n"; } );
+
+This function returns a new iterator object based
+with the current element as first element. This
+iterator can be used for linear tree walking.
+
+
+
+ $node->iterator->iterate( sub { shift;print $_[0]->nodeName(),"\n"; } );
                 
-The example will print all node names in the current subtree.
 
-The B<iterator> function will return the
-return value of the nodehandler while processing
-the last child of the current node.
+
+The example will print all node names in the
+current subtree.
+
+
+
+
+
+Check the I<XML::LibXML::Iterator> man page
+for more details.
+
+
+
+
+
+B<NOTE:> The function has changed with
+version 1.53. Earlier versions did not return an
+iterator object, but ran the iterate() function
+directly.
+
+
 
 
 =item B<normalize>
+
+
 
 
 This function normalizes adjacent textnodes. This
@@ -446,7 +652,11 @@ xmlTextMerge() function, since it will not free a
 node that is still refered by the perl layer.
 
 
+
+
 =item B<getNamespaces>
+
+
 
 
 If a node has any namespaces defined, this
@@ -455,8 +665,30 @@ this will not return all namespaces that are in
 scope, but only the ones declares explicitly for
 that node.
 
+
+
+
+
 Although getNamespaces is available for all nodes,
 it makes only sense if used with element nodes.
+
+
+
+
+=item B<removeChildNodes>
+
+
+
+
+This function is not specified for any DOM level:
+It removes all childnodes from a node in a single
+step. Other than the libxml2 function itself
+(xmlFreeNodeList), this function will not
+imediatly remove the nodes from the memory. This
+safes one from getting memory violations, if there are nodes still refered from the Perl level. 
+
+
+
 
 
 =back
@@ -471,5 +703,5 @@ XML::LibXML, XML::LibXML::Element, XML::LibXML::Text, XML::LibXML::Comment, XML:
 
 =head1 VERSION
 
-1.50
+1.53
 

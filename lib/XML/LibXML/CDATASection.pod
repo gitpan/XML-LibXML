@@ -12,8 +12,12 @@ XML::LibXML::CDATASection - The DOM CDATASection Class
 =head1 DESCRIPTION
 
 
+
+
 This class provides all functions of
 B<XML::LibXML::Text>, but for CDATA nodes.
+
+
 
 
 =head2 Methods
@@ -23,10 +27,16 @@ B<XML::LibXML::Text>, but for CDATA nodes.
 =item B<new>
 
 
+
+
 The constructor is the only provided function for
 this package. It is required, because
 B<libxml2> treats the different textnode
 types slightly different.
+
+
+
+
 
 
 =back
@@ -41,5 +51,5 @@ XML::LibXML, XML::LibXML::Node, XML::LibXML::Element, XML::LibXML::Text, XML::Li
 
 =head1 VERSION
 
-1.50
+1.53
 

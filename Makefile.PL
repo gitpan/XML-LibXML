@@ -1,4 +1,4 @@
-# $Id: Makefile.PL,v 1.27 2002/06/04 14:44:06 phish Exp $
+# $Id: Makefile.PL,v 1.30 2002/09/14 20:49:32 phish Exp $
 
 use ExtUtils::MakeMaker;
 use Config;
@@ -64,6 +64,30 @@ If this is wrong, Re-run as:
 
 OPT
     }
+
+    # test for libgdome
+    my ( $g_major, $g_minor, $g_patch ) = (0, 7, 3);
+
+    eval {
+        print "running gdome-config...";
+        my $ver = backtick("gdome-config --version");
+        ($major, $minor, $point) = $ver =~ /(\d+).(\d+)\.(\d+)/g;
+        die "VERSION " unless $major > $g_major
+             || ($major == $g_major && $minor > $g_minor)
+             || ($major == $g_major && $minor == $g_minor && $point >= $g_patch) ;
+            print "ok\n";
+            print "make use of GDOME support\n";
+            print "NOTE: You will still have to install XML::GDOME to make\n";
+            print "      use of this feature\n";
+            $config{LIBS} = backtick("gdome-config --libs");
+            $config{INC}  = backtick("gdome-config --cflags");
+            $config{DEFINE} .= " -DXML_LIBXML_GDOME_SUPPORT";
+    };
+    if ($@) {
+       print "failed\n";
+       print "GDOME support is optional and is not required for running\n";
+       print "this package\n";
+   }
 }
 
 
@@ -88,7 +112,7 @@ unless (have_library("xml2") or have_library("libxml2")) {
 libxml2 not found
 Try setting LIBS and INC values on the command line
 Or get libxml2 from 
-  http://www.libxml.org/
+  http://xmlsoft.org/
 If you install via RPMs, make sure you also install the -devel
 RPMs, as this is where the headers (.h files) are.
 DEATH
@@ -107,10 +131,12 @@ EOT
 WriteMakefile(
     'NAME'	=> 'XML::LibXML',
     'VERSION_FROM' => 'LibXML.pm', # finds $VERSION
-    'AUTHOR'    => 'Matt Sergeant',
+    'AUTHOR'    => 'Christian Glahn',
     'ABSTRACT'  => 'Interface to Gnome libxml2 xml parsing and DOM library',
-    'PREREQ_PM' => { 'XML::SAX' => 0,
-                     'XML::NamespaceSupport' => '1.07',  },
+    'PREREQ_PM' => { 'XML::SAX' => '0.11',
+                     'XML::NamespaceSupport' => '1.07',
+                     'XML::LibXML::Common' => 0,
+                   },
     'OBJECT'    => '$(O_FILES)', # add the DOM extensions to libxml2
     'dist'      => { PREOP => "$^X -Iblib/arch -Iblib/lib example/xml2pod.pl" },
     %config,
@@ -141,6 +167,7 @@ sub MY::install {
 
 install_sax_driver :
 \t\@\$(PERL) -MXML::SAX -e "XML::SAX->add_parser(q(XML::LibXML::SAX::Parser))->save_parsers()"
+\t\@\$(PERL) -MXML::SAX -e "XML::SAX->add_parser(q(XML::LibXML::SAX))->save_parsers()"
  
 INSTALL
  
@@ -314,6 +341,11 @@ EOT
     close($cfile);
     my $quote = $is_Win32 ? '"' : "'";
     xsystem("$^X Makefile.PL " . join(' ', map { "${quote}$_=$config{$_}${quote}" } keys %config));
+
+    # I am not shure if OTHERLDFLAGS is really required - at least the
+    # libraries to include do not belong here!
+    # I would assume a user to set OTHERLDFLAGS in the %config if they are
+    # really required. if done so, we don't have to pass them here ...
     xsystem("$Config{make} test ${quote}OTHERLDFLAGS=${opt}${quote}");
 } # end try_link0
 
@@ -338,14 +370,14 @@ sub have_library {
         my $libs = $is_Win32 ? " $lib.lib  " : "-l$lib";
 #        my $libs = "-l$lib";
         if ($is_Win32) {
-            $result = try_link(<<"SRC", $libs);
+            $result = try_link(<<"SRC", undef);
 #include <windows.h>
 #include <winsock.h>
 blank() { return 0; }
 int t() { ${func}(); return 0; }
 SRC
             unless ($result) {
-                $result = try_link(<<"SRC", $libs);
+                $result = try_link(<<"SRC", undef);
 #include <windows.h>
 #include <winsock.h>
 blank() { return 0; }
@@ -354,7 +386,7 @@ SRC
             }
         }
         else {
-            $result = try_link(<<"SRC", $libs);
+            $result = try_link(<<"SRC", undef);
 blank() { return 0; }
 int t() { ${func}(); return 0; }
 SRC

@@ -13,16 +13,28 @@ XML::LibXML::Dtd - A Class implementing Dtd Nodes
 =head1 DESCRIPTION
 
 
+
+
 This class holds a DTD. You may parse a DTD from
 either a string, or from an external SYSTEM
 identifier.
 
+
+
+
+
 No support is available as yet for parsing from a
 filehandle.
+
+
+
+
 
 XML::LibXML::Dtd is a sub-class of Node, so all the
 methods available to nodes (particularly toString())
 are available to Dtd objects.
+
+
 
 
 =head2 Methods
@@ -32,9 +44,13 @@ are available to Dtd objects.
 =item B<new>
 
 
+
+
 Parse a DTD from the system identifier, and return
 a DTD object that you can pass to $doc->is_valid()
 or $doc->validate().
+
+
 
  my $dtd = XML::LibXML::Dtd->new(
                       "SOME // Public / ID / 1.0",
@@ -47,8 +63,14 @@ or $doc->validate().
 =item B<parse_string>
 
 
+
+
 The same as new() above, except you can parse a
 DTD from a string.
+
+
+
+
 
 
 =back
@@ -59,5 +81,5 @@ Matt Sergeant, Christian Glahn
 
 =head1 VERSION
 
-1.50
+1.53
 

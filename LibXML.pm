@@ -1,4 +1,4 @@
-# $Id: LibXML.pm,v 1.68 2002/06/12 10:02:00 phish Exp $
+# $Id: LibXML.pm,v 1.78 2002/09/14 20:49:32 phish Exp $
 
 package XML::LibXML;
 
@@ -7,10 +7,13 @@ use vars qw($VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS
             $skipDTD $skipXMLDeclaration $setTagCompression
             $MatchCB $ReadCB $OpenCB $CloseCB );
 use Carp;
+
+use XML::LibXML::Common qw(:encoding :libxml :w3c);
+
 use XML::LibXML::NodeList;
 use IO::Handle; # for FH reads called as methods
 
-$VERSION = "1.52";
+$VERSION = "1.53";
 require Exporter;
 require DynaLoader;
 
@@ -27,85 +30,6 @@ $CloseCB = undef;
 
 bootstrap XML::LibXML $VERSION;
 
-@EXPORT = qw( XML_ELEMENT_NODE
-              XML_ATTRIBUTE_NODE
-              XML_TEXT_NODE
-              XML_CDATA_SECTION_NODE
-              XML_ENTITY_REF_NODE
-              XML_ENTITY_NODE
-              XML_PI_NODE
-              XML_COMMENT_NODE
-              XML_DOCUMENT_NODE
-              XML_DOCUMENT_TYPE_NODE
-              XML_DOCUMENT_FRAG_NODE
-              XML_NOTATION_NODE
-              XML_HTML_DOCUMENT_NODE
-              XML_DTD_NODE
-              XML_ELEMENT_DECL
-              XML_ATTRIBUTE_DECL
-              XML_ENTITY_DECL
-              XML_NAMESPACE_DECL
-              XML_XINCLUDE_START
-              XML_XINCLUDE_END
-              encodeToUTF8
-              decodeFromUTF8
-            );
-
-@EXPORT_OK = qw(
-                ELEMENT_NODE
-                ATTRIBUTE_NODE
-                TEXT_NODE
-                CDATA_SECTION_NODE
-                ENTITY_REFERENCE_NODE
-                ENTITY_NODE
-                PROCESSING_INSTRUCTION_NODE
-                COMMENT_NODE
-                DOCUMENT_NODE
-                DOCUMENT_TYPE_NODE
-                DOCUMENT_FRAGMENT_NODE
-                NOTATION_NODE
-                HTML_DOCUMENT_NODE
-                DTD_NODE
-                ELEMENT_DECLARATION
-                ATTRIBUTE_DECLARATION
-                ENTITY_DECLARATION
-                NAMESPACE_DECLARATION
-                NAMESPACE_DECLARATION
-                XINCLUDE_END
-                XINCLUDE_START
-               );
-
-%EXPORT_TAGS = (
-                all => [@EXPORT, @EXPORT_OK],
-                w3c_typenames => [qw(
-                                     ELEMENT_NODE
-                                     ATTRIBUTE_NODE
-                                     TEXT_NODE
-                                     CDATA_SECTION_NODE
-                                     ENTITY_REFERENCE_NODE
-                                     ENTITY_NODE
-                                     PROCESSING_INSTRUCTION_NODE
-                                     COMMENT_NODE
-                                     DOCUMENT_NODE
-                                     DOCUMENT_TYPE_NODE
-                                     DOCUMENT_FRAGMENT_NODE
-                                     NOTATION_NODE
-                                     HTML_DOCUMENT_NODE
-                                     DTD_NODE
-                                     ELEMENT_DECLARATION
-                                     ATTRIBUTE_DECLARATION
-                                     ENTITY_DECLARATION
-                                     NAMESPACE_DECLARATION
-                                     NAMESPACE_DECLARATION
-                                     XINCLUDE_END
-                                     XINCLUDE_START
-                                    )],
-                encoding => [qw(
-                                encodeToUTF8
-                                decodeFromUTF8
-                               )],
-               );
-
 sub new {
     my $class = shift;
     my %options = @_;
@@ -113,10 +37,16 @@ sub new {
         $options{XML_LIBXML_KEEP_BLANKS} = 1;
     }
 
+    if ( defined $options{catalog} ) {
+        $class->load_catalog( $options{catalog} );
+        delete $options{catalog};
+    }
+
     my $self = bless \%options, $class;
     if ( defined $options{Handler} ) {
         $self->set_handler( $options{Handler} );
     }
+
     return $self;
 }
 
@@ -195,6 +125,12 @@ sub validation {
     return $self->{XML_LIBXML_VALIDATION};
 }
 
+sub recover {
+    my $self = shift;
+    $self->{XML_LIBXML_RECOVER} = shift if scalar @_;
+    return $self->{XML_LIBXML_RECOVER};
+}
+
 sub expand_entities {
     my $self = shift;
     $self->{XML_LIBXML_EXPAND_ENTITIES} = shift if scalar @_;
@@ -206,7 +142,6 @@ sub keep_blanks {
     $self->{XML_LIBXML_KEEP_BLANKS} = shift if scalar @_;
     return $self->{XML_LIBXML_KEEP_BLANKS};
 }
-
 
 sub pedantic_parser {
     my $self = shift;
@@ -238,16 +173,23 @@ sub base_uri {
     return $self->{XML_LIBXML_BASE_URI};
 }
 
+sub gdome_dom {
+    my $self = shift;
+    $self->{XML_LIBXML_GDOME} = shift if scalar @_;
+    return $self->{XML_LIBXML_GDOME};
+}
+
 sub set_handler {
     my $self = shift;
     if ( defined $_[0] ) {
         $self->{HANDLER} = $_[0];
 
-        $self->{SAX} = {State => 0,
-                        ELSTACK    => []};
+        $self->{SAX_ELSTACK} = [];
+        $self->{SAX} = {State => 0};
     }
     else {
         # undef SAX handling
+        $self->{SAX_ELSTACK} = [];
         delete $self->{HANDLER};
         delete $self->{SAX};
     }
@@ -285,6 +227,7 @@ sub parse_string {
 
     if ( defined $self->{SAX} ) {
         my $string = shift;
+        $self->{SAX_ELSTACK} = [];
         eval { $self->_parse_sax_string($string); };
         my $err = $@;
         $self->{_State_} = 0;
@@ -313,6 +256,7 @@ sub parse_fh {
     $self->{_State_} = 1;
     my $result;
     if ( defined $self->{SAX} ) {
+        $self->{SAX_ELSTACK} = [];
         eval { $self->_parse_sax_fh( @_ );  };
         my $err = $@;
         $self->{_State_} = 0;
@@ -340,6 +284,7 @@ sub parse_file {
     $self->{_State_} = 1;
     my $result;
     if ( defined $self->{SAX} ) {
+        $self->{SAX_ELSTACK} = [];
         eval { $self->_parse_sax_file( @_ );  };
         my $err = $@;
         $self->{_State_} = 0;
@@ -399,10 +344,11 @@ sub init_push {
     my $self = shift;
 
     if ( defined $self->{CONTEXT} ) {
-        delete $self->{COMTEXT};
+        delete $self->{CONTEXT};
     }
 
     if ( defined $self->{SAX} ) {
+        $self->{SAX_ELSTACK} = [];
         $self->{CONTEXT} = $self->_start_push(1);
     }
     else {
@@ -410,17 +356,11 @@ sub init_push {
     }
 }
 
-
 sub push {
     my $self = shift;
 
     if ( not defined $self->{CONTEXT} ) {
-        if ( defined $self->{SAX} ) {
-            $self->{CONTEXT} = $self->_start_push(1);
-        }
-        else {
-            $self->{CONTEXT} = $self->_start_push(0);
-        }
+        $self->init_push();
     }
 
     foreach ( @_ ) {
@@ -488,15 +428,10 @@ sub attributes {
 
 sub iterator {
     my $self = shift;
-    my $funcref = shift;
-    my $child = undef;
-
-    my $rv = $funcref->( $self );
-    foreach $child ( $self->childNodes() ){
-        $rv = $child->iterator( $funcref );
-    }
-    return $rv;
+    require XML::LibXML::Iterator;
+    return XML::LibXML::Iterator->new( $self );
 }
+
 
 sub findnodes {
     my ($node, $xpath) = @_;
@@ -578,6 +513,30 @@ sub toString {
 sub process_xinclude {
     my $self = shift;
     XML::LibXML->new->processXIncludes( $self );
+}
+
+sub insertProcessingInstruction {
+    my $self   = shift;
+    my $target = shift;
+    my $data   = shift;
+
+    my $pi     = $self->createPI( $target, $data );
+    my $root   = $self->documentElement;
+
+    if ( defined $root ) {
+        # this is actually not correct, but i guess it's what the user
+        # intends
+        $self->insertBefore( $pi, $root );
+    }
+    else {
+        # if no documentElement was found we just append the PI
+        $self->appendChild( $pi );
+    }
+}
+
+sub insertPI {
+    my $self = shift;
+    $self->insertProcessingInstruction( @_ );
 }
 
 1;
@@ -914,76 +873,12 @@ package XML::LibXML::_SAXParser;
 
 use XML::SAX::Exception;
 
-# NOTE: there is not end_document ON PURPOSE!
-
-sub start_document {
-    my $parser = shift;
-    $parser->{HANDLER}->start_document({});
-}
-
-sub xml_decl {
-    my ( $parser, $version, $encoding ) = @_;
-
-    my $decl = {version => $version};
-    $decl->{encoding} = $encoding if defined $encoding;
-    $parser->{HANDLER}->xml_decl($decl);
-}
-
-sub start_prefix_mapping {
-    my ( $parser, $prefix, $uri ) = @_;
-    $parser->{HANDLER}->start_prefix_mapping( { Prefix => $prefix, NamespaceURI => $uri } );
-}
-
-sub end_prefix_mapping {
-    my ( $parser, $prefix, $uri ) = @_;
-    $parser->{HANDLER}->end_prefix_mapping( { Prefix => $prefix, NamespaceURI => $uri } );
-}
-
-sub start_element {
-    my (  $parser, $elem, $attrs ) = @_;
-    my $saxattr = {};
-
-    push @{$parser->{SAX}->{ELSTACK}}, $elem;
-
-    if ( defined $attrs  ) {
-        $parser->{HANDLER}->start_element( { %$elem, Attributes=>$attrs} )
-    }
-    else {
-        $parser->{HANDLER}->start_element( $elem )
-    }
-}
-
-sub end_element {
-    my (  $parser, $name ) = @_;
-    my $elem = pop @{$parser->{SAX}->{ELSTACK}};
-    if ( $elem->{Name} ne $name ) {
-        my $error = XML::SAX::Execption::Parse->new( Message => "cought error where parser should catch ('$elem->{Name}' ne '$name' )" );
-        $parser->{HANDLER}->error( $error );
-        return;
-    }
-    $parser->{HANDLER}->end_element( $elem );
-}
-
-sub characters {
-    my ( $parser, $data ) = @_;
-    $parser->{HANDLER}->characters( $data );
-}
-
-sub comment {
-    my ( $parser, $data ) = @_;
-    $parser->{HANDLER}->comment( $data );
-}
-
+# the cdata section will go to the c-layer soon
 sub cdata_block {
     my ( $parser, $data ) = @_;
     $parser->{HANDLER}->start_cdata();
     $parser->{HANDLER}->characters( $data );
     $parser->{HANDLER}->end_cdata();
-}
-
-sub processing_instruction {
-    my ( $parser, $target ) = @_;
-    $parser->{HANDLER}->processing_instruction( $target );
 }
 
 # these functions will use SAX exceptions as soon i know how things really work
@@ -1052,6 +947,23 @@ parameters to get the current value.
 
 Turn validation on (or off). Defaults to off.
 
+=head2 recover
+
+  $parser->recover(1);
+
+Turn the parsers recover mode on (or off). Defaults to off.
+
+This allows to parse broken XML data into memory.  This switch will
+only work with XML data rather than HTML data. Also the validation
+will be switched off automaticly.
+
+The recover mode helps to recover documents that are almost wellformed
+very efficiently. That is for example a document that forgets to close
+the document tag (or any other tag inside the document). The recover
+mode of XML::LibXML has problems though to restore documents that are
+more like well ballanced chunks. In that case XML::LibXML will only
+parse the first tag of the chunk.
+
 =head2 expand_entities
 
   $parser->expand_entities(0);
@@ -1094,6 +1006,41 @@ Expands XIinclude tags imidiatly while parsing the document. This flag
 ashures that the parser callbacks are used while parsing the included
 Document.
 
+=head2 load_catalog
+
+  $parser->load_catalog( $catalog_file );
+
+Will use $catalog_file as a catalog during all parsing
+processes. Using a catalog will significantly speed up parsing
+processes if many external ressources are loaded into the parsed
+documents (such as DTDs or XIncludes)
+
+Note that catalogs will not be available if an external entity handler
+was specified. At the current state it is not possible to make use of
+both types of resolving systems at the same time.
+
+=head2 base_uri
+
+  $parser->base_uri( $your_base_uri );
+
+In case of parsing strings or file handles, XML::LibXML doesn't know
+about the base uri of the document. To make relative references such as
+XIncludes work, one has to set a separate base URI, that is then used for
+the parsed documents.
+
+=head2 gdome_dom
+
+  $parser->gdome_dom(1);
+
+Although quite powerful XML:LibXML's DOM implementation is limited if
+one needs or wants full DOM level 2 or level 3 support. XML::GDOME is
+based on libxml2 as well but provides a rather complete DOM
+implementation by wrapping libgdome. This allows you to make use of
+XML::LibXML's full parser options and XML::GDOME's DOM implementation
+at the same time.
+
+All XML::LibXML parser functions recognize this switch.
+
 =head2 match_callback
 
   $parser->match_callback($subref);
@@ -1135,6 +1082,19 @@ Note that you do not need to enable this - if not supplied libxml will
 get the resource either directly from the filesystem, or using an internal
 http client library.
 
+=head2 catalog
+
+  my $parser = XML::LibXML->new( catalog => $private_catalog );
+
+Alternatively to ext_ent_handler the catalog parameter allows to use
+libxml2's catalog interface directly. The parameter takes a filename
+to a catalog file. This catalog is loaded by libxml2 and will be used
+during parsing processes.
+
+Note that catalogs will not be available if an external entity handler
+was specified. At the current state it is not possible to make use of
+both types of resolving systems at the same time.
+
 =head1 DEFAULT VALUES
 
 The following table gives an overview about the default values of the
@@ -1143,6 +1103,8 @@ parser attributes.
 =over 4
 
 =item validation == off (0)
+
+=item recover == off (0)
 
 =item expand_entities == on (1)
 
@@ -1155,6 +1117,10 @@ parser attributes.
 =item complete_attributes == on (1)
 
 =item expand_xinclude == off (0)
+
+=item base_uri == ""
+
+=item gdome_dom == off (0)
 
 =back
 
@@ -1198,6 +1164,12 @@ parsing.
 =head2 parse_file
 
   my $doc = $parser->parse_file($filename);
+
+This function reads an absolute filename into the memory. It causes
+XML::LibXML to use libxml2's file parser instead of letting perl
+reading the file such as with parse_fh(). If you need to parse files
+directly, this function would be the faster choice, since this function
+is about 6-8 times faster then parse_fh().
 
 =head2 Parsing Html
 
@@ -1249,7 +1221,7 @@ parser is told to finish the parsing process.
 This function pushs the data stored inside the array to libxml2's
 parse. Each entry in @data must be a normal scalar!
 
-=item $parser->finish( $restore );
+=item $parser->finish_push( $restore );
 
 This function returns the result of the parsing process. If this
 function is called without a parameter it will complain about non
@@ -1258,7 +1230,7 @@ restore broken or non well formed (XML) documents as the following
 example shows:
 
   $parser->push( "<foo>", "bar" );
-  eval { $doc = $parser->finish; };      # will complain
+  eval { $doc = $parser->finish_push(); };      # will complain
   if ( $@ ) {
      # ...
   }
@@ -1267,11 +1239,11 @@ This can be anoing if the closing tag misses by accident. The
 following code will restore the document:
 
   $parser->push( "<foo>", "bar" );
-  eval { $doc = $parser->finish(1); };      # will not complain
+  eval { $doc = $parser->finish_push(1); };      # will not complain
 
   warn $doc->toString(); # returns "<foo>bar</foo>"
 
-of course finish() will return nothing if there was no data pushed to
+of course finish_push() will return nothing if there was no data pushed to
 the parser before.
 
 =back
@@ -1488,6 +1460,47 @@ This Function transforms an UTF-8 encoded string the specified
 encoding.  While transforms to ISO encodings may cause errors if the
 given stirng contains unsupported characters, this function can
 transform to UTF-16 encodings as well.
+
+=head2 XML::LibXML and XML::GDOME
+
+THE FUNCTIONS DESCRIBED HERE ARE STILL EXPERIMENTAL
+
+Although both modules make use of libxml2's XML capabilities, the DOM
+implementation of both modules are not compatible. But still it is
+possible to exchange nodes from one DOM to the other. The concept of
+this exchange is pretty similar to the function cloneNode(): The
+particular node is copied on the lowlevel to the opposite DOM
+implementation.
+
+Since the DOM implementations cannot coexist with in one document, one
+is forced to copy each node that should be used. Because of keeping
+allways two nodes this may cause quite an impact on a machines memory
+useage.
+
+XML::LibXML provides two functions to export or import GDOME nodes:
+import_GDOME() and export_GDOME(). Both function have two parameters:
+the node and a flag for recursive import. The flag works as in
+cloneNode().
+
+=head2 import_GDOME
+
+  XML::LibXML->import_GDOME( $node, $deep );
+
+This converts an XML::GDOME node to XML::LibXML explicitly.
+
+=head2 export_GDOME
+
+  XML::LibXML->export_GDOME( $node, $deep );
+
+Allows to export an XML::LibXML node to XML::GDOME explicitly.
+
+Although these two explicit functions exist, XML::LibXML allows also
+the transparent import of XML::GDOME nodes in functions such as
+appendChild(), insertAfter() and so on. While native nodes are
+automaticly adopted in most functions XML::GDOME nodes are B<allways>
+cloned in advance. Thus if the original node is modified after the
+operation, the node in the XML::LibXML document will not have this
+information.
 
 =head1 XML::LibXML::Dtd
 

@@ -1,5 +1,5 @@
 /* dom.h
- * $Id: dom.h,v 1.15 2002/05/11 19:39:24 phish Exp $
+ * $Id: dom.h,v 1.16 2002/07/16 18:19:39 phish Exp $
  * Author: Christian Glahn (2001)
  * 
  * This header file provides some definitions for wrapper functions.
@@ -30,7 +30,7 @@
  **/
 
 xmlNodePtr 
-domReadWellBalancedString( xmlDocPtr doc, xmlChar* string );
+domReadWellBalancedString( xmlDocPtr doc, xmlChar* string, int repair );
 
 /**
  * NAME domIsParent

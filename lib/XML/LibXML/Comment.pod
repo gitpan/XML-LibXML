@@ -12,10 +12,14 @@ XML::LibXML::Comment - The DOM Comment Class
 =head1 DESCRIPTION
 
 
+
+
 This class provides all functions of
 B<XML::LibXML::Text>, but for comment
 nodes. This can be done, since only the output of the
 nodetypes is different, but not the datastructure. :-)
+
+
 
 
 =head2 Methods
@@ -25,10 +29,16 @@ nodetypes is different, but not the datastructure. :-)
 =item B<new>
 
 
+
+
 The constructor is the only provided function for
 this package. It is required, because
 B<libxml2> treats text nodes and comment
 nodes slightly different.
+
+
+
+
 
 
 =back
@@ -43,5 +53,5 @@ XML::LibXML, XML::LibXML::Node, XML::LibXML::Element, XML::LibXML::Text, XML::Li
 
 =head1 VERSION
 
-1.50
+1.53
 

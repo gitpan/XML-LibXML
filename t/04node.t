@@ -1,4 +1,4 @@
-# $Id: 04node.t,v 1.5 2002/05/25 11:31:13 phish Exp $
+# $Id: 04node.t,v 1.8 2002/09/12 18:16:15 phish Exp $
 
 ##
 # this test checks the DOM Node interface of XML::LibXML
@@ -11,8 +11,9 @@
 
 use Test;
 
-BEGIN { plan tests => 118 };
+BEGIN { plan tests => 122 };
 use XML::LibXML;
+use XML::LibXML::Common qw(:libxml);
 
 my $xmlstring = q{<foo>bar<foobar/><bar foo="foobar"/><!--foo--><![CDATA[&foo bar]]></foo>};
 
@@ -135,9 +136,15 @@ print "# 1.1 Node Attributes\n";
         print "# 2.1.1 Single Node\n";
 
         my $inode = $doc->createElement("kungfoo"); # already tested
+        my $jnode = $doc->createElement("kungfoo"); 
         my $xn = $node->insertBefore($inode, $rnode);
         ok( $xn );
         ok( $xn->isSameNode($inode) );
+
+        $node->insertBefore( $jnode, undef );
+        ( $xn ) = $node->childNodes;
+        ok( $xn->isSameNode( $jnode ) );
+        $jnode->unbindNode;
 
         my @cn = $node->childNodes;
         ok(scalar(@cn), 6);
@@ -212,7 +219,20 @@ print "# 1.1 Node Attributes\n";
 
     }
 
-    print "# 2.2 Invalid Operations\n";    
+    print "# 2.2 Invalid Operations\n";
+
+
+    print "# 2.3 DOM extensions \n";
+    {
+        my $str = "<foo><bar/>com</foo>";
+        my $doc = XML::LibXML->new->parse_string( $str );
+        my $elem= $doc->documentElement;
+        ok( $elem );
+        ok( $elem->hasChildNodes );
+        $elem->removeChildNodes;
+        ok( $elem->hasChildNodes,0 );
+        $elem->toString;
+    }    
 }
 
 print "# 3   Standalone With NameSpaces\n\n"; 

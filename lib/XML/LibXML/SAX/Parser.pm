@@ -1,4 +1,4 @@
-# $Id: Parser.pm,v 1.16 2002/05/27 13:03:12 phish Exp $
+# $Id: Parser.pm,v 1.20 2002/09/12 17:06:11 phish Exp $
 
 package XML::LibXML::SAX::Parser;
 
@@ -6,10 +6,11 @@ use strict;
 use vars qw($VERSION @ISA);
 
 use XML::LibXML;
+use XML::LibXML::Common qw(:libxml);
 use XML::SAX::Base;
 use XML::SAX::DocumentLocator;
 
-$VERSION = '1.49';
+$VERSION = '1.50';
 @ISA = ('XML::SAX::Base');
 
 sub _parse_characterstream {
@@ -94,6 +95,10 @@ sub process_node {
         # ignore!
         # i may want to handle this one day, dunno yet
     }
+    elsif ($node->type == XML_DTD_NODE ) {
+        # ignore!
+        # i will support DTDs, but had no time yet.
+    }
     else {
         warn("unsupported node type: $node_type");
     }
@@ -121,23 +126,22 @@ sub process_element {
         if ($attr->isa('XML::LibXML::Namespace')) {
             # TODO This needs fixing modulo agreeing on what
             # is the right thing to do here.
-            my ($localname, $p);
-            if (my $prefix = $attr->prefix) {
-                $key = "{" . $attr->href . "}" . $prefix;
-                $localname = $prefix;
-                $p = "xmlns";
+            my $prefix = "xmlns";
+            my $localname = $attr->localname;
+            my $key = "{http://www.w3.org/xmlns/2000/}";
+            my $name = "xmlns";
+
+            if ( defined $localname ) {
+                $key .= $localname;
+                $name.= ":".$localname;
             }
-            else {
-                $key = $attr->name;
-                $localname = $key;
-                $p = '';
-            }
+
             $attribs->{$key} =
                 {
-                    Name => $attr->prefix,
+                    Name => $name,
                     Value => $attr->href,
-                    NamespaceURI => $attr->href,
-                    Prefix => $p,
+                    NamespaceURI => "http://www.w3.org/xmlns/2000/",
+                    Prefix => $prefix,
                     LocalName => $localname,
                 };
             # push @ns_maps, $attribs->{$key};
@@ -149,8 +153,8 @@ sub process_element {
                 {
                     Name => $attr->name,
                     Value => $attr->value,
-                    NamespaceURI => $attr->namespaceURI,
-                    Prefix => $attr->prefix,
+                    NamespaceURI => $ns,
+                    Prefix => $attr->prefix || "",
                     LocalName => $attr->localname,
                 };
         }
@@ -162,7 +166,7 @@ sub process_element {
         Name => $element->nodeName,
         Attributes => $attribs,
         NamespaceURI => $element->namespaceURI,
-        Prefix => $element->prefix,
+        Prefix => $element->prefix || "",
         LocalName => $element->localname,
     };
 

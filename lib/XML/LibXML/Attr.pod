@@ -17,9 +17,13 @@ XML::LibXML::Attr - The DOM Attribute Class
 =head1 DESCRIPTION
 
 
+
+
 This is the interface to handle Attributes like
 ordinary nodes. The naming of the class relies on the
 W3C DOM documentation.
+
+
 
 
 =head2 Methods
@@ -29,13 +33,19 @@ W3C DOM documentation.
 =item B<new>
 
 
+
+
 Class constructor. If you need to work with iso
 encoded strings, you should B<allways> use
 the I<createAttrbute> of
 B<XML::LibXML::Document>.
 
 
+
+
 =item B<getValue>
+
+
 
 
 Returns the value stored for the attribute. If
@@ -44,13 +54,21 @@ which is different of being I<not
                     specified>.
 
 
+
+
 =item B<value>
+
+
 
 
 Alias for B<getValue()>
 
 
+
+
 =item B<setValue>
+
+
 
 
 This is needed to set a new attributevalue. If iso
@@ -59,7 +77,11 @@ has to be bound to a document, otherwise the
 encoding might be wrong done.
 
 
+
+
 =item B<getOwnerElement>
+
+
 
 
 returns the node the attribute belongs to. If the
@@ -69,7 +91,11 @@ implementation, the B<parentNode> function
 will return undef, instead of the owner element.
 
 
+
+
 =item B<setNamespace>
+
+
 
 
 This function activates a namespace for the given
@@ -78,6 +104,10 @@ declared in the context of the attribute this
 function will be silently ignored. In this case
 you may wish to call setNamespace() on the
 ownerElement.
+
+
+
+
 
 
 =back
@@ -92,5 +122,5 @@ XML::LibXML, XML::LibXML::Node, XML::LibXML::Element, XML::LibXML::Document, XML
 
 =head1 VERSION
 
-1.50
+1.53
 

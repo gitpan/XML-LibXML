@@ -1,4 +1,4 @@
-# $Id: 02parse.t,v 1.11 2002/05/29 20:28:56 phish Exp $
+# $Id: 02parse.t,v 1.12 2002/09/02 11:08:03 phish Exp $
 
 ##
 # this test checks the parsing capabilities of XML::LibXML
@@ -9,6 +9,7 @@ use IO::File;
 
 BEGIN { plan tests => 42 };
 use XML::LibXML;
+use XML::LibXML::Common qw(:libxml);
 
 ##
 # test values
