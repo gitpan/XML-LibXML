@@ -1,4 +1,4 @@
-# $Id: 04node.t,v 1.13 2004/01/19 22:45:55 phish Exp $
+# $Id: 04node.t,v 1.14 2004/04/03 18:08:08 phish Exp $
 
 ##
 # this test checks the DOM Node interface of XML::LibXML
