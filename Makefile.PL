@@ -1,4 +1,4 @@
-# $Id: Makefile.PL,v 1.16 2002/05/11 20:00:27 phish Exp $
+# $Id: Makefile.PL,v 1.18 2002/05/17 18:49:46 phish Exp $
 
 use ExtUtils::MakeMaker;
 use Config;
@@ -28,8 +28,8 @@ if ( $] >= 5.006 ) {
 # get libs and inc from gnome-config
 eval {
     my $xml2cfg = "xml2-config";
-    if ( defined $config{XMLPREFIX} ) {
-        $xml2cfg = $config{XMLPREFIX} . '/' . $xml2cfg;
+    if ( defined $ENV{XMLPREFIX} ) {
+        $xml2cfg = $ENV{XMLPREFIX} . '/bin/' . $xml2cfg;
     }
     print "running xml2-config... ";
     my $ver = backtick("$xml2cfg --version");
@@ -42,7 +42,7 @@ eval {
 if ($@) {
     print "failed\n";
     if ($@ =~ /^VERSION/) {
-        die "XML::LibXML needs libxml2 version 2.4.8 or higher\n";
+        die "XML::LibXML needs libxml2 version 2.4.20 or higher\n";
     }
     warn "*** ", $@ if $DEBUG;
     warn "using fallback values for LIBS and INC\n";

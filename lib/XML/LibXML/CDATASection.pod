@@ -41,5 +41,5 @@ XML::LibXML, XML::LibXML::Node, XML::LibXML::Element, XML::LibXML::Text, XML::Li
 
 =head1 VERSION
 
-1.49
+1.50
 

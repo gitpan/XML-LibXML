@@ -1,6 +1,6 @@
 /**
  * perl-libxml-mm.h
- * $Id: perl-libxml-mm.h,v 1.4 2002/05/11 19:39:24 phish Exp $
+ * $Id: perl-libxml-mm.h,v 1.5 2002/05/11 22:31:49 phish Exp $
  *
  * Basic concept:
  * perl varies in the implementation of UTF8 handling. this header (together
@@ -92,6 +92,15 @@ PmmSetSvOwner(SV * perlnode, SV * owner );
 
 void
 PmmFixOwner(ProxyNodePtr node, ProxyNodePtr newOwner );
+
+int
+PmmContextREFCNT_dec( ProxyNodePtr node );
+
+SV*
+PmmContextSv( xmlParserCtxtPtr ctxt );
+
+xmlParserCtxtPtr
+PmmSvContext( SV * perlctxt );
 
 /**
  * NAME domNodeTypeName

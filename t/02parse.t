@@ -1,4 +1,4 @@
-# $Id: 02parse.t,v 1.3 2002/05/08 20:00:15 phish Exp $
+# $Id: 02parse.t,v 1.8 2002/05/20 11:01:28 phish Exp $
 
 ##
 # this test checks the parsing capabilities of XML::LibXML
@@ -7,7 +7,7 @@
 use Test;
 use IO::File;
 
-BEGIN { plan tests => 28 };
+BEGIN { plan tests => 40 };
 use XML::LibXML;
 
 ##
@@ -83,6 +83,18 @@ ok($@);
 eval { $parser->parse_file($badfile2); };
 ok($@);
 
+{
+    my $str = "<a>    <b/> </a>";
+    my $tstr= "<a><b/></a>";
+    $parser->keep_blanks(0);
+    my $docA = $parser->parse_string($str);
+    my $docB = $parser->parse_file("example/test3.xml");
+    $XML::LibXML::skipXMLDeclaration = 1;
+    ok( $docA->toString, $tstr );
+    ok( $docB->toString, $tstr );
+    $XML::LibXML::skipXMLDeclaration = 0;
+}
+
 print "# 4. Parse A Handle\n";
 
 my $fh = IO::File->new($goodfile);
@@ -101,6 +113,19 @@ $fh = IO::File->new($badfile2);
 
 eval { my $doc = $parser->parse_fh($fh); };
 ok($@);
+
+{
+    $parser->expand_entities(1);
+    my $doc = $parser->parse_file( "example/dtd.xml" );
+    my @cn = $doc->documentElement->childNodes;
+    ok( scalar @cn, 1 );
+
+    $doc = $parser->parse_file( "example/complex/complex2.xml" );
+    @cn = $doc->documentElement->childNodes;
+    ok( scalar @cn, 1 );
+
+    $parser->expand_entities(0);
+}
 
 print "# 5. x-include processing\n";
 
@@ -121,9 +146,10 @@ my $badXInclude = q{
 
 {
     $parser->base_uri( "example/" );
-
+    $parser->keep_blanks(0);
     my $doc = $parser->parse_string( $goodXInclude );
     ok($doc);
+
     my $i;
     eval { $i = $parser->processXIncludes($doc); };
     ok( $i );
@@ -148,4 +174,68 @@ my $badXInclude = q{
     ok($@);
     eval{ $parser->processXIncludes("blahblah"); };
     ok($@);
+}
+
+print "# 6. push parser\n";
+
+{
+    my @good_strings = ("<foo>", "bar", "</foo>" );
+    my @bad_strings  = ("<foo>", "bar");
+
+    my $parser = XML::LibXML->new;
+    {
+        
+        $parser->push( @good_strings );
+        my $doc = $parser->finish_push;
+        ok($doc);
+    }
+
+    {
+        foreach ( @bad_strings ) {
+            $parser->push( $_);
+        }
+
+        eval { my $doc = $parser->finish_push; };
+        ok( $@ );
+    }
+
+    {
+        $parser->init_push;
+
+        foreach ( @bad_strings ) {
+            $parser->push( $_);
+        }
+
+        my $doc;
+        eval { $doc = $parser->finish_push(1); };
+        ok( $doc );
+    }
+}
+
+print "# 7. SAX parser\n";
+
+{
+    use XML::LibXML::SAX;
+    use XML::LibXML::SAX::Builder;
+    my $handler = XML::LibXML::SAX::Builder->new();
+    my $generator = XML::LibXML::SAX->new( Handler=>$handler );
+
+    my $string  = q{<bar foo="bar">foo</bar>};
+
+    $doc = $generator->parse_string( $string );
+    ok( $doc );
+
+    my $string2 = q{<foo xmlns:bar="http://foo.bar">bar<bar:bi/></foo>};
+
+    $doc = $generator->parse_string( $string2 );
+    ok($doc);
+
+    my $root = $doc->documentElement;
+    my @attrs = $root->attributes;
+    ok( scalar @attrs );
+    ok( $attrs[0]->nodeType, XML_NAMESPACE_DECL );
+
+    $doc = $generator->parse_uri( "example/test.xml" );
+
+    ok($doc);
 }

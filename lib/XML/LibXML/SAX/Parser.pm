@@ -1,4 +1,4 @@
-# $Id: Parser.pm,v 1.14 2002/05/11 20:46:43 phish Exp $
+# $Id: Parser.pm,v 1.15 2002/05/18 10:17:13 phish Exp $
 
 package XML::LibXML::SAX::Parser;
 
@@ -88,6 +88,11 @@ sub process_node {
     }
     elsif ($node_type == XML_COMMENT_NODE) {
         $self->comment( { Data => $node->getData } );
+    }
+    elsif ( $node_type == XML_XINCLUDE_START
+            || $node_type == XML_XINCLUDE_END ) {
+        # ignore!
+        # i may want to handle this one day, dunno yet
     }
     else {
         warn("unsupported node type: $node_type");

@@ -1,4 +1,4 @@
-# $Id: 04node.t,v 1.2 2002/05/08 00:27:07 phish Exp $
+# $Id: 04node.t,v 1.4 2002/05/15 13:29:23 phish Exp $
 
 ##
 # this test checks the DOM Node interface of XML::LibXML
@@ -11,7 +11,7 @@
 
 use Test;
 
-BEGIN { plan tests => 101 };
+BEGIN { plan tests => 117 };
 use XML::LibXML;
 
 my $xmlstring = q{<foo>bar<foobar/><bar foo="foobar"/><!--foo--><![CDATA[&foo bar]]></foo>};
@@ -109,6 +109,15 @@ print "# 1.1 Node Attributes\n";
             ok( scalar(@cn), 1);
             ok( $cn[0]->nodeName, "bar" );
             ok( !$cn[0]->isSameNode( $c1node ) );
+        }
+
+        print "# 1.3 Node Value\n";
+        my $string2 = "<foo>bar<tag>foo</tag></foo>";
+        {
+            my $doc2 = $parser->parse_string( $string2 );
+            my $root = $doc2->documentElement;
+            ok( not defined $root->nodeValue );
+            ok( $root->textContent, "barfoo");
         }
     }
 
@@ -308,4 +317,44 @@ print "# 6.   implicit attribute manipulation\n";
     ok(@att);
     ok(scalar(@att), 3);
     ok($attributes->length, 3);
+}
+
+print "# 7. importing and adopting\n";
+
+{
+    my $parser = XML::LibXML->new;
+    my $doc1 = $parser->parse_string( "<foo>bar<foobar/></foo>" );
+    my $doc2 = XML::LibXML::Document->new;
+
+    ok( $doc1 && $doc2 );
+    my $rnode1 = $doc1->documentElement;
+    ok( $rnode1 );
+    my $rnode2 = $doc2->importNode( $rnode1 );
+    ok( not $rnode2->isSameNode( $rnode1 ) ) ;
+    $doc2->setDocumentElement( $rnode2 );
+
+    my $node = $rnode2->cloneNode(0);
+    ok( $node );
+    my $cndoc = $node->ownerDocument;
+    ok( $cndoc );
+    ok( $cndoc->isSameNode( $doc2 ) );
+
+    my $xnode = XML::LibXML::Element->new("test");
+
+    my $node2 = $doc2->importNode($xnode);
+    ok( $node2 );
+    my $cndoc2 = $node2->ownerDocument;
+    ok( $cndoc2 );
+    ok( $cndoc2->isSameNode( $doc2 ) );
+ 
+    my $doc3 = XML::LibXML::Document->new;
+    my $node3 = $doc3->adoptNode( $xnode );
+    ok( $node3 );
+    ok( $xnode->isSameNode( $node3 ) );
+    ok( $doc3->isSameNode( $node3->ownerDocument ) );
+
+    my $xnode2 = XML::LibXML::Element->new("test");
+    $xnode2->setOwnerDocument( $doc3 ); # alternate version of adopt node
+    ok( $xnode2->ownerDocument );
+    ok( $doc3->isSameNode( $xnode2->ownerDocument ) );    
 }

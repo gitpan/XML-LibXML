@@ -1,6 +1,6 @@
 /**
  * perl-libxml-mm.c
- * $Id: perl-libxml-mm.c,v 1.12 2002/05/11 19:39:24 phish Exp $
+ * $Id: perl-libxml-mm.c,v 1.14 2002/05/17 08:57:50 phish Exp $
  *
  * Basic concept:
  * perl varies in the implementation of UTF8 handling. this header (together
@@ -421,6 +421,82 @@ PmmFixOwner( ProxyNodePtr nodetofix, ProxyNodePtr parent )
     return(0);
 }
 
+ProxyNodePtr
+PmmNewContext(xmlParserCtxtPtr node)
+{
+    ProxyNodePtr proxy;
+
+    if ( node->_private == NULL ) {
+        proxy = (ProxyNodePtr)malloc(sizeof(ProxyNode));
+        if (proxy != NULL) {
+            proxy->node  = (xmlNodePtr)node;
+            proxy->owner   = NULL;
+            proxy->count   = 0;
+            node->_private = (void*) proxy;
+        }
+    }
+    else {
+        proxy = (ProxyNodePtr)node->_private;
+    }
+    return proxy;
+}
+ 
+int
+PmmContextREFCNT_dec( ProxyNodePtr node ) 
+{ 
+    xmlParserCtxtPtr libnode = NULL;
+    int retval = 0;
+    if ( node ) {
+        retval = PmmREFCNT(node)--;
+        if ( PmmREFCNT(node) <= 0 ) {
+            xs_warn( "NODE DELETATION\n" );
+            libnode = (xmlParserCtxtPtr)PmmNODE( node );
+            if ( libnode != NULL ) {
+                libnode->_private = NULL;
+                PmmNODE( node ) = NULL;
+                xmlFreeParserCtxt(libnode);
+            }
+            free( node );
+        }
+    }
+    return retval;
+}
+
+SV*
+PmmContextSv( xmlParserCtxtPtr ctxt )
+{
+    ProxyNodePtr dfProxy= NULL;
+    SV * retval = &PL_sv_undef;
+    const char * CLASS = "XML::LibXML::ParserContext";
+
+    if ( ctxt != NULL ) {
+        dfProxy = PmmNewContext(ctxt);
+
+        retval = NEWSV(0,0);
+        sv_setref_pv( retval, CLASS, (void*)dfProxy );
+        PmmREFCNT_inc(dfProxy);            
+    }         
+    else {
+        xs_warn( "no node found!" );
+    }
+
+    return retval;
+}
+
+xmlParserCtxtPtr
+PmmSvContext( SV * scalar ) 
+{
+    xmlParserCtxtPtr retval = NULL;
+
+    if ( scalar != NULL
+         && scalar != &PL_sv_undef
+         && sv_isa( scalar, "XML::LibXML::ParserContext" )
+         && SvPROXYNODE(scalar) != NULL  ) {
+        retval = (xmlParserCtxtPtr)PmmNODE( SvPROXYNODE(scalar) );
+    }
+    return retval;
+}
+
 /** 
  * encodeString returns an UTF-8 encoded String
  * while the encodig has the name of the encoding of string
@@ -464,6 +540,7 @@ PmmEncodeString( const char *encoding, const xmlChar *string ){
                     
                 xmlBufferFree( in );
                 xmlBufferFree( out );
+                xmlCharEncCloseFunc( coder );
             }
             else {
                 xs_warn("no coder found\n");
@@ -568,7 +645,7 @@ Sv2C( SV* scalar, const xmlChar *encoding )
         char * t_pv =SvPV(scalar, len);
         xmlChar* string = xmlStrdup((xmlChar*)t_pv);
         /* Safefree( t_pv ); */
-
+        
         if ( xmlStrlen(string) > 0 ) {
             xmlChar* ts;
             xs_warn( "no undefs" );
@@ -576,7 +653,7 @@ Sv2C( SV* scalar, const xmlChar *encoding )
             xs_warn( "use UTF8" );
             if( !DO_UTF8(scalar) && encoding != NULL ) {
 #else
-            if ( encoding != NULL ) {
+            if ( encoding != NULL ) {        
 #endif
                 xs_warn( "domEncodeString!" );
                 ts= PmmEncodeString( encoding, string );
@@ -586,6 +663,8 @@ Sv2C( SV* scalar, const xmlChar *encoding )
                 string=ts;
             }
             retval = xmlStrdup(string);
+        }
+        if (string != NULL ) {
             xmlFree(string);
         }
     }

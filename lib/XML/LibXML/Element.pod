@@ -213,5 +213,5 @@ XML::LibXML, XML::LibXML::Node, XML::LibXML::Document, XML::LibXML::Attr, XML::L
 
 =head1 VERSION
 
-1.49
+1.50
 

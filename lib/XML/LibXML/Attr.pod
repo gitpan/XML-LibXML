@@ -10,7 +10,7 @@ XML::LibXML::Attr - The DOM Attribute Class
  $string = $attr->getValue();
  $value = $attr->value;
  $attr->setValue( $string );
- $node = $attr->getOwnerDocument();
+ $node = $attr->getOwnerElement();
 
 
 =head1 DESCRIPTION
@@ -80,5 +80,5 @@ XML::LibXML, XML::LibXML::Node, XML::LibXML::Element, XML::LibXML::Document, XML
 
 =head1 VERSION
 
-1.49
+1.50
 

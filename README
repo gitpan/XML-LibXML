@@ -6,11 +6,22 @@ interface to the Gnome libxml2 library. This makes it a fast
 and highly capable validating XML parser library, as well as
 a high performance DOM.
 
+IMPORTANT NOTE
+==============
+
+XML::LibXML was almost entirely reimplemented between version 1.40 
+to version 1.49. This may cause problems on some production machines.
+with version 1.50 a lot of compatibility fixes were applied, so 
+programs written for XML::LibXML 1.40 or less should run with 
+version 1.50 again.
+
 Installation
 ============
 
 Prior to installation you MUST have installed the libxml2
-library.
+library. You can get the latest libxml2 version from 
+
+      http://xmlsoft.org
 
 Then run:
 
@@ -23,6 +34,38 @@ Parser documentation is in perldoc XML::LibXML. DOM documentation
 starts in perldoc XML::LibXML::Document and perldoc
 XML::LibXML::Node.
 
+If your libxml2 installation is not within your $PATH. you can set 
+the environment variable XMLPREFIX=$YOURLIBXMLPREFIX to make 
+XML::LibXML recognize the correct libxml2 version in use.
+
+e.g.
+
+$ XMLPREFIX=/usr/brand-new perl Makefile.PL
+
+will ask '/usr/brand-new/bin/xml2-config' about your real 
+libxml2 configuration.
+
+Contact
+=======
+
+For suggestions, bugreports etc. you may contact the maintainer directly
+christian.glahn@uibk.ac.at 
+
+Also XML::LibXML issues are discussed among other things on the
+perl XML mailing list (perl-xml@listserv.ActiveState.com)
+
+Package History
+===============
+
+Version < 0.98 were implemented by Matt Sergeant 
+0.98 > Version > 1.49 were maintained by Matt Sergeant and Christian Glahn
+Version >= 1.49 are maintained by Christian Glahn
+ 
+License
+=======
+
 This is free software, you may use it and distribute it under the same
-terms as Perl itself. Copyright 2001 AxKit.com Ltd, All rights reserved.
+terms as Perl itself. 
+
+Copyright 2001-2002 AxKit.com Ltd, All rights reserved.
 

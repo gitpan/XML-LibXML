@@ -153,6 +153,7 @@ This method replaces the node's data by a
 I<simple> regular expression. Optional, this
 function allows to pass some flags that will be
 added as flag to the replace statement.
+
 B<NOTE:> This is a shortcut for
 
  my $datastr = $node->getData();
@@ -176,5 +177,5 @@ XML::LibXML, XML::LibXML::Node, XML::LibXML::Element, XML::LibXML::Document, XML
 
 =head1 VERSION
 
-1.49
+1.50
 

@@ -1,4 +1,4 @@
-/* $Id: dom.c,v 1.33 2002/05/11 19:39:24 phish Exp $ */
+/* $Id: dom.c,v 1.36 2002/05/16 08:42:27 phish Exp $ */
 #include <libxml/tree.h>
 #include <libxml/encoding.h>
 #include <libxml/xmlmemory.h>
@@ -207,24 +207,24 @@ domTestDocument(xmlNodePtr cur, xmlNodePtr ref)
 xmlNodePtr
 domImportNode( xmlDocPtr doc, xmlNodePtr node, int move ) {
     xmlNodePtr return_node = node;
-    
-    if ( node && doc && node->doc != doc ) {
-        if ( move ) {
-            return_node = node;
-            if ( node->type != XML_DTD_NODE ) {
-                xmlUnlinkNode( node );
-            }
+
+    if ( move ) {
+        return_node = node;
+        if ( node->type != XML_DTD_NODE ) {
+            xmlUnlinkNode( node );
+        }
+    }
+    else {
+        if ( node->type == XML_DTD_NODE ) {
+            return_node = (xmlNodePtr) xmlCopyDtd((xmlDtdPtr) node);
         }
         else {
-            if ( node->type == XML_DTD_NODE ) {
-                return_node = (xmlNodePtr) xmlCopyDtd((xmlDtdPtr) node);
-            }
-            else {
-                return_node = xmlCopyNode( node, 1 );
-            }
+            return_node = xmlCopyNode( node, 1 );
         }
-        /* tell all children about the new boss */ 
+    }
 
+    /* tell all children about the new boss */ 
+    if ( node && doc && node->doc != doc ) {
         xmlSetTreeDoc(return_node, doc);
     }
  
@@ -494,36 +494,40 @@ domGetNodeValue( xmlNodePtr n ) {
         case XML_COMMENT_NODE:
         case XML_CDATA_SECTION_NODE:
         case XML_PI_NODE:
+        case XML_ENTITY_REF_NODE:
             break;
         default:
             return retval;
             break;
         }
-        
-
-        if ( n->content != NULL ) {
-            xs_warn(" dublicate content\n" );
-            retval = xmlStrdup(n->content);
+        if ( n->type != XML_ENTITY_DECL ) {
+            retval = xmlXPathCastNodeToString(n);
         }
-        else if ( n->children != NULL ) {
-            xmlNodePtr cnode = n->children;
-            xs_warn(" use child content\n" );
-            /* ok then toString in this case ... */
-            while (cnode) {
-                xmlBufferPtr buffer = xmlBufferCreate();
-                /* buffer = xmlBufferCreate(); */
-                xmlNodeDump( buffer, n->doc, cnode, 0, 0 );
-                if ( buffer->content != NULL ) {
-                    xs_warn( "add item" );
-                    if ( retval != NULL ) {
-                        retval = xmlStrcat( retval, buffer->content );
+        else {
+            if ( n->content != NULL ) {
+                xs_warn(" dublicate content\n" );
+                retval = xmlStrdup(n->content);
+            }
+            else if ( n->children != NULL ) {
+                xmlNodePtr cnode = n->children;
+                xs_warn(" use child content\n" );
+                /* ok then toString in this case ... */
+                while (cnode) {
+                    xmlBufferPtr buffer = xmlBufferCreate();
+                    /* buffer = xmlBufferCreate(); */
+                    xmlNodeDump( buffer, n->doc, cnode, 0, 0 );
+                    if ( buffer->content != NULL ) {
+                        xs_warn( "add item" );
+                        if ( retval != NULL ) {
+                            retval = xmlStrcat( retval, buffer->content );
+                        }
+                        else {
+                            retval = xmlStrdup( buffer->content );
+                        }
                     }
-                    else {
-                        retval = xmlStrdup( buffer->content );
-                    }
+                    xmlBufferFree( buffer );
+                    cnode = cnode->next;
                 }
-                xmlBufferFree( buffer );
-                cnode = cnode->next;
             }
         }
     }
