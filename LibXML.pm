@@ -1,4 +1,4 @@
-# $Id: LibXML.pm,v 1.16 2001/06/29 20:07:57 matt Exp $
+# $Id: LibXML.pm,v 1.18 2001/07/20 16:03:57 matt Exp $
 
 package XML::LibXML;
 
@@ -6,7 +6,7 @@ use strict;
 use vars qw($VERSION @ISA @EXPORT);
 use Carp;
 
-$VERSION = "0.97";
+$VERSION = "0.99";
 require Exporter;
 require DynaLoader;
 

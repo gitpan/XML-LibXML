@@ -2,7 +2,7 @@
 # `make test'. After `make install' it should work as `perl test.pl'
 
 use Test;
-BEGIN { plan tests=>19 }
+BEGIN { plan tests=>20 }
 END {ok(0) unless $loaded;}
 use XML::LibXML;
 $loaded = 1;
@@ -103,8 +103,10 @@ ok( defined $text && $text->isa( "XML::LibXML::CDATASection" ) );
       ok( defined $elem && 
           $elem->getType() == XML_ELEMENT_NODE &&
           $elem->isa( "XML::LibXML::Element" ) );
+      ok( $dom3->URI, $file );
+      my $oldURI = $dom3->URI("foo.xml");
+      ok( $dom3->URI, "foo.xml" );
+      ok( $oldURI, $file );
     }
 }
 
-ok(1);
-ok(1);
