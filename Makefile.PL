@@ -1,4 +1,4 @@
-# $Id: Makefile.PL,v 1.32 2002/11/08 09:50:17 phish Exp $
+# $Id: Makefile.PL,v 1.33 2002/11/08 17:13:35 phish Exp $
 
 use ExtUtils::MakeMaker;
 use Config;
@@ -154,7 +154,6 @@ WriteMakefile(
     'PREREQ_PM' => { 'XML::SAX' => '0.11',
                      'XML::NamespaceSupport' => '1.07',
                      'XML::LibXML::Common' => 0,
-                     'XML::NodeFilter' => 0,
                    },
     'OBJECT'    => '$(O_FILES)', # add the DOM extensions to libxml2
     'dist'      => { PREOP => "$^X -Iblib/arch -Iblib/lib example/xml2pod.pl" },

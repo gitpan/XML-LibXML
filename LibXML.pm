@@ -1,4 +1,4 @@
-# $Id: LibXML.pm,v 1.83 2002/10/22 12:59:37 phish Exp $
+# $Id: LibXML.pm,v 1.84 2002/11/08 17:10:30 phish Exp $
 
 package XML::LibXML;
 
@@ -577,9 +577,8 @@ sub attributes {
 }
 
 sub iterator {
-    my $self = shift;
-    require XML::LibXML::Iterator;
-    return XML::LibXML::Iterator->new( $self );
+    warn "this function is obsolete!\nIt was disabled in version 1.54\n";
+    return undef;
 }
 
 
