@@ -1,4 +1,4 @@
-# $Id: Parser.pm,v 1.10 2002/03/13 14:12:32 matt Exp $
+# $Id: Parser.pm,v 1.14 2002/05/11 20:46:43 phish Exp $
 
 package XML::LibXML::SAX::Parser;
 
@@ -9,7 +9,7 @@ use XML::LibXML;
 use XML::SAX::Base;
 use XML::SAX::DocumentLocator;
 
-$VERSION = '1.40';
+$VERSION = '1.49';
 @ISA = ('XML::SAX::Base');
 
 sub _parse_characterstream {
@@ -42,7 +42,8 @@ sub generate {
     my $self = shift;
     my ($node) = @_;
 
-    if ( $node->getType() == XML_DOCUMENT_NODE ) {
+    if ( $node->nodeType() == XML_DOCUMENT_NODE
+         || $node->nodeType == XML_HTML_DOCUMENT_NODE ) {
         $self->start_document({});
         $self->xml_decl({Version => $node->getVersion, Encoding => $node->getEncoding});
         $self->process_node($node);
@@ -53,13 +54,14 @@ sub generate {
 sub process_node {
     my ($self, $node) = @_;
 
-    my $node_type = $node->getType();
+    my $node_type = $node->nodeType();
     if ($node_type == XML_COMMENT_NODE) {
         $self->comment( { Data => $node->getData } );
     }
-    elsif ($node_type == XML_TEXT_NODE || $node_type == XML_CDATA_SECTION_NODE) {
+    elsif ($node_type == XML_TEXT_NODE
+           || $node_type == XML_CDATA_SECTION_NODE) {
         # warn($node->getData . "\n");
-        $self->characters( { Data => $node->getData } );
+        $self->characters( { Data => $node->nodeValue } );
     }
     elsif ($node_type == XML_ELEMENT_NODE) {
         # warn("<" . $node->getName . ">\n");
@@ -72,8 +74,8 @@ sub process_node {
             $self->process_node($kid);
         }
     }
-#    elsif ($node_type == XML_DOCUMENT_NODE) {
     elsif ($node_type == XML_DOCUMENT_NODE
+           || $node_type == XML_HTML_DOCUMENT_NODE
            || $node_type == XML_DOCUMENT_FRAG_NODE) {
         # some times it is just usefull to generate SAX events from
         # a document fragment (very good with filters).
@@ -98,43 +100,43 @@ sub process_element {
     my $attribs = {};
     my @ns_maps;
 
-    foreach my $attr ($element->getAttributes) {
+    foreach my $attr ($element->attributes) {
         my $key;
         # warn("Attr: $attr -> ", $attr->getName, " = ", $attr->getData, "\n");
         if ($attr->isa('XML::LibXML::Namespace')) {
             # TODO This needs fixing modulo agreeing on what
             # is the right thing to do here.
             my ($localname, $p);
-            if (my $prefix = $attr->getLocalName) {
-                $key = "{" . $attr->getNamespaceURI . "}" . $prefix;
+            if (my $prefix = $attr->prefix) {
+                $key = "{" . $attr->href . "}" . $prefix;
                 $localname = $prefix;
                 $p = "xmlns";
             }
             else {
-                $key = $attr->getName;
+                $key = $attr->name;
                 $localname = $key;
                 $p = '';
             }
             $attribs->{$key} =
                 {
-                    Name => $attr->getName,
-                    Value => $attr->getData,
-                    NamespaceURI => $attr->getNamespaceURI,
+                    Name => $attr->prefix,
+                    Value => $attr->href,
+                    NamespaceURI => $attr->href,
                     Prefix => $p,
                     LocalName => $localname,
                 };
             push @ns_maps, $attribs->{$key};
         }
         else {
-            my $ns = $attr->getNamespaceURI || '';
-            $key = "{$ns}".$attr->getLocalName;
+            my $ns = $attr->namespaceURI || '';
+            $key = "{$ns}".$attr->localname;
             $attribs->{$key} =
                 {
-                    Name => $attr->getName,
-                    Value => $attr->getData,
-                    NamespaceURI => $attr->getNamespaceURI,
-                    Prefix => $attr->getPrefix,
-                    LocalName => $attr->getLocalName,
+                    Name => $attr->name,
+                    Value => $attr->value,
+                    NamespaceURI => $attr->namespaceURI,
+                    Prefix => $attr->prefix,
+                    LocalName => $attr->localname,
                 };
         }
         # use Data::Dumper;
@@ -142,11 +144,11 @@ sub process_element {
     }
 
     my $node = {
-        Name => $element->getName,
+        Name => $element->nodeName,
         Attributes => $attribs,
-        NamespaceURI => $element->getNamespaceURI,
-        Prefix => $element->getPrefix,
-        LocalName => $element->getLocalName,
+        NamespaceURI => $element->namespaceURI,
+        Prefix => $element->prefix,
+        LocalName => $element->localname,
     };
 
     foreach my $ns (@ns_maps) {

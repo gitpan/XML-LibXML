@@ -1,5 +1,5 @@
 use Test;
-BEGIN { plan tests=>12 }
+BEGIN { plan tests=>14 }
 END {ok(0) unless $loaded;}
 use XML::LibXML;
 $loaded = 1;
@@ -52,8 +52,11 @@ if ( defined $dom ) {
 
     $telem->iterator( sub { $itervar.=$_[0]->getName(); } );
     ok( $itervar, 'testbtext' );
-
+  
+    finddoc($dom);
+    ok(1);
 }
+ok( $dom );
 
 # test to make sure that multiple array findnodes() returns
 # don't segfault perl; it'll happen after the second one if it does
@@ -88,3 +91,9 @@ my @doc = $root->findnodes('document("example/test.xml")');
 ok(@doc);
 # warn($doc[0]->toString);
 
+sub finddoc {
+    my $doc = shift;
+    return unless defined $doc;
+    my $rn = $doc->documentElement;
+    $rn->findnodes("/");
+}

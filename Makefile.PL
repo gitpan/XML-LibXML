@@ -1,4 +1,4 @@
-# $Id: Makefile.PL,v 1.13 2002/02/20 23:27:17 phish Exp $
+# $Id: Makefile.PL,v 1.16 2002/05/11 20:00:27 phish Exp $
 
 use ExtUtils::MakeMaker;
 use Config;
@@ -17,7 +17,9 @@ while($_ = shift) {
 my $DEBUG = delete $config{DEBUG};
 
 # $config{DEFINE} .= " -DXS_WARNINGS";
-if ( ( backtick('perl -V:version') =~ /version=\'([^\']*)\'/ )[0] !~ /5\.0/ ) {
+
+if ( $] >= 5.006 ) {
+# if ( ( backtick('perl -V:version') =~ /version=\'([^\']*)\'/ )[0] !~ /5\.0/ ) {
     warn "enable native perl UTF8\n";
 
     $config{DEFINE} .= " -DHAVE_UTF8";
@@ -25,12 +27,16 @@ if ( ( backtick('perl -V:version') =~ /version=\'([^\']*)\'/ )[0] !~ /5\.0/ ) {
 
 # get libs and inc from gnome-config
 eval {
+    my $xml2cfg = "xml2-config";
+    if ( defined $config{XMLPREFIX} ) {
+        $xml2cfg = $config{XMLPREFIX} . '/' . $xml2cfg;
+    }
     print "running xml2-config... ";
-    my $ver = backtick('xml2-config --version');
+    my $ver = backtick("$xml2cfg --version");
     my ($major, $minor, $point) = $ver =~ /(\d+).(\d+)\.(\d+)/g;
-    die "VERSION" unless $major > 2 || $minor > 4 || $point >= 8;
-    $config{LIBS} ||= backtick('xml2-config --libs');
-    $config{INC} ||= backtick('xml2-config --cflags');
+    die "VERSION" unless $major > 2 || $minor > 4 || $point >= 20;
+    $config{LIBS} ||= backtick("$xml2cfg --libs");
+    $config{INC}  ||= backtick("$xml2cfg --cflags");
     print "ok\n";
 };
 if ($@) {
@@ -107,7 +113,7 @@ sub MY::manifypods {
     $str .= <<EOF;
 
 docs : pure_all
-\t\@$^X -Iblib/arch -Iblib/lib example/xml2pod.pl example/libxml.xml lib
+\t\@$^X -Iblib/arch -Iblib/lib example/xml2pod.pl example/libxml.xml lib/XML/LibXML/
 \t\@$^X -pi.old -e 's/a/a/' Makefile.PL
 \t\@echo "==> YOU MUST NOW RE-RUN $^X Makefile.PL <=="
 \t\@false

@@ -1,0 +1,32 @@
+=head1 NAME
+
+XML::LibXML::DOM - XML::LibXML DOM implementation
+
+=head1 DESCRIPTION
+
+
+XML::LibXML implements a native DOM so the parsed
+structures are accessable from the perl layer. The
+current implementation offers an alternative interface
+to many DOM functions in addition to the specified
+functions. These functions will be removed in future
+versions or renamed to perl style names.
+
+XML::LibXML's DOM implementation tries to follow the
+various DOM specs although not all interfaces are
+implemented yet. Also there some efford is taken to
+also to follow the XPath DOM extensions. There are many functions that are specified for DOM and already present in XML::LibXML's DOM API, but still not documented.
+
+Although XML::LibXML provides the more important interfaces to node structures, there are not all node types implemented (yet). The more common functions are provided by XML::LibXML::Node, so it should be possible to access most parts of the document. Since XML::LibXML wraps only the document structure provided by libxml2, XML::LibXML::Node will not work properly with nodes found in a DTD, since they
+are not nodes in context of libxml2. 
+Besides that XML::LibXML's DOM Api should provide
+a more perlish interface to the DOM structure libxml2 generates. =back
+
+=head1 AUTHOR
+
+Matt Sergeant, Christian Glahn
+
+=head1 VERSION
+
+1.49
+

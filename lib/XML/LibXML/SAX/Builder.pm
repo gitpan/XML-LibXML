@@ -1,4 +1,4 @@
-# $Id: Builder.pm,v 1.5 2002/03/09 14:47:33 phish Exp $
+# $Id: Builder.pm,v 1.6 2002/05/08 00:27:06 phish Exp $
 
 package XML::LibXML::SAX::Builder;
 
@@ -76,7 +76,7 @@ sub start_element {
 sub end_element {
     my ($self, $el) = @_;
     return unless $self->{Parent};
-    $self->{Parent} = $self->{Parent}->getParentNode();
+    $self->{Parent} = $self->{Parent}->parentNode();
 }
 
 sub characters {

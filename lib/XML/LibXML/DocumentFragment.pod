@@ -2,16 +2,22 @@
 
 XML::LibXML::DocumentFragment - DOM L2 Implementation of a Document Fragment
 
-=head1 SYNOPSIS
-
-  use XML::LibXML::DocumentFragment;
-
-
 =head1 DESCRIPTION
 
-This class is a helper class as described in the DOM Level 2 Specification.
-It is implamented as a node without name. All adding, inserting or replacing
-functions are aware about document fragments now. As well B<all> unbound nodes (all nodes that does not belong to any document subtree) are implicit member of document fragments.
+
+This class is a helper class as described in the DOM
+Level 2 Specification. It is implamented as a node
+without name. All adding, inserting or replacing
+functions are aware about document fragments now.
+
+As well B<all> unbound nodes (all nodes that
+does not belong to any document subtree) are implicit
+member of document fragments.
+=back
+
+=head1 AUTHOR
+
+Matt Sergeant, Christian Glahn
 
 =head1 SEE ALSO
 
@@ -19,5 +25,5 @@ XML::LibXML, XML::LibXML::Node, XML::LibXML::Element, XML::LibXML::Document, XML
 
 =head1 VERSION
 
-0.95
+1.49
 
