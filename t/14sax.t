@@ -1,5 +1,5 @@
 use Test;
-BEGIN { plan tests => 33 }
+BEGIN { plan tests => 46 }
 use XML::LibXML;
 use XML::LibXML::SAX::Parser;
 use XML::LibXML::SAX::Builder;
@@ -37,10 +37,24 @@ my $parser = XML::SAX::ParserFactory->parser(Handler => $sax);
 ok($parser);
 $parser->parse_uri("example/dromeds.xml");
 
+$parser->parse_string(<<EOT);
+<?xml version='1.0' encoding="US-ASCII"?>
+<dromedaries one="1" />
+EOT
+
+$sax = SAXNSTester->new;
+ok($sax);
+
+$parser->set_handler($sax);
+
+$parser->parse_uri("example/ns.xml");
+
 ########### Helper class #############
 
 package SAXTester;
 use Test;
+
+# local $XML::LibXML::ORIGINAL_STRING = 1;
 
 sub new {
     my $class = shift;
@@ -57,7 +71,7 @@ sub end_document {
 
 sub start_element {
   my ($self, $el) = @_;
-  ok($el->{Name}, qr{^(dromedaries|species|humps|disposition)$});
+  ok($el->{LocalName}, qr{^(dromedaries|species|humps|disposition|legs)$});
   foreach my $attr (keys %{$el->{Attributes}}) {
     # warn("Attr: $attr = $el->{Attributes}->{$attr}\n");
   }
@@ -73,3 +87,34 @@ sub characters {
   my ($self, $chars) = @_;
   # warn("characters: $chars->{Data}\n");
 }
+
+package SAXNSTester;
+use Test;
+
+sub new {
+    bless {}, shift;
+}
+
+sub start_element {
+    my ($self, $node) = @_;
+    ok($node->{NamespaceURI} =~ /^urn:/);
+    # warn("start_element:\n", Dumper($node));
+}
+
+sub end_element {
+    my ($self, $node) = @_;
+    # warn("end_element: $node->{Name}\n");
+}
+
+sub start_prefix_mapping {
+    my ($self, $node) = @_;
+    ok($node->{NamespaceURI} =~ /^(urn:camels|urn:mammals|urn:a)$/);
+    # warn("start_prefix_mapping:\n", Dumper($node));
+}
+
+sub end_prefix_mapping {
+    my ($self, $node) = @_;
+    # warn("end_prefix_mapping:\n", Dumper($node));
+    ok($node->{NamespaceURI} =~ /^(urn:camels|urn:mammals|urn:a)$/);
+}
+

@@ -1,4 +1,4 @@
-# $Id: NodeList.pm,v 1.1 2001/08/07 07:34:24 matt Exp $
+# $Id: NodeList.pm,v 1.2 2002/03/09 14:19:52 phish Exp $
 
 package XML::LibXML::NodeList;
 use strict;
@@ -81,7 +81,7 @@ sub string_value {
 sub to_literal {
 	my $self = CORE::shift;
 	return XML::LibXML::Literal->new(
-			join('', map { $_->string_value } @$self)
+			join('', grep {defined $_} map { $_->string_value } @$self)
 			);
 }
 

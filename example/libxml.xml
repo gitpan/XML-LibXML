@@ -192,17 +192,19 @@
 <class name="XML::LibXML::Node">
 <short>"virtual" Base Class DOM-Nodes</short>
 <description>
-	LibXML::Node defines functions that are common to all Node
-	Types.  A LibXML::Node should never be created standalone, but
-	as an instance of a high level class such as LibXML::Element
-	or LibXML::Text.  The class itself should provide only common
-	functionality.
+	LibXML::Node defines functions that are common to all Node Types.
+	A LibXML::Node should never be created standalone, but as an
+	instance of a high level class such as LibXML::Element or
+	LibXML::Text.  The class itself should provide only common
+	functionality. In XML::LibXML each node is part either of a
+	document or a document-fragment.  Because of this there is no node
+	without a parent. This may causes confusion with "unbound" nodes.
+
 
 <method name="getName" 
-	synopsis="$name = $node->getName();">
-	Returns the node's name. This Function is aware about namesaces
-	and returns the full name of the current node
-	(<i>prefix:localname</i>)
+	synopsis="$name = $node->getName();"> Returns the node's
+	name. This Function is aware about namesaces and returns the full
+	name of the current node (<i>prefix:localname</i>)
 </method>
 
 <method name="nodeName"
@@ -244,11 +246,12 @@
     Alias for <b>getType</b>.
 </method>
 
-<method name="unbindNode" 
-	synopsis="$node->unbindNode()">
-	Unbinds the Node from its siblings and Parent, but not from the
-	Document it belongs to. If the node is not inserted into the 
-	DOM afterwards it will be lost after the programm terminated.
+<method name="unbindNode" synopsis="$node->unbindNode()"> 
+Unbinds the Node from its siblings and Parent, but not from the
+Document it belongs to. If the node is not inserted into the DOM
+afterwards it will be lost after the programm terminated. From a low
+level view, the unbound node is stripped from the context it is and
+inserted into a (hidden) document-fragment.
 </method>
 
 <method name="removeChild" 
@@ -562,8 +565,8 @@ $node->find( $xpath )->to_literal;
     namespace version of <i>hasAttribute</i>
 </method>
 
-<method name="getElementsByTagName" 
-    synopsis="@nodes = $node->getElementsByTagName($tagname);">
+<method name="getChildrenByTagName" 
+    synopsis="@nodes = $node->getChildrenByTagName($tagname);">
 	The function gives direct access to all childnodes of the current
 	node with the same tagname. It makes things a lot easier if you
 	need to handle big datasets.
@@ -572,12 +575,38 @@ $node->find( $xpath )->to_literal;
     Elements found.
 </method>
 
-<method name="getElementsByTagNameNS" 
-    synopsis="@nodes = $node->getElementsByTagNameNS($nsURI,$tagname);">
-    Namespace version of <i>getElementsByTagName</i>.
+<method name="getChildrenByTagNameNS" 
+    synopsis="@nodes = $node->getChildrenByTagNameNS($nsURI,$tagname);">
+    Namespace version of <i>getChildrenByTagName</i>.
 
     If this function is called in SCALAR context, it returns the number of 
     Elements found.
+</method>
+
+<method name="getElementsByTagName" synopsis="@nodes =
+$node->getElementsByTagName($tagname);"> This function is part of the
+spec it fetches all descendants of a node with a given tagname. If one
+is as confused with <i>tagname</i> as I was, tagname is a qualified
+tagname which is in case of namespace useage prefix and local name
+
+In SCALAR context this function returns a <i>XML::LibXML::NodeList</i> object.
+</method>
+
+<method name="getElementsByTagNameNS" 
+    synopsis="@nodes = $node->getElementsByTagNameNS($nsURI,$localname);">
+    Namespace version of <i>getElementsByTagName</i> as found in the DOM spec.
+
+In SCALAR context this function returns a <i>XML::LibXML::NodeList</i> object.
+</method>
+
+<method name="getElementsByLocalName" 
+    synopsis="@nodes = $node->getElementsByLocalName($localname);">
+    This function is not found in the DOM specification. It is a mix of
+    getElementsByTagName and getElementsByTagNameNS. It will fetch all 
+    tags matching the given local-name. This alows one to select tags with 
+    the same local name across namespace borders. 
+
+In SCALAR context this function returns a <i>XML::LibXML::NodeList</i> object.
 </method>
 
 <method name="appendWellBalancedChunk" 

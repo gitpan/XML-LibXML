@@ -56,11 +56,13 @@ XML::LibXML::Node - "virtual" Base Class DOM-Nodes
 
 =head1 DESCRIPTION
 
-LibXML::Node defines functions that are common to all Node
-Types. A LibXML::Node should never be created standalone, but
-as an instance of a high level class such as LibXML::Element
-or LibXML::Text. The class itself should provide only common
-functionality.
+LibXML::Node defines functions that are common to all Node Types.
+A LibXML::Node should never be created standalone, but as an
+instance of a high level class such as LibXML::Element or
+LibXML::Text. The class itself should provide only common
+functionality. In XML::LibXML each node is part either of a
+document or a document-fragment. Because of this there is no node
+without a parent. This may causes confusion with "unbound" nodes.
 
 =head2 Methods
 
@@ -68,9 +70,9 @@ functionality.
 
 =item B<getName>
 
-Returns the node's name. This Function is aware about namesaces
-and returns the full name of the current node
-( I<prefix:localname> )
+Returns the node's
+name. This Function is aware about namesaces and returns the full
+name of the current node ( I<prefix:localname> )
 
 =item B<nodeName>
 
@@ -108,7 +110,10 @@ Alias for B<getType> .
 =item B<unbindNode>
 
 Unbinds the Node from its siblings and Parent, but not from the
-Document it belongs to. If the node is not inserted into the DOM afterwards it will be lost after the programm terminated.
+Document it belongs to. If the node is not inserted into the DOM
+afterwards it will be lost after the programm terminated. From a low
+level view, the unbound node is stripped from the context it is and
+inserted into a (hidden) document-fragment.
 
 =item B<removeChild>
 

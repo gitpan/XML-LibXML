@@ -1,4 +1,4 @@
-# $Id: Makefile.PL,v 1.12 2001/11/14 11:26:22 matt Exp $
+# $Id: Makefile.PL,v 1.13 2002/02/20 23:27:17 phish Exp $
 
 use ExtUtils::MakeMaker;
 use Config;
@@ -15,6 +15,13 @@ while($_ = shift) {
 }
 
 my $DEBUG = delete $config{DEBUG};
+
+# $config{DEFINE} .= " -DXS_WARNINGS";
+if ( ( backtick('perl -V:version') =~ /version=\'([^\']*)\'/ )[0] !~ /5\.0/ ) {
+    warn "enable native perl UTF8\n";
+
+    $config{DEFINE} .= " -DHAVE_UTF8";
+}
 
 # get libs and inc from gnome-config
 eval {

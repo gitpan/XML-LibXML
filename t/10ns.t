@@ -28,6 +28,7 @@ $child = ($docElem->getChildnodes())[1];
     ok($child->getLocalName() eq 'c');
     ok($child->getPrefix() eq 'b');
     ok($child->getNamespaceURI() eq 'http://whatever');
+    
 
     $child->removeAttributeNS('http://whatever','href');
     ok(!$child->hasAttributeNS('http://whatever','href'));
@@ -38,10 +39,10 @@ $child = ($docElem->getChildnodes())[1];
     ok($child->hasAttributeNS('http://whatever','href')
         && $child->getAttributeNS('http://whatever','href') eq $added_attr);
  
-my @bytag = $docElem->getElementsByTagName('x');
+my @bytag = $docElem->getChildrenByTagName('x');
 ok(scalar(@bytag) == 1);
 
-@bytag = $docElem->getElementsByTagNameNS('http://whatever','c');
+@bytag = $docElem->getChildrenByTagNameNS('http://whatever','c');
 ok(scalar(@bytag) == 1);
 
 my $tag = pop @bytag;

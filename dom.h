@@ -1,5 +1,5 @@
 /* dom.h
- * $Id: dom.h,v 1.11 2001/06/19 08:54:40 phish Exp $
+ * $Id: dom.h,v 1.13 2002/03/13 13:57:08 phish Exp $
  * Author: Christian Glahn (2001)
  * 
  * This header file provides some definitions for wrapper functions.
@@ -60,8 +60,8 @@ domAppendChild( xmlNodePtr self,
                 xmlNodePtr newChild );
 xmlNodePtr
 domReplaceChild( xmlNodePtr self,
-                 xmlNodePtr oldChlid,
-                 xmlNodePtr newChild );
+                 xmlNodePtr newChlid,
+                 xmlNodePtr oldChild );
 xmlNodePtr
 domRemoveChild( xmlNodePtr self,
                xmlNodePtr Child );
@@ -76,6 +76,8 @@ domInsertAfter( xmlNodePtr self,
                 xmlNodePtr refChild );
 
 /* A.3 extra functionality not specified in DOM L1/2*/
+xmlChar*
+domGetNodeValue( xmlNodePtr self );
 void
 domSetNodeValue( xmlNodePtr self, xmlChar* value );
 void

@@ -7,10 +7,10 @@ PHISHS.CHANGES
 README
 dom.c
 dom.h
-parser.c
-parser.h
 xpath.c
 xpath.h
+perl-libxml-mm.c
+perl-libxml-mm.h
 typemap
 example/dromeds.xml
 example/bad.xml
@@ -29,6 +29,7 @@ example/complex/complex.xml
 example/complex/complex.dtd
 example/complex/dtd/f.dtd
 example/complex/dtd/g.dtd
+example/ns.xml
 t/01basic.t
 t/02parsestring.t
 t/03parsefile.t
@@ -47,6 +48,7 @@ t/15nodelist.t
 t/16docnodes.t
 t/17callbacks.t
 t/18docfree.t
+t/19encoding.t
 lib/XML/LibXML/Attr.pod
 lib/XML/LibXML/Comment.pod
 lib/XML/LibXML/Dtd.pod

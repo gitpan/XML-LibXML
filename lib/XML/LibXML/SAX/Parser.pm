@@ -1,4 +1,4 @@
-# $Id: Parser.pm,v 1.1 2001/11/14 10:59:58 matt Exp $
+# $Id: Parser.pm,v 1.10 2002/03/13 14:12:32 matt Exp $
 
 package XML::LibXML::SAX::Parser;
 
@@ -7,8 +7,9 @@ use vars qw($VERSION @ISA);
 
 use XML::LibXML;
 use XML::SAX::Base;
+use XML::SAX::DocumentLocator;
 
-$VERSION = '1.00';
+$VERSION = '1.40';
 @ISA = ('XML::SAX::Base');
 
 sub _parse_characterstream {
@@ -19,14 +20,14 @@ sub _parse_characterstream {
 sub _parse_bytestream {
     my ($self, $fh, $options) = @_;
     my $parser = XML::LibXML->new();
-    my $doc = $parser->parse_fh($fh);
+    my $doc = exists($options->{Source}{SystemId}) ? $parser->parse_fh($fh, $options->{Source}{SystemId}) : $parser->parse_fh($fh);
     $self->generate($doc);
 }
 
 sub _parse_string {
     my ($self, $str, $options) = @_;
     my $parser = XML::LibXML->new();
-    my $doc = $parser->parse_string($str);
+    my $doc = exists($options->{Source}{SystemId}) ? $parser->parse_string($str, $options->{Source}{SystemId}) : $parser->parse_string($str);
     $self->generate($doc);
 }
 
@@ -40,17 +41,18 @@ sub _parse_systemid {
 sub generate {
     my $self = shift;
     my ($node) = @_;
-    
-    $self->start_document({});
-    
-    $self->process_node($node);
-    
-    $self->end_document({});
+
+    if ( $node->getType() == XML_DOCUMENT_NODE ) {
+        $self->start_document({});
+        $self->xml_decl({Version => $node->getVersion, Encoding => $node->getEncoding});
+        $self->process_node($node);
+        $self->end_document({});
+    }
 }
 
 sub process_node {
     my ($self, $node) = @_;
-    
+
     my $node_type = $node->getType();
     if ($node_type == XML_COMMENT_NODE) {
         $self->comment( { Data => $node->getData } );
@@ -65,19 +67,25 @@ sub process_node {
         # warn("</" . $node->getName . ">\n");
     }
     elsif ($node_type == XML_ENTITY_REF_NODE) {
-        foreach my $kid ($node->getChildnodes) {
+        foreach my $kid ($node->childNodes) {
             # warn("child of entity ref: " . $kid->getType() . " called: " . $kid->getName . "\n");
             $self->process_node($kid);
         }
     }
-    elsif ($node_type == XML_DOCUMENT_NODE) {
-        # just get root element. Ignore other cruft.
-        foreach my $kid ($node->getChildnodes) {
-            if ($kid->getType() == XML_ELEMENT_NODE) {
-                $self->process_element($kid);
-                last;
-            }
+#    elsif ($node_type == XML_DOCUMENT_NODE) {
+    elsif ($node_type == XML_DOCUMENT_NODE
+           || $node_type == XML_DOCUMENT_FRAG_NODE) {
+        # some times it is just usefull to generate SAX events from
+        # a document fragment (very good with filters).
+        foreach my $kid ($node->childNodes) {
+            $self->process_node($kid);
         }
+    }
+    elsif ($node_type == XML_PI_NODE) {
+        $self->processing_instruction( { Target =>  $node->getName, Data => $node->getData } );
+    }
+    elsif ($node_type == XML_COMMENT_NODE) {
+        $self->comment( { Data => $node->getData } );
     }
     else {
         warn("unsupported node type: $node_type");
@@ -86,18 +94,41 @@ sub process_node {
 
 sub process_element {
     my ($self, $element) = @_;
-    
-    my $attribs;
-    
+
+    my $attribs = {};
+    my @ns_maps;
+
     foreach my $attr ($element->getAttributes) {
         my $key;
-        if (my $ns = $attr->getNamespaceURI) {
-            $key = "{$ns}".$attr->getLocalName;
+        # warn("Attr: $attr -> ", $attr->getName, " = ", $attr->getData, "\n");
+        if ($attr->isa('XML::LibXML::Namespace')) {
+            # TODO This needs fixing modulo agreeing on what
+            # is the right thing to do here.
+            my ($localname, $p);
+            if (my $prefix = $attr->getLocalName) {
+                $key = "{" . $attr->getNamespaceURI . "}" . $prefix;
+                $localname = $prefix;
+                $p = "xmlns";
+            }
+            else {
+                $key = $attr->getName;
+                $localname = $key;
+                $p = '';
+            }
+            $attribs->{$key} =
+                {
+                    Name => $attr->getName,
+                    Value => $attr->getData,
+                    NamespaceURI => $attr->getNamespaceURI,
+                    Prefix => $p,
+                    LocalName => $localname,
+                };
+            push @ns_maps, $attribs->{$key};
         }
         else {
-            $key = $attr->getLocalName;
-        }
-        $attribs->{$key} =
+            my $ns = $attr->getNamespaceURI || '';
+            $key = "{$ns}".$attr->getLocalName;
+            $attribs->{$key} =
                 {
                     Name => $attr->getName,
                     Value => $attr->getData,
@@ -105,8 +136,11 @@ sub process_element {
                     Prefix => $attr->getPrefix,
                     LocalName => $attr->getLocalName,
                 };
+        }
+        # use Data::Dumper;
+        # warn("Attr made: ", Dumper($attribs->{$key}), "\n");
     }
-    
+
     my $node = {
         Name => $element->getName,
         Attributes => $attribs,
@@ -114,14 +148,37 @@ sub process_element {
         Prefix => $element->getPrefix,
         LocalName => $element->getLocalName,
     };
-    
+
+    foreach my $ns (@ns_maps) {
+        $self->start_prefix_mapping(
+            {
+                NamespaceURI => $ns->{Value},
+                Prefix => (($ns->{LocalName} eq 'xmlns') ? '' : $ns->{LocalName}),
+            }
+        );
+    }
+
     $self->start_element($node);
-    
-    foreach my $child ($element->getChildnodes) {
+
+    foreach my $child ($element->childNodes) {
         $self->process_node($child);
     }
+
+    my $end_node = { %$node };
+
+    delete $end_node->{Attributes};
+
+    $self->end_element($end_node);
     
-    $self->end_element($node);
+    foreach my $ns (@ns_maps) {
+        $self->end_prefix_mapping(
+            {
+                NamespaceURI => $ns->{Value},
+                Prefix => (($ns->{LocalName} eq 'xmlns') ? '' : $ns->{LocalName}),
+            }
+        );
+    }
+
 }
 
 1;
@@ -146,6 +203,19 @@ documents into a DOM and traverses the DOM tree. The reason being
 that libxml2's stream based parsing is extremely primitive,
 and would require an extreme amount of work to allow SAX2
 parsing in a stream manner.
+
+=head1 WARNING
+
+WARNING WARNING WARNING
+
+This is NOT a streaming SAX parser. As I said above, this parser
+reads the entire document into a DOM and serialises it. Some
+people couldn't read that in the paragraph above so I've added
+this warning.
+
+There are many reasons, but if you want to write a proper SAX
+parser using the libxml2 library, please feel free and send it
+along to me.
 
 =head1 API
 

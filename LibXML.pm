@@ -1,13 +1,14 @@
-# $Id: LibXML.pm,v 1.31 2001/11/21 15:07:39 matt Exp $
+# $Id: LibXML.pm,v 1.46 2002/03/13 14:12:30 matt Exp $
 
 package XML::LibXML;
 
 use strict;
-use vars qw($VERSION @ISA @EXPORT);
+use vars qw($VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
 use Carp;
 use XML::LibXML::NodeList;
+use IO::Handle; # for FH reads called as methods
 
-$VERSION = "1.31";
+$VERSION = "1.40";
 require Exporter;
 require DynaLoader;
 
@@ -15,7 +16,7 @@ require DynaLoader;
 
 bootstrap XML::LibXML $VERSION;
 
-@EXPORT = qw( XML_ELEMENT_NODE 
+@EXPORT = qw( XML_ELEMENT_NODE
               XML_ATTRIBUTE_NODE
               XML_TEXT_NODE
               XML_CDATA_SECTION_NODE
@@ -39,6 +40,61 @@ bootstrap XML::LibXML $VERSION;
               decodeFromUTF8
             );
 
+@EXPORT_OK = qw(
+                ELEMENT_NODE
+                ATTRIBUTE_NODE
+                TEXT_NODE
+                CDATA_SECTION_NODE
+                ENTITY_REFERENCE_NODE
+                ENTITY_NODE
+                PROCESSING_INSTRUCTION_NODE
+                COMMENT_NODE
+                DOCUMENT_NODE
+                DOCUMENT_TYPE_NODE
+                DOCUMENT_FRAGMENT_NODE
+                NOTATION_NODE
+                HTML_DOCUMENT_NODE
+                DTD_NODE
+                ELEMENT_DECLARATION
+                ATTRIBUTE_DECLARATION
+                ENTITY_DECLARATION
+                NAMESPACE_DECLARATION
+                NAMESPACE_DECLARATION
+                XINCLUDE_END
+                XINCLUDE_START
+               );
+
+%EXPORT_TAGS = (
+                all => [@EXPORT, @EXPORT_OK],
+                w3c_typenames => [qw(
+                                     ELEMENT_NODE
+                                     ATTRIBUTE_NODE
+                                     TEXT_NODE
+                                     CDATA_SECTION_NODE
+                                     ENTITY_REFERENCE_NODE
+                                     ENTITY_NODE
+                                     PROCESSING_INSTRUCTION_NODE
+                                     COMMENT_NODE
+                                     DOCUMENT_NODE
+                                     DOCUMENT_TYPE_NODE
+                                     DOCUMENT_FRAGMENT_NODE
+                                     NOTATION_NODE
+                                     HTML_DOCUMENT_NODE
+                                     DTD_NODE
+                                     ELEMENT_DECLARATION
+                                     ATTRIBUTE_DECLARATION
+                                     ENTITY_DECLARATION
+                                     NAMESPACE_DECLARATION
+                                     NAMESPACE_DECLARATION
+                                     XINCLUDE_END
+                                     XINCLUDE_START
+                                    )],
+                encoding => [qw(
+                                encodeToUTF8
+                                decodeFromUTF8
+                               )],
+               );
+
 
 sub new {
     my $class = shift;
@@ -48,25 +104,28 @@ sub new {
     return $self;
 }
 
-
 sub match_callback {
     my $self = shift;
-    return $self->{XML_LIBXML_MATCH_CB} = shift;
+    $self->{XML_LIBXML_MATCH_CB} = shift if scalar @_;
+    return $self->{XML_LIBXML_MATCH_CB};
 }
 
 sub read_callback {
     my $self = shift;
-    return $self->{XML_LIBXML_READ_CB} = shift;
+    $self->{XML_LIBXML_READ_CB} = shift if scalar @_;
+    return $self->{XML_LIBXML_READ_CB};
 }
 
 sub close_callback {
     my $self = shift;
-    return $self->{XML_LIBXML_CLOSE_CB} = shift;
+    $self->{XML_LIBXML_CLOSE_CB} = shift if scalar @_;
+    return $self->{XML_LIBXML_CLOSE_CB};
 }
 
 sub open_callback {
     my $self = shift;
-    return $self->{XML_LIBXML_OPEN_CB} = shift;
+    $self->{XML_LIBXML_OPEN_CB} = shift if scalar @_;
+    return $self->{XML_LIBXML_OPEN_CB};
 }
 
 sub callbacks {
@@ -123,43 +182,13 @@ sub expand_xinclude  {
     return $self->{XML_LIBXML_EXPAND_XINCLUDE};
 }
 
-sub init_parser {
-    my $self = shift;
-    $self->_match_callback( $self->{XML_LIBXML_MATCH_CB} )
-      if $self->{XML_LIBXML_MATCH_CB};
-    $self->_read_callback( $self->{XML_LIBXML_READ_CB} )
-      if $self->{XML_LIBXML_READ_CB};
-    $self->_open_callback( $self->{XML_LIBXML_OPEN_CB} )
-      if $self->{XML_LIBXML_OPEN_CB};
-    $self->_close_callback( $self->{XML_LIBXML_CLOSE_CB} )
-      if $self->{XML_LIBXML_CLOSE_CB};
-
-    $self->_validation( $self->{XML_LIBXML_VALIDATION} )
-      if exists $self->{XML_LIBXML_VALIDATION};
-    $self->_expand_entities( $self->{XML_LIBXML_EXPAND_ENTITIES} )
-      if exists $self->{XML_LIBXML_EXPAND_ENTITIES};
-    $self->_keep_blanks( $self->{XML_LIBXML_KEEP_BLANKS} )
-      if exists $self->{XML_LIBXML_KEEP_BLANKS};
-    $self->_pedantic_parser( $self->{XML_LIBXML_PEDANTIC} )
-      if exists $self->{XML_LIBXML_PEDANTIC};
-    $self->_load_ext_dtd( $self->{XML_LIBXML_EXT_DTD} )
-      if exists $self->{XML_LIBXML_EXT_DTD};
-    $self->_complete_attributes( $self->{XML_LIBXML_COMPLETE_ATTR} )
-      if exists $self->{XML_LIBXML_COMPLETE_ATTR};
-}
-
 sub parse_string {
     my $self = shift;
     croak("parse already in progress") if $self->{_State_};
     $self->{_State_} = 1;
     my $result;
     eval {
-        $self->init_parser();
         $result = $self->_parse_string( @_ );
-        $result->_fix_extra;
-        if ( $self->{XML_LIBXML_EXPAND_XINCLUDE} ) {
-            $result->process_xinclude();
-        }
     };
     my $err = $@;
     $self->{_State_} = 0;
@@ -175,13 +204,7 @@ sub parse_fh {
     $self->{_State_} = 1;
     my $result;
     eval {
-        $self->init_parser();
         $result = $self->_parse_fh( @_ );
-        $result->_fix_extra;
-        if ( $self->{XML_LIBXML_EXPAND_XINCLUDE} ) {
-            warn "use xinclude!" ;
-            $result->process_xinclude();
-        }
     };
     my $err = $@;
     $self->{_State_} = 0;
@@ -197,13 +220,7 @@ sub parse_file {
     $self->{_State_} = 1;
     my $result;
     eval {
-        $self->init_parser();
         $result = $self->_parse_file(@_);
-        $result->_fix_extra;
-        if ( $self->{XML_LIBXML_EXPAND_XINCLUDE} ) {
-            # warn "use xinclude!" ;
-            $result->process_xinclude();
-        }
     };
     my $err = $@;
     $self->{_State_} = 0;
@@ -213,61 +230,28 @@ sub parse_file {
     return $result;
 }
 
-sub parse_html_string {
+sub parse_xml_chunk {
     my $self = shift;
-
-    $self->init_parser();
-    my $retval = $self->_parse_html_string( @_ );
-
-    return $retval;
+    # max 2 parameter:
+    # 1: the chunk
+    # 2: the encoding of the string
+    croak("parse already in progress") if $self->{_State_};
+    $self->{_State_} = 1;
+    my $result;
+    eval {
+        $result = $self->_parse_xml_chunk( @_ );
+    };
+    my $err = $@;
+    $self->{_State_} = 0;
+    if ($err) {
+        croak $err;
+    }
+    return $result;
 }
 
-sub parse_html_fh {
-    my $self = shift;
-
-    $self->init_parser();
-    my $retval = $self->_parse_html_fh( @_ );
-
-    return $retval;
+sub __read {
+    read($_[0], $_[1], $_[2]);
 }
-
-sub parse_html_file {
-    my $self = shift;
-
-    $self->init_parser();
-    my $retval = $self->_parse_html_file( @_ );
-
-    return $retval;
-}
-
-sub processXIncludes {
-    my $self = shift;
-    my $dom  = shift;
-
-    $self->init_parser();
-    $dom->process_xinclude();
-}
-
-sub XML_ELEMENT_NODE(){1;}
-sub XML_ATTRIBUTE_NODE(){2;}
-sub XML_TEXT_NODE(){3;}
-sub XML_CDATA_SECTION_NODE(){4;}
-sub XML_ENTITY_REF_NODE(){5;}
-sub XML_ENTITY_NODE(){6;}
-sub XML_PI_NODE(){7;}
-sub XML_COMMENT_NODE(){8;}
-sub XML_DOCUMENT_NODE(){9;}
-sub XML_DOCUMENT_TYPE_NODE(){10;}
-sub XML_DOCUMENT_FRAG_NODE(){11;}
-sub XML_NOTATION_NODE(){12;}
-sub XML_HTML_DOCUMENT_NODE(){13;}
-sub XML_DTD_NODE(){14;}
-sub XML_ELEMENT_DECL_NODE(){15;}
-sub XML_ATTRIBUTE_DECL_NODE(){16;}
-sub XML_ENTITY_DECL_NODE(){17;}
-sub XML_NAMESPACE_DECL_NODE(){18;}
-sub XML_XINCLUDE_START(){19;}
-sub XML_XINCLUDE_END(){20;}
 
 @XML::LibXML::Document::ISA         = 'XML::LibXML::Node';
 @XML::LibXML::DocumentFragment::ISA = 'XML::LibXML::Node';
@@ -312,8 +296,48 @@ sub XML::LibXML::Node::findvalue {
 sub XML::LibXML::Node::find {
     my ($node, $xpath) = @_;
     my ($type, @params) = $node->_find($xpath);
-    return $type->new(@params);
+    if ($type) {
+        return $type->new(@params);
+    }
+    return undef;
 }
+
+sub XML::LibXML::Element::getElementsByTagName {
+    my ( $node , $name ) = @_;
+    my $xpath = "descendant::$name";
+    my @nodes = $node->_findnodes($xpath);
+    if (wantarray) {
+        return @nodes;
+    }
+    else {
+        return XML::LibXML::NodeList->new(@nodes);
+    }
+}
+
+sub XML::LibXML::Element::getElementsByTagNameNS {
+    my ( $node, $nsURI, $name ) = @_;
+    my $xpath = "descendant::*[local-name()='$name' and namespace-uri()='$nsURI']";
+        my @nodes = $node->_findnodes($xpath);
+    if (wantarray) {
+        return @nodes;
+    }
+    else {
+        return XML::LibXML::NodeList->new(@nodes);
+    }
+}
+
+sub XML::LibXML::Element::getElementsByLocalName {
+    my ( $node,$name ) = @_;
+    my $xpath = "descendant::*[local-name()='$name']";
+        my @nodes = $node->_findnodes($xpath);
+    if (wantarray) {
+        return @nodes;
+    }
+    else {
+        return XML::LibXML::NodeList->new(@nodes);
+    }
+}
+
 
 sub XML::LibXML::PI::setData {
     my $pi = shift;
@@ -331,6 +355,40 @@ sub XML::LibXML::PI::setData {
     $pi->_setData( $string ) unless  $string =~ /\?>/;
 }
 
+sub XML::LibXML::Text::replaceDataString {
+    my ( $node, $left, $right ) = @_;
+
+    #ashure we exchange the strings and not expressions!
+    $left  =~ s/([\\\*\+\^\{\}\&\?\[\]\(\)\$\%\@])/\$1/g;
+    $right =~ s/([\\\*\+\^\{\}\&\?\[\]\(\)\$\%\@])/\$1/g;
+    my $datastr = $node->getData();
+    $datastr =~ s/$left/$right/;
+    $node->setData( $datastr );
+}
+
+sub XML::LibXML::Text::replaceDataRegEx {
+    my ( $node, $leftre, $rightre, $flags ) = @_;
+    return unless defined $leftre;
+    $rightre ||= "";
+
+    my $datastr = $node->getData();
+    my $restr   = "s/" . $leftre . "/" . $rightre . "/";
+    $restr .= $flags if defined $flags;
+
+    eval '$datastr =~ '. $restr;
+
+    $node->setData( $datastr );
+}
+
+sub XML::LibXML::DocumentFragment::toString {
+    my $self = shift;
+    my $enc  = shift;
+    if ( $self->hasChildNodes() ) {
+        return join( "", grep {defined $_} map( {$_->toString($enc)}  $self->childNodes() ) );
+    }
+    return "";
+}
+
 1;
 __END__
 
@@ -344,7 +402,7 @@ XML::LibXML - Interface to the gnome libxml2 library
   my $parser = XML::LibXML->new();
 
   my $doc = $parser->parse_string(<<'EOT');
-  <xml/>
+  <some-xml/>
   EOT
 
 =head1 DESCRIPTION
@@ -456,11 +514,11 @@ http client library.
 
 =head1 PARSING
 
-There are three ways to parse documents - as a string, as a Perl filehandle,
-or as a filename. The return value from each is a XML::LibXML::Document
-object, which is a DOM object (although no DOM methods are implemented
-yet). See L<"XML::LibXML::Document"> below for more details on the methods
-available on documents.
+There are three ways to parse documents - as a string, as a Perl
+filehandle, or as a filename. The return value from each is a
+XML::LibXML::Document object, which is a DOM object (although not all
+DOM methods are implemented yet). See L<"XML::LibXML::Document"> below
+for more details on the methods available on documents.
 
 Each of the below methods will throw an exception if the document is invalid.
 To prevent this causing your program exiting, wrap the call in an eval{}
