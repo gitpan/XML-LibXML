@@ -34,6 +34,7 @@ XML::LibXML::Parser - Parsing XML Data with XML::LibXML
   $parser->load_catalog( $catalog_file );
   $parser->base_uri( $your_base_uri );
   $parser->gdome_dom(1);
+  $parser->clean_namespaces( 1 );
   $parser->match_callback($subref);
   $parser->open_callback($subref);
   $parser->read_callback($subref);
@@ -573,6 +574,15 @@ To make use of this function, one has to install libgdome and configure
 XML::LibXML to use this library. For this you need to rebuild XML::LibXML!
 
 
+=item B<clean_namespaces>
+
+  $parser->clean_namespaces( 1 );
+
+libxml2 2.6.0 and later allows to strip redundant namespace declarations from
+the DOM tree. To do this, one has to set clean_namespaces() to 1 (TRUE). By
+default no namespace cleanup is done.
+
+
 
 =back
 
@@ -620,7 +630,8 @@ Open something and return it to handle that resource.
   $parser->read_callback($subref);
 
 Read a certain number of bytes from the resource. This callback is called even
-if the entire Document has already read.
+if the entire Document has already read. This callback has to return a string
+which will be parsed by the libxml2 parser.
 
 
 =item B<close_callback>
@@ -632,6 +643,12 @@ Close the handle associated with the resource.
 
 
 =back
+
+It is important that one must not create a new parser instance and parse some
+XML data from within any callback. This is forbidden, because the new parser
+will override the existing callbacks and will leave the calling parser in an
+undefined state. Most likely memory violations will follow and break the
+running parsing process without returning control to the perl layer.
 
 The following example explains the concept a bit. It is a purely fictitious
 example that uses a MyScheme::Handler object that responds to methods similar
@@ -724,7 +741,7 @@ Matt Sergeant,
 Christian Glahn, 
 =head1 VERSION
 
-1.57
+1.58
 
 =head1 COPYRIGHT
 

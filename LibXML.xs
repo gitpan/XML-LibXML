@@ -1,4 +1,4 @@
-/* $Id: LibXML.xs,v 1.173 2004/02/26 23:54:07 phish Exp $ */
+/* $Id: LibXML.xs,v 1.178 2004/03/24 23:06:14 phish Exp $ */
 
 #ifdef __cplusplus
 extern "C" {
@@ -70,23 +70,6 @@ extern "C" {
 
 #ifdef __cplusplus
 }
-#endif
-
-/* These globals are now declared in libxml2's globals.h */
-#if 0
-#ifdef VMS
-extern int xmlDoValidityCheckingDefaultVal;
-#define xmlDoValidityCheckingDefaultValue xmlDoValidityCheckingDefaultVal
-extern int xmlSubstituteEntitiesDefaultVal;
-#define xmlSubstituteEntitiesDefaultValue xmlSubstituteEntitiesDefaultVal
-#else
-LIBXML_DLL_IMPORT extern int xmlDoValidityCheckingDefaultValue;
-LIBXML_DLL_IMPORT extern int xmlSubstituteEntitiesDefaultValue;
-#endif
-LIBXML_DLL_IMPORT extern int xmlGetWarningsDefaultValue;
-LIBXML_DLL_IMPORT extern int xmlKeepBlanksDefaultValue;
-LIBXML_DLL_IMPORT extern int xmlLoadExtDtdDefaultValue;
-LIBXML_DLL_IMPORT extern int xmlPedanticParserDefaultValue;
 #endif
 
 #define TEST_PERL_FLAG(flag) \
@@ -686,13 +669,17 @@ LibXML_init_parser( SV * self ) {
         item = hv_fetch( real_obj, "XML_LIBXML_PEDANTIC", 19, 0 );
         if ( item != NULL && SvTRUE(*item) ) {
 #ifdef LIBXML_THREAD_ENABLED
+#if LIBXML_VERSION != 20507
             xmlThrDefPedanticParserDefaultValue( 1 );
+#endif
 #endif
             xmlPedanticParserDefaultValue = 1;
         }
         else {
 #ifdef LIBXML_THREAD_ENABLED
+#if LIBXML_VERSION != 20507
             xmlThrDefPedanticParserDefaultValue( 0 );
+#endif
 #endif
             xmlPedanticParserDefaultValue = 0;
         }
@@ -969,6 +956,12 @@ _parse_string(self, string, dir = &PL_sv_undef)
             xs_warn( "context initialized\n" );
 
             {
+#if LIBXML_VERSION > 20600
+                SV** item =  hv_fetch( real_obj, "XML_LIBXML_NSCLEAN", 18, 0 );
+                if ( item != NULL && SvTRUE(*item) ) {
+                    ctxt->options |= XML_PARSE_NSCLEAN;
+                }
+#endif
                 xmlParseDocument(ctxt);
                 xs_warn( "document parsed \n");
             }
@@ -1102,9 +1095,15 @@ _parse_fh(self, fh, dir = &PL_sv_undef)
             }
             ctxt->_private = (void*)self;
             xs_warn( "context initialized \n");
-
             {
                 int ret;
+#if LIBXML_VERSION > 20600
+                SV** item =  hv_fetch( real_obj, "XML_LIBXML_NSCLEAN", 18, 0 );
+                if ( item != NULL && SvTRUE(*item) ) {
+                    ctxt->options |= XML_PARSE_NSCLEAN;
+                }
+#endif
+
                 while ((read_length = LibXML_read_perl(fh, buffer, 1024))) {
                     ret = xmlParseChunk(ctxt, buffer, read_length, 0);
                     if ( ret != 0 ) {
@@ -1259,6 +1258,12 @@ _parse_file(self, filename_sv)
             xs_warn( "context initialized \n");
 
             {
+#if LIBXML_VERSION > 20600
+                SV** item =  hv_fetch( real_obj, "XML_LIBXML_NSCLEAN", 18, 0 );
+                if ( item != NULL && SvTRUE(*item) ) {
+                    ctxt->options |= XML_PARSE_NSCLEAN;
+                }
+#endif
                 xmlParseDocument(ctxt);
                 xs_warn( "document parsed \n");
             }
@@ -1776,13 +1781,16 @@ _parse_xml_chunk(self, svchunk, enc = &PL_sv_undef)
 
                 /* step 2: set the node list to the fragment */
                 fragment->children = rv;
-                rv->parent = fragment;
                 rv_end = rv;
-                while ( rv_end != NULL ) {
-                    fragment->last = rv_end;
+                while ( rv_end->next != NULL ) {
                     rv_end->parent = fragment;
                     rv_end = rv_end->next;
                 }
+                /* the following line is important, otherwise we'll have 
+                   occasional segmentation faults
+                 */
+                rv_end->parent = fragment;
+                fragment->last = rv_end;
             }
 
             /* free the chunk we created */
@@ -1920,7 +1928,14 @@ _start_push(self, with_sax=0)
 
         /* create empty context */
         ctxt = xmlCreatePushParserCtxt( NULL, NULL, NULL, 0, NULL );
-
+#if LIBXML_VERSION > 20600
+        {
+                SV** item =  hv_fetch( real_obj, "XML_LIBXML_NSCLEAN", 18, 0 );
+                if ( item != NULL && SvTRUE(*item) ) {
+                    ctxt->options |= XML_PARSE_NSCLEAN;
+                }
+        }
+#endif
         if ( with_sax == 1 ) {
             PmmSAXInitContext( ctxt, self );
         }
@@ -3918,8 +3933,9 @@ insertAfter( self, nNode, ref )
         SV* ref
     PREINIT:
         xmlNodePtr oNode = NULL, rNode;
-    CODE:
+    INIT:
         oNode = PmmSvNode(ref);
+    CODE:
         if ( self->type    == XML_DOCUMENT_NODE
              && nNode->type == XML_ELEMENT_NODE ) {
             xs_warn( "NOT_SUPPORTED_ERR\n" );
@@ -4272,6 +4288,7 @@ toString( self, format=0, useDomEncoding = &PL_sv_undef )
             xmlSaveNoEmptyTags = SvTRUE(internalFlag);
         }
         buffer = xmlBufferCreate();
+
         if ( format <= 0 ) {
             xmlNodeDump( buffer,
                          self->doc,
@@ -4293,7 +4310,7 @@ toString( self, format=0, useDomEncoding = &PL_sv_undef )
         xmlSaveNoEmptyTags = oldTagFlag;
 
         if ( ret != NULL ) {
-            if ( useDomEncoding!= &PL_sv_undef && SvTRUE(useDomEncoding) ) {
+            if ( useDomEncoding != &PL_sv_undef && SvTRUE(useDomEncoding) ) {
                 RETVAL = nodeC2Sv((xmlChar*)ret, PmmNODE(PmmPROXYNODE(self))) ;
             }
             else {

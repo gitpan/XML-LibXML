@@ -1,4 +1,4 @@
-# $Id: LibXML.pm,v 1.99 2004/02/14 18:35:14 pajas Exp $
+# $Id: LibXML.pm,v 1.102 2004/03/24 23:06:14 phish Exp $
 
 package XML::LibXML;
 
@@ -14,7 +14,7 @@ use XML::LibXML::NodeList;
 use IO::Handle; # for FH reads called as methods
 
 
-$VERSION = "1.57";
+$VERSION = "1.58";
 require Exporter;
 require DynaLoader;
 
@@ -285,6 +285,11 @@ sub gdome_dom {
     return $self->{XML_LIBXML_GDOME};
 }
 
+sub clean_namespaces {
+    my $self = shift;
+    $self->{XML_LIBXML_NSCLEAN} = shift if scalar @_;
+    return $self->{XML_LIBXML_NSCLEAN};
+}
 
 #-------------------------------------------------------------------------#
 # set the optional SAX(2) handler                                         #
@@ -941,6 +946,10 @@ package XML::LibXML::CDATASection;
 
 use vars qw(@ISA);
 @ISA     = ('XML::LibXML::Text');
+
+sub nodeName {
+    return "cdata";
+}
 
 1;
 

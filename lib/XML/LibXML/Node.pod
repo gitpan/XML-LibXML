@@ -478,9 +478,18 @@ adoptNode().
   $node->insertBefore( $newNode, $refNode )
 
 The method inserts $newNode before $refNode. If $refNode is undefined, the
-newNode will be set as the new first child of the parent node. This function
+newNode will be set as the new last child of the parent node. This function
 differs from the DOM L2 specification, in the case, if the new node is not part
-of the document, the node will be imported first.
+of the document, the node will be imported first, automatically.
+
+$refNode has to be passed to the function even if it is undefined:
+
+   $node->insertBefore( $newNode, undef ); # the same as $node->appendChild( $newNode );
+   $node->insertBefore( $newNode ); # wrong
+
+Note, that the reference node has to be a direct child of the node the function
+is called on. Also, $newChild is not allowed to be an ancestor of the new
+parent node.
 
 
 
@@ -494,6 +503,8 @@ of the document, the node will be imported first.
 
 The method inserts $newNode after $refNode. If $refNode is undefined, the
 newNode will be set as the new last child of the parent node.
+
+Note, that $refNode has to be passed explicitly even if it is undef.
 
 
 
@@ -769,7 +780,7 @@ with element nodes.
 
 =over 4
 
-=item B<removeChildNode>
+=item B<removeChildNodes>
 
   $node->removeChildNodes();
 
@@ -789,7 +800,7 @@ Matt Sergeant,
 Christian Glahn, 
 =head1 VERSION
 
-1.57
+1.58
 
 =head1 COPYRIGHT
 

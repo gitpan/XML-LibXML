@@ -1,5 +1,5 @@
 # -------------------------------------------------------------------------- #
-# $Id: Makefile.PL,v 1.42 2004/02/26 18:52:36 phish Exp $
+# $Id: Makefile.PL,v 1.45 2004/03/24 23:06:14 phish Exp $
 # -------------------------------------------------------------------------- #
 # Makefile.PL for XML::LibXML.
 # This file is required to generate a localized Makefile
@@ -86,9 +86,13 @@ delete $config{SKIP_SAX_INSTALL};
 
 unless ( $is_Win32 ) { # cannot get config in W32
     my @blacklist = (
-                     [2,4,25,0],
-                     [2,4,30,1],
-                     [2,5,4,1],
+                     [2,4,22,0],
+                     [2,4,25,0], # broken xpaths
+                     [2,4,28,1],
+                     [2,4,29,0],
+                     [2,4,30,0],
+                     [2,5,0,1],
+                     [2,5,1,0], # all pre 2.5.4 version have broken attr output
                      [2,5,5,0], # tests pass, but known as broken
                      [2,5,11,1],
                      [2,6,0,0],
@@ -96,7 +100,7 @@ unless ( $is_Win32 ) { # cannot get config in W32
                      [2,6,3,0],
                      [2,6,4,0], # schema error
                      [2,6,5,0], # broken xincludes
-                     [2,6,7,1],
+                     [2,6,8,1],
 
                     );
     my $xml2cfg = "xml2-config";
@@ -224,7 +228,7 @@ if ($config{LIBS} !~ /\-lz\b/) {
 }
 
 if ($config{LIBS} !~ /\-lm\b/) {
-    # math support is important, but is not available separate in W32
+    # math support is important, but is not available separately in W32
     $config{LIBS} .= $is_Win32 ? '' :' -lm';
 }
 # -------------------------------------------------------------------------- #
