@@ -1,6 +1,6 @@
 /**
  * perl-libxml-mm.c
- * $Id: perl-libxml-mm.c,v 1.32 2002/10/25 10:13:28 phish Exp $
+ * $Id: perl-libxml-mm.c,v 1.35 2003/05/01 21:31:12 phish Exp $
  *
  * Basic concept:
  * perl varies in the implementation of UTF8 handling. this header (together
@@ -174,9 +174,12 @@ PmmNewFragment(xmlDocPtr doc)
     frag   = xmlNewDocFragment( doc );
     retval = PmmNewNode(frag);
 
-    if ( doc ) {
+    if ( doc != NULL ) {
         xs_warn("inc document\n");
-        PmmREFCNT_inc(((ProxyNodePtr)doc->_private));
+        /* under rare circumstances _private is not set correctly? */
+        if ( doc->_private != NULL ) {
+            PmmREFCNT_inc(((ProxyNodePtr)doc->_private));
+        }
         retval->owner = (xmlNodePtr)doc;
     }
 
@@ -204,7 +207,7 @@ PmmFreeNode( xmlNodePtr node )
         }
         break;
     case XML_DTD_NODE:
-        if ( node->doc ) {
+        if ( node->doc != NULL ) {
             if ( node->doc->extSubset != (xmlDtdPtr)node 
                  && node->doc->intSubset != (xmlDtdPtr)node ) {
                 xs_warn( "PFN: XML_DTD_NODE\n");
@@ -234,7 +237,7 @@ PmmREFCNT_dec( ProxyNodePtr node )
     ProxyNodePtr owner = NULL;  
     int retval = 0;
 
-    if ( node ) {
+    if ( node != NULL ) {
         retval = PmmREFCNT(node)--;
         if ( PmmREFCNT(node) <= 0 ) {
             xs_warn( "NODE DELETATION\n" );
@@ -306,7 +309,7 @@ PmmNodeToSv( xmlNodePtr node, ProxyNodePtr owner )
         xs_warn(" return new perl node\n");
         xs_warn( CLASS );
 
-        if ( node->_private ) {
+        if ( node->_private != NULL ) { 
             dfProxy = PmmNewNode(node);
         }
         else {
@@ -404,8 +407,10 @@ PmmSvNodeExt( SV* perlnode, int copy )
         xs_warn("   perlnode found\n" );
         if ( sv_derived_from(perlnode, "XML::LibXML::Node")  ) {
             proxy = SvPROXYNODE(perlnode);
-            xs_warn( "is a xmlNodePtr structure\n" );
-            retval = PmmNODE( proxy ) ;
+            if ( proxy != NULL ) {
+                xs_warn( "is a xmlNodePtr structure\n" );
+                retval = PmmNODE( proxy ) ;
+            }
 
             if ( retval != NULL
                  && ((ProxyNodePtr)retval->_private) != proxy ) {
@@ -466,7 +471,7 @@ PmmSetSvOwner( SV* perlnode, SV* extra )
 void
 PmmFixOwnerList( xmlNodePtr list, ProxyNodePtr parent )
 {
-    if ( list ) {
+    if ( list != NULL ) {
         xmlNodePtr iterator = list;
         while ( iterator != NULL ) {
             switch ( iterator->type ) {
@@ -527,7 +532,7 @@ PmmFixOwner( ProxyNodePtr nodetofix, ProxyNodePtr parent )
             break;
         }
 
-        if ( PmmOWNER(nodetofix) ) {
+        if ( PmmOWNER(nodetofix) != NULL ) {
             oldParent = PmmOWNERPO(nodetofix);
         }
         
@@ -545,7 +550,7 @@ PmmFixOwner( ProxyNodePtr nodetofix, ProxyNodePtr parent )
                 PmmOWNER(nodetofix) = NULL;
             }
             
-            if ( oldParent && oldParent != nodetofix )
+            if ( oldParent != NULL && oldParent != nodetofix )
                 PmmREFCNT_dec(oldParent);
             
             if ( PmmNODE(nodetofix)->type != XML_ATTRIBUTE_NODE
@@ -604,7 +609,7 @@ PmmContextREFCNT_dec( ProxyNodePtr node )
 { 
     xmlParserCtxtPtr libnode = NULL;
     int retval = 0;
-    if ( node ) {
+    if ( node != NULL ) {
         retval = PmmREFCNT(node)--;
         if ( PmmREFCNT(node) <= 0 ) {
             xs_warn( "NODE DELETATION\n" );
@@ -740,11 +745,9 @@ PmmFastDecodeString( int charset,
     }
 
     if ( charset > 1 ) {
-        /* warn( "use document encoding %s", encoding ); */
         coder= xmlGetCharEncodingHandler( charset );
     }
     else if ( charset == XML_CHAR_ENCODING_ERROR ){
-        /* warn("no standard encoding\n"); */
         coder = xmlFindCharEncodingHandler( (const char *) encoding );
     }
     else {
@@ -758,7 +761,7 @@ PmmFastDecodeString( int charset,
         
         xmlBufferCat( in, string );        
         if ( xmlCharEncOutFunc( coder, out, in ) >= 0 ) {
-            retval = xmlStrdup(out->content);
+            retval = xmlCharStrndup(xmlBufferContent(out), xmlBufferLength(out));
         }
         else {
             xs_warn("decoding error \n");
@@ -804,7 +807,6 @@ char*
 PmmDecodeString( const char *encoding, const xmlChar *string){
     char *ret=NULL;
     xmlCharEncoding enc;
-    xmlBufferPtr in = NULL, out = NULL;
     xmlCharEncodingHandlerPtr coder = NULL;
 
     if ( string != NULL ) {

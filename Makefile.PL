@@ -35,6 +35,10 @@ if ( $] >= 5.006 ) {
 
 # get libs and inc from gnome-config
 
+# if we run on MacOSX, we should check if 10.2 is running and if so,
+# if the Build Target is set correctly. Otherwise we have to set it by
+# hand
+
 unless ( $is_Win32 ) {
     eval {
         my $xml2cfg = "xml2-config";

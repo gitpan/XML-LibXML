@@ -1,4 +1,4 @@
-# $Id: SAX.pm,v 1.4 2002/09/27 09:05:06 phish Exp $
+# $Id: SAX.pm,v 1.5 2003/02/04 23:01:33 phish Exp $
 # Copyright (c) 2001-2002, AxKit.com Ltd. All rights reserved.
 package XML::LibXML::SAX;
 

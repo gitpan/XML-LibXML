@@ -1,4 +1,4 @@
-# $Id: LibXML.pm,v 1.84 2002/11/08 17:10:30 phish Exp $
+# $Id: LibXML.pm,v 1.86 2003/05/22 23:23:43 phish Exp $
 
 package XML::LibXML;
 
@@ -692,6 +692,31 @@ sub insertProcessingInstruction {
 sub insertPI {
     my $self = shift;
     $self->insertProcessingInstruction( @_ );
+}
+
+#-------------------------------------------------------------------------#
+# DOM L3 Document functions.
+# added after robins implicit feature requst
+#-------------------------------------------------------------------------#
+sub getElementsByTagName {
+    my ( $doc , $name ) = @_;
+    my $xpath = "descendant-or-self::node()/$name";
+    my @nodes = $doc->_findnodes($xpath);
+    return wantarray ? @nodes : XML::LibXML::NodeList->new(@nodes);
+}
+
+sub  getElementsByTagNameNS {
+    my ( $doc, $nsURI, $name ) = @_;
+    my $xpath = "descendant-or-self::*[local-name()='$name' and namespace-uri()='$nsURI']";
+    my @nodes = $doc->_findnodes($xpath);
+    return wantarray ? @nodes : XML::LibXML::NodeList->new(@nodes);
+}
+
+sub getElementsByLocalName {
+    my ( $doc,$name ) = @_;
+    my $xpath = "descendant-or-self::*[local-name()='$name']";
+    my @nodes = $doc->_findnodes($xpath);
+    return wantarray ? @nodes : XML::LibXML::NodeList->new(@nodes);
 }
 
 1;
@@ -1696,46 +1721,6 @@ encoding.  While transforms to ISO encodings may cause errors if the
 given stirng contains unsupported characters, this function can
 transform to UTF-16 encodings as well.
 
-=head2 XML::LibXML and XML::GDOME
-
-THE FUNCTIONS DESCRIBED HERE ARE STILL EXPERIMENTAL
-
-Although both modules make use of libxml2's XML capabilities, the DOM
-implementation of both modules are not compatible. But still it is
-possible to exchange nodes from one DOM to the other. The concept of
-this exchange is pretty similar to the function cloneNode(): The
-particular node is copied on the lowlevel to the opposite DOM
-implementation.
-
-Since the DOM implementations cannot coexist with in one document, one
-is forced to copy each node that should be used. Because of keeping
-allways two nodes this may cause quite an impact on a machines memory
-useage.
-
-XML::LibXML provides two functions to export or import GDOME nodes:
-import_GDOME() and export_GDOME(). Both function have two parameters:
-the node and a flag for recursive import. The flag works as in
-cloneNode().
-
-=head2 import_GDOME
-
-  XML::LibXML->import_GDOME( $node, $deep );
-
-This converts an XML::GDOME node to XML::LibXML explicitly.
-
-=head2 export_GDOME
-
-  XML::LibXML->export_GDOME( $node, $deep );
-
-Allows to export an XML::LibXML node to XML::GDOME explicitly.
-
-Although these two explicit functions exist, XML::LibXML allows also
-the transparent import of XML::GDOME nodes in functions such as
-appendChild(), insertAfter() and so on. While native nodes are
-automaticly adopted in most functions XML::GDOME nodes are B<allways>
-cloned in advance. Thus if the original node is modified after the
-operation, the node in the XML::LibXML document will not have this
-information.
 
 =head1 XML::LibXML::Dtd
 

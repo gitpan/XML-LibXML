@@ -1,4 +1,4 @@
-# $Id: Builder.pm,v 1.27 2002/10/28 09:32:48 phish Exp $
+# $Id: Builder.pm,v 1.28 2003/02/04 23:01:33 phish Exp $
 
 package XML::LibXML::SAX::Builder;
 
