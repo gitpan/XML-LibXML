@@ -1,4 +1,4 @@
-# $Id: Makefile.PL,v 1.6 2001/06/09 16:47:41 matt Exp $
+# $Id: Makefile.PL,v 1.7 2001/06/18 09:09:47 phish Exp $
 
 use ExtUtils::MakeMaker;
 use Config;
@@ -94,7 +94,7 @@ sub MY::manifypods {
 
 docs : pure_all
 \t\@$^X -Iblib/arch -Iblib/lib example/xml2pod.pl example/libxml.xml lib
-\t\@\$(TOUCH) Makefile.PL
+\t\@$^X -pi.old -e 's/a/a/' Makefile.PL
 \t\@echo "==> YOU MUST NOW RE-RUN $^X Makefile.PL <=="
 \t\@false
 

@@ -11,14 +11,17 @@ XML::LibXML::Document - DOM Document Class
   $strEncoding = $doc->getEncoding();
   $strVersion = $doc->getVersion();
   $docstring = $dom->toString([$format]);
+  $document->toStringHTML();
   $bool = $dom->is_valid();
   $root = $dom->getDocumentElement($name, $namespace );
+  $root = $dom->documentElement;
   $dom->setDocumentElement( $root );
   $element = $dom->createElement( $nodename );
   $element = $dom->createElementNS( $namespaceURI, $qname );
   $text = $dom->createTextNode( $content_text );
   $comment = $dom->createComment( $comment_text );
   $attrnode = $doc->createAttribute($name [,$value]);
+  $fragment = $doc->createDocumentFragment()
   $attrnode = $doc->createAttributeNS( namespaceURI, $name [,$value] );
   $cdata = $dom->create( $cdata_content );
   $document->importNode( $node [, $move] );
@@ -89,6 +92,10 @@ that specifies the number of linebreaks for each node.
 For more information about the formatted output check the documentation
 of I<xmlDocDumpFormatMemory> in I<libxml2/tree.h> .
 
+=item B<toStringHTML>
+
+B<toStringHTML> deparses the tree to a string as HTML. With this method indenting is automatic and managed by libxml2 internally.
+
 =item B<is_valid>
 
 Returns either TRUE or FALSE depending on the DOM Tree is a
@@ -98,6 +105,10 @@ valid Document or not.
 
 Returns the root element of the Document. A document can have
 just one root element to contain the documents data.
+
+=item B<doumentElement>
+
+Alias for B<getDocumentElement> .
 
 =item B<setDocumentElement>
 
@@ -125,9 +136,11 @@ As an equivalent of B<createElement> , but it creates a B<Comment Node> bound to
 
 =item B<createAttribute>
 
-Creates a new Attribute node. This function is rather useless at
-the moment, since there is no setAttributeNode function defined
-in I<XML::LibXML::Element> , yet.
+Creates a new Attribute node.
+
+=item B<createDocumentFragment>
+
+This function creates a DocumentFragment.
 
 =item B<createAttributeNS>
 
@@ -149,9 +162,9 @@ from the original document.
 
 =head1 SEE ALSO
 
-XML::LibXML, XML::LibXML::Element, XML::LibXML::Text, XML::LibXML::Attr, XML::LibXML::Comment
+XML::LibXML, XML::LibXML::Element, XML::LibXML::Text, XML::LibXML::Attr, XML::LibXML::Comment, XML::LibXML::DocumentFragment
 
 =head1 VERSION
 
-0.90_a
+0.95
 

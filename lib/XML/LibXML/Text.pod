@@ -31,9 +31,9 @@ or "comment".
 
 =head1 SEE ALSO
 
-XML::LibXML, XML::LibXML::Node, XML::LibXML::Element, XML::LibXML::Document, XML::LibXML::Comment
+XML::LibXML, XML::LibXML::Node, XML::LibXML::Element, XML::LibXML::Document, XML::LibXML::Comment, XML::LibXML::DocumentFragment
 
 =head1 VERSION
 
-0.90_a
+0.95
 

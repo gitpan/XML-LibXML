@@ -1,4 +1,4 @@
-# $Id: LibXML.pm,v 1.9 2001/06/09 16:47:41 matt Exp $
+# $Id: LibXML.pm,v 1.14 2001/06/19 19:28:10 matt Exp $
 
 package XML::LibXML;
 
@@ -6,7 +6,7 @@ use strict;
 use vars qw($VERSION @ISA @EXPORT);
 use Carp;
 
-$VERSION = "0.94";
+$VERSION = "0.96";
 require Exporter;
 require DynaLoader;
 
@@ -33,7 +33,10 @@ bootstrap XML::LibXML $VERSION;
               XML_ENTITY_DECL
               XML_NAMESPACE_DECL
               XML_XINCLUDE_START
-              XML_XINCLUDE_END );
+              XML_XINCLUDE_END
+              encodeToUTF8
+              decodeFromUTF8
+            );
 
 
 sub new {
@@ -91,7 +94,6 @@ sub parse_file {
     return $result;
 }
 
-
 sub XML_ELEMENT_NODE(){1;}
 sub XML_ATTRIBUTE_NODE(){2;}
 sub XML_TEXT_NODE(){3;}
@@ -114,14 +116,13 @@ sub XML_XINCLUDE_START(){19;}
 sub XML_XINCLUDE_END(){20;}
 
 @XML::LibXML::Document::ISA         = 'XML::LibXML::Node';
-@XML::LibXML::Element::ISA      = 'XML::LibXML::Node';
-@XML::LibXML::Text::ISA         = 'XML::LibXML::Node';
-@XML::LibXML::Comment::ISA      = 'XML::LibXML::Text';
-@XML::LibXML::CDATASection::ISA = 'XML::LibXML::Text';
-@XML::LibXML::NoGCDocument::ISA = 'XML::LibXML::Document';
-@XML::LibXML::Attr::ISA         = 'XML::LibXML::Node';
+@XML::LibXML::Element::ISA          = 'XML::LibXML::Node';
+@XML::LibXML::Text::ISA             = 'XML::LibXML::Node';
+@XML::LibXML::Comment::ISA          = 'XML::LibXML::Text';
+@XML::LibXML::CDATASection::ISA     = 'XML::LibXML::Text';
+@XML::LibXML::Attr::ISA             = 'XML::LibXML::Node';
+@XML::LibXML::DocumentFragment::ISA = 'XML::LibXML::Node';
 
-sub XML::LibXML::NoGCDocument::DESTROY () { }
 
 sub XML::LibXML::Node::iterator {
     my $self = shift;
@@ -129,10 +130,8 @@ sub XML::LibXML::Node::iterator {
     my $child = undef;
 
     my $rv = $funcref->( $self );
-    $child = $self->getFirstChild();
-    while ( $child ) {
+    foreach $child ( $self->childNodes() ){
         $rv = $child->iterator( $funcref );
-        $child = $child->getNextSibling();
     }
     return $rv;
 }
@@ -271,6 +270,27 @@ Here, C<$fh> can be an IOREF, or a subclass of IO::Handle.
 
   my $doc = $parser->parse_file($filename);
 
+=head1 PARSING HTML
+
+As of version 0.96, XML::LibXML is capable of parsing HTML into a regular
+XML DOM. This gives you the full power of XML::LibXML on HTML documents.
+
+The methods work in exactly the same way as the methods above, and return
+exactly the same type of object. If you wish to dump the resulting document
+as HTML again, you can use C<$doc->toStringHTML()> to do that.
+
+=head2 parse_html_string
+
+  my $doc = $parser->parse_html_string($string);
+
+=head2 parse_html_fh
+
+  my $doc = $parser->parse_html_fh($fh);
+
+=head2 parse_html_file
+
+  my $doc = $parser->parse_html_file($filename);
+
 =head1 XML::LibXML::Document
 
 The objects returned above have a few methods available to them:
@@ -369,6 +389,46 @@ that responds to methods similar to an IO::Handle.
     close($handler);
   }
 
+=head1 Encoding
+
+All data will be stored UTF-8 encoded. Nevertheless the input and
+output functions are aware about the encoding of the owner
+document. By default all functions will assume, UTF-8 encoding of the
+passed strings unless the owner document has a different encoding. In
+such a case the functions will assume the encoding of the document to
+be valid.
+
+At the current state of implementation query functions like
+B<findnodes()>, B<getElementsByTagName()> or B<getAttribute()> accept
+B<only> UTF-8 encoded strings, even if the underlaying document has a
+different encoding. At first this seems to be a limitation, but on
+application level there is no way to make save asumptations about the
+encoding of the strings.
+
+Future releases will offer the opportunity to force an application
+wide encoding, so make shure that you installed the latest version of
+XML::LibXML.
+
+To encode or decode a string to or from UTF-8 B<XML::LibXML> exports
+two functions, which use the encoding mechanism of the underlaying
+implementation. These functions should be used, if external encoding
+is required (e.g. for queryfunctions).
+
+=head2 encodeToUTF8
+
+    $encodedstring = encodeToUTF8( $name_of_encoding, $sting_to_encode );
+
+The function will encode a string from the specified encoding to UTF-8.
+
+=head2 decodeFromUTF8
+
+    $decodedstring = decodeFromUTF8($name_of_encoding, $string_to_decode );
+
+This Function transforms an UTF-8 encoded string the specified
+encoding.  While transforms to ISO encodings may cause errors if the
+given stirng contains unsupported characters, this function can
+transform to UTF-16 encodings as well.
+
 =head1 AUTHOR
 
 Matt Sergeant, matt@sergeant.org
@@ -380,6 +440,7 @@ Copyright 2001, AxKit.com Ltd. All rights reserved.
 L<XML::LibXSLT>, L<XML::LibXML::Document>,
 L<XML::LibXML::Element>, L<XML::LibXML::Node>,
 L<XML::LibXML::Text>, L<XML::LibXML::Comment>,
-L<XML::LibXML::CDATASection>
+L<XML::LibXML::CDATASection>, L<XML::LibXML::Attribute>
+L<XML::LibXML::DocumentFragment>
 
 =cut

@@ -27,9 +27,9 @@ different textnode types slightly different.
 
 =head1 SEE ALSO
 
-XML::LibXML, XML::LibXML::Node, XML::LibXML::Element, XML::LibXML::Text, XML::LibXML::Document
+XML::LibXML, XML::LibXML::Node, XML::LibXML::Element, XML::LibXML::Text, XML::LibXML::Document, XML::LibXML::DocumentFragment
 
 =head1 VERSION
 
-0.90_a
+0.95
 

@@ -1,4 +1,5 @@
 /* dom.h
+ * $Id: dom.h,v 1.11 2001/06/19 08:54:40 phish Exp $
  * Author: Christian Glahn (2001)
  * 
  * This header file provides some definitions for wrapper functions.
@@ -35,6 +36,11 @@ domCreateDocument( xmlChar* version,
 xmlNodePtr 
 domReadWellBalancedString( xmlDocPtr doc, xmlChar* string );
 
+xmlChar*
+domEncodeString( const char *encoding, const char *string );
+char*
+domDecodeString( const char *encoding, const xmlChar *string);
+
 /**
  * part A:
  *
@@ -43,7 +49,7 @@ domReadWellBalancedString( xmlDocPtr doc, xmlChar* string );
 
 /* A.1 DOM specified section */
 
-const xmlChar *
+xmlChar *
 domName( xmlNodePtr node );
 
 void
@@ -77,9 +83,10 @@ domSetParentNode( xmlNodePtr self,
 		  xmlNodePtr newParent );
 xmlNodePtr
 domUnbindNode(  xmlNodePtr self );
-
 const char*
 domNodeTypeName( xmlNodePtr self );
+xmlNodePtr
+domReplaceNode( xmlNodePtr old, xmlNodePtr new );
 
 xmlNodePtr
 domIsNotParentOf( xmlNodePtr testNode, xmlNodePtr refNode );
@@ -121,4 +128,8 @@ domNewNs ( xmlNodePtr elem , xmlChar *prefix, xmlChar *href );
 
 xmlAttrPtr
 domHasNsProp(xmlNodePtr node, const xmlChar *name, const xmlChar *namespace);
+
+xmlAttrPtr
+domSetAttributeNode( xmlNodePtr node , xmlAttrPtr attr );
+
 #endif

@@ -8,6 +8,7 @@ XML::LibXML::Attr - The DOM Attribute Class
 
   $attr = XML::LibXML::Attr->new($name [,$value]);
   $string = $attr->getValue();
+  $value = $attr->value;
   $attr->setValue( $string );
   $node = $attr->getOwnerDocument();
 
@@ -32,6 +33,10 @@ Returns the value stored for the attribute. If undef is returned,
 the attribute has no value, which is different of being I<not
     specified> .
 
+=item B<value>
+
+Alias for B<getValue()>
+
 =item B<setValue>
 
 This is needed to set a new attributevalue. If iso encoded strings
@@ -41,15 +46,17 @@ otherwise the encoding might be wrong done.
 =item B<getOwnerElement>
 
 returns the node the attribute belongs to. If the attribute is not
-bound to a node, undef will be returned.
+bound to a node, undef will be returned. Overwriting the underlaying
+implementation, the B<parentNode> function will return undef, instead
+of the owner element.
 
 =back
 
 =head1 SEE ALSO
 
-XML::LibXML, XML::LibXML::Node, XML::LibXML::Element, XML::LibXML::Document
+XML::LibXML, XML::LibXML::Node, XML::LibXML::Element, XML::LibXML::Document, XML::LibXML::DocumentFragment
 
 =head1 VERSION
 
-0.92
+0.95
 

@@ -86,10 +86,12 @@ namespace version of I<hasAttribute>
 The function gives direct access to all childnodes of the current
 node with the same tagname. It makes things a lot easier if you
 need to handle big datasets.
+If this function is called in SCALAR context, it returns the number of Elements found.
 
 =item B<getElementsByTagNameNS>
 
 Namespace version of I<getElementsByTagName> .
+If this function is called in SCALAR context, it returns the number of Elements found.
 
 =item B<appendWellBalancedChunk>
 
@@ -115,9 +117,9 @@ specifying the name and the text content.
 
 =head1 SEE ALSO
 
-XML::LibXML, XML::LibXML::Node, XML::LibXML::Document, XML::LibXML::Attr, XML::LibXML::Text, XML::LibXML::Comment
+XML::LibXML, XML::LibXML::Node, XML::LibXML::Document, XML::LibXML::Attr, XML::LibXML::Text, XML::LibXML::Comment, XML::LibXML::DocumentFragment
 
 =head1 VERSION
 
-0.90_a
+0.95
 
