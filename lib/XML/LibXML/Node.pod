@@ -7,6 +7,7 @@ XML::LibXML::Node - "virtual" Base Class DOM-Nodes
   use XML::LibXML::Node;
 
   $name = $node->getName();
+  $node->setName( $newName );
   $bool = $node->isEqual( $other_node );
   $content = $node->getData()
   $type = $node->getType();
@@ -18,6 +19,7 @@ XML::LibXML::Node - "virtual" Base Class DOM-Nodes
   $parentnode = $node->getParentNode()
   $nextnode = $node->getNextSibling()
   $nextnode = $node->getPreviousSibling()
+  $boolean = $node->hasChildNodes();
   $childnode = $node->getFirstChild()
   $childnode = $node->getLastChild()
   $dom = $node->getOwnerDocument()
@@ -27,7 +29,9 @@ XML::LibXML::Node - "virtual" Base Class DOM-Nodes
   @nodes = $node->findnodes( $xpath_statement );
   @children = $node->getChildnodes();
   $xmlstring = $node->toString();
-  $document->importNode( $node [, $move] );
+  $name = $node->getLocalName();
+  $name = $node->getPrefix();
+  $uri = $node->getNamespaceURI()
 
 =head1 DESCRIPTION
 
@@ -43,7 +47,14 @@ functionality.
 
 =item B<getName>
 
-Returns the node's name
+Returns the node's name. This Function is aware about namesaces
+and returns the full name of the current node
+( I<prefix:localname> )
+
+=item B<setName>
+
+In very limited situation it is usefull to change a nodes name. In
+the DOM specification this should throw an error. This Function is not aware about namespaces yet.
 
 =item B<isEqual>
 
@@ -58,7 +69,8 @@ If the node has any content (such as stored in a I<text
 =item B<getType>
 
 Retrun the node's type. The possible types are described in
-the libxml2 B<tree.h> documentation.
+the libxml2 B<tree.h> documentation. The return value of this function is a numeric value. Therefore it differst with the result
+of perl ref function.
 
 =item B<unbindNode>
 
@@ -99,6 +111,11 @@ Returns the next sibling if any .
 
 Analogous to B<getNextSibling> the function returns the previous
 sibling if any.
+
+=item B<hasChildNodes>
+
+If the current node has Childnodes this function returns TRUE (1),
+otherwise it returns FALSE (0, not undef).
 
 =item B<getFirstChild>
 
@@ -145,21 +162,25 @@ children directly to a I<map> or I<grep> .
 This is the equivalent to I<XML::LibXML::Document::toString> for
 a single node. This means a node and all its childnodes will be dumped into the result string. There is no formating implemented yet, which may cause an unreadable output.
 
-=item B<importNode>
+=item B<getLocalName>
 
-B<THIS FUNCTION IS NOT IMPLEMENTED YET> If a node is not part of a document, it can be imported to another
-document. As specified in DOM Level 2 Specification the Node will
-not be altered or removed from its original document by default. ( I<$node->cloneNode(1)> will get called implicitly). Sometimes it is nessecary to I<move> a node between
-documents. In such a case the node will not be copied, but removed
-from the original document.
+Returns the local name of a tag. This is the part behind the colon.
+
+=item B<getPrefix>
+
+Returns the prefix of a tag. This is the part before the colon.
+
+=item B<getNamespaceURI>
+
+returns the URI of the current namespace.
 
 =back
 
 =head1 SEE ALSO
 
-XML::LibXML, XML::LibXML::Element, XML::LibXML::Text, XML::LibXML::Comment
+XML::LibXML, XML::LibXML::Element, XML::LibXML::Text, XML::LibXML::Comment, XML::LibXML::Attr
 
 =head1 VERSION
 
-0.90_a
+0.93
 
