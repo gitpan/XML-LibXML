@@ -1,4 +1,4 @@
-# $Id: Generator.pm,v 1.3 2001/11/14 10:59:58 matt Exp $
+# $Id: Generator.pm,v 1.4 2003/08/19 21:06:32 phish Exp $
 
 package XML::LibXML::SAX::Generator;
 
@@ -127,6 +127,8 @@ XML::LibXML::SAX::Generator - Generate SAX events from a LibXML tree
   $generator->generate($dom);
 
 =head1 DESCRIPTION
+
+THIS CLASS IS DEPRACED! Use XML::LibXML::SAX::Parser instead!
 
 This helper class allows you to generate SAX events from any XML::LibXML
 node, and all it's sub-nodes. This basically gives you interop from

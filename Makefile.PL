@@ -1,5 +1,5 @@
 # -------------------------------------------------------------------------- #
-# $Id: Makefile.PL,v 1.35 2003/05/29 18:17:10 phish Exp $
+# $Id: Makefile.PL,v 1.40 2003/08/19 20:33:57 phish Exp $
 # -------------------------------------------------------------------------- #
 # Makefile.PL for XML::LibXML.
 # This file is required to generate a localized Makefile
@@ -82,7 +82,7 @@ unless ( $is_Win32 ) { # cannot get config in W32
                      [2,4,30,1],
                      [2,5,4,1],
                      [2,5,5,0], # known as broken
-                     [2,5,7,1],
+                     [2,5,10,1],
                     );
     my $xml2cfg = "xml2-config";
     my $libprefix = $ENV{XMLPREFIX} || $config{XMLPREFIX};
@@ -93,20 +93,26 @@ unless ( $is_Win32 ) { # cannot get config in W32
         $xml2cfg = $libprefix . '/bin/' . $xml2cfg;
     }
 
-    print "running xml2-config...";
-    eval {
-        try_libconfig( $xml2cfg, \%config, @blacklist );
-    };
+    # if a user defined INC and LIBS on the command line we must not 
+    # override them
+    if ( not defined $config{LIBS} and not defined $config{INC} ) {
+        print "running xml2-config...";
+        eval {
+            try_libconfig( $xml2cfg, \%config, @blacklist );
+        };
 
-    if ( $@ ) {
-        if ( $@ =~ /^VERSION/ ) {
-            die "The installed version of libxml2 is known not to work.\n".
-                 "  Don't expect XML::LibXML to build or work correctly.\n".
-                 "  Don't report errors!!!\n".
-                 "  Check the README file for more informations\n";
-        }
-        if ( $@ =~ /^UNTESTED/ ) {
-            warn <<UNTESTED;
+        if ( $@ ) {
+            if ( $@ =~ /^VERSION/ ) {
+                die "The installed version of libxml2 is known not to work.\n\n".
+                    "The installed version was tested and prooved not as stable\n\n".
+                    "  Don't expect XML::LibXML to build or work correctly.\n".
+                    "  Don't report errors!!!\n".
+                    "  Don't send patches!\n\n".
+                    "  Check the README file for more informations and versions\n".
+                    "  that are tested with XML::LibXML\n\n"; 
+            }
+            if ( $@ =~ /^UNTESTED/ ) {
+                warn <<UNTESTED;
 WARNING!
 The installed version of libxml2 was not tested with this version of XML::LibXML.
 
@@ -116,13 +122,13 @@ The installed version of libxml2 was not tested with this version of XML::LibXML
     Check the README file for more informations
 END OF WARNING
 UNTESTED
-        }
+            }
 
-        if ( not defined $config{LIBS} and not defined $config{INC} ) {
-            warn "\nusing fallback values for LIBS and INC\n";
-            $config{LIBS} = '-L/usr/local/lib -L/usr/lib -lxml2 -lz -lm';
-            $config{INC} = '-I/usr/local/include -I/usr/include';
-            print <<OPT;
+            if ( not defined $config{LIBS} and not defined $config{INC} ) {
+                warn "\nusing fallback values for LIBS and INC\n";
+                $config{LIBS} = '-L/usr/local/lib -L/usr/lib -lxml2 -lm';
+                $config{INC} = '-I/usr/local/include -I/usr/include';
+                print <<OPT;
 options:
   LIBS='$config{LIBS}'
   INC='$config{INC}'
@@ -130,6 +136,7 @@ If this is wrong, Re-run as:
   \$ $^X Makefile.PL LIBS='-L/path/to/lib' INC='-I/path/to/include'
 
 OPT
+            }
         }
     }
 }
@@ -265,7 +272,7 @@ sub MY::manifypods {
     $str .= <<EOF;
 
 docs : pure_all
-\t\@$^X -Iblib/arch -Iblib/lib example/xml2pod.pl example/libxml.xml lib/XML/LibXML/
+\t\@$^X -Iblib/arch -Iblib/lib example/xmllibxmldocs.pl example/libxml.dkb lib/XML/LibXML/
 \t\@$^X -pi.old -e 's/a/a/' Makefile.PL
 \t\@echo "==> YOU MUST NOW RE-RUN $^X Makefile.PL <=="
 \t\@false

@@ -1,4 +1,4 @@
-# $Id: SAX.pm,v 1.5 2003/02/04 23:01:33 phish Exp $
+# $Id: SAX.pm,v 1.6 2003/08/19 21:06:31 phish Exp $
 # Copyright (c) 2001-2002, AxKit.com Ltd. All rights reserved.
 package XML::LibXML::SAX;
 
@@ -66,7 +66,9 @@ sub _parse {
         croak( "SAX Exception not implemented, yet; Data ended before document ended\n" );
     }
 
-    return $self->end_document({}); }
+    return $self->end_document({});
+}
+
 
 1;
 

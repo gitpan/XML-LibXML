@@ -1,4 +1,4 @@
-/* $Id: LibXML.xs,v 1.151 2003/05/22 23:23:43 phish Exp $ */
+/* $Id: LibXML.xs,v 1.156 2003/08/19 21:06:31 phish Exp $ */
 
 #ifdef __cplusplus
 extern "C" {
@@ -19,6 +19,8 @@ extern "C" {
 /* get some infos about the environment libxml2 was configured for.
  */
 #include <libxml/xmlversion.h>
+
+#define DEBUG_C14N
 
 /* libxml2 stuff */
 #include <libxml/xmlmemory.h>
@@ -93,7 +95,12 @@ static SV * LibXML_error    = NULL;
 
 #define LibXML_croak_error() if ( SvCUR( LibXML_error ) > 0 ) { \
                                  croak("%s",SvPV(LibXML_error, len)); \
-                             } 
+                             }
+
+#define LibXML_warn_error() if ( SvCUR( LibXML_error ) > 0 ) { \
+                                 warn("%s",SvPV(LibXML_error, len)); \
+                             }
+
 
 /* this should keep the default */
 static xmlExternalEntityLoader LibXML_old_ext_ent_loader = NULL;
@@ -650,7 +657,14 @@ LibXML_init_parser( SV * self ) {
         }
 
         item = hv_fetch( real_obj, "XML_LIBXML_PEDANTIC", 19, 0 );
-        xmlPedanticParserDefaultValue = item != NULL && SvTRUE(*item) ? 1 : 0;
+        if ( item != NULL && SvTRUE(*item) ) {
+            xmlThrDefPedanticParserDefaultValue( 1 );
+            xmlPedanticParserDefaultValue = 1;
+        }
+        else {
+            xmlThrDefPedanticParserDefaultValue( 0 );
+            xmlPedanticParserDefaultValue = 0;
+        }
 
         item = hv_fetch( real_obj, "XML_LIBXML_EXT_DTD", 18, 0 );
         if ( item != NULL && SvTRUE(*item) )
@@ -772,12 +786,14 @@ LibXML_test_node_name( xmlChar * name )
     int len = 0; 
 
     if ( cur == NULL || *cur == 0 ) {
+        /* warn("name is empty" ); */
         return(0);
     }
 
     tc = domParseChar( cur, &len );
 
     if ( !( IS_LETTER( tc ) || (tc == '_') || (tc == ':')) ) {
+        /* warn( "is not a letter\n" ); */
         return(0);
     }
 
@@ -790,12 +806,14 @@ LibXML_test_node_name( xmlChar * name )
         if (!(IS_LETTER(tc) || IS_DIGIT(tc) || (tc == '_') ||
              (tc == '-') || (tc == ':') || (tc == '.') ||
              IS_COMBINING(tc) || IS_EXTENDER(tc)) ) {
+            /* warn( "is not a letter\n" ); */
             return(0);
         }
         tc = 0;
         cur += len;
     }
     
+    /* warn("name is ok"); */
     return(1);
 }
 
@@ -1241,6 +1259,9 @@ _parse_fh(self, fh, directory = NULL)
                  && recover == 0 ) {
             LibXML_croak_error();
         }
+        else {
+            /* LibXML_warn_error(); */ /* if the parser causes some noise */
+        }
 
         item = hv_fetch( real_obj, "XML_LIBXML_GDOME", 16, 0 );
 
@@ -1329,6 +1350,7 @@ _parse_file(self, filename)
                 RETVAL = PmmNodeToSv((xmlNodePtr)real_doc, NULL);
             }
         }
+        /* LibXML_warn_error(); */ /* if the parser causes some noise */  
         LibXML_cleanup_callbacks();
         LibXML_cleanup_parser();
     OUTPUT:
@@ -1383,6 +1405,7 @@ parse_html_string(self, string)
         }
                 
         LibXML_init_parser(self);
+
         real_doc = htmlParseDoc((xmlChar*)ptr, NULL);
         LibXML_cleanup_callbacks();
         LibXML_cleanup_parser();        
@@ -1399,7 +1422,12 @@ parse_html_string(self, string)
 
             item = hv_fetch( real_obj, "XML_LIBXML_RECOVER", 18, 0 );
             recover = ( item != NULL && SvTRUE( *item ) ) ? 1 : 0;
-            if (!recover) LibXML_croak_error();
+            if (!recover) {
+                LibXML_croak_error();
+            }
+            else {
+                /* LibXML_warn_error(); */ /* if the parser causes some noise */
+            }
 
             newURI = newSVpvf("unknown-%12.12d", real_doc);
             real_doc->URL = xmlStrdup((const xmlChar*)SvPV(newURI, n_a));
@@ -1445,8 +1473,12 @@ parse_html_fh(self, fh)
 
             item = hv_fetch( real_obj, "XML_LIBXML_RECOVER", 18, 0 );
             recover = ( item != NULL && SvTRUE( *item ) ) ? 1 : 0;            
-            if (!recover) LibXML_croak_error();
-
+            if (!recover){
+                LibXML_croak_error();
+            }
+            else {
+                /* LibXML_warn_error(); */ /* if the parser causes some noise */
+            }
             newURI = newSVpvf("unknown-%12.12d", real_doc);
             real_doc->URL = xmlStrdup((const xmlChar*)SvPV(newURI, n_a));
             SvREFCNT_dec(newURI);
@@ -1487,7 +1519,12 @@ parse_html_file(self, filename)
 
         item = hv_fetch( real_obj, "XML_LIBXML_RECOVER", 18, 0 );
         recover = ( item != NULL && SvTRUE( *item ) ) ? 1 : 0;
-        if (!recover) LibXML_croak_error();
+        if (!recover) {
+            LibXML_croak_error();
+        }
+        else {
+            /* LibXML_warn_error(); */ /* if the parser causes some noise */
+        }
 
         item = hv_fetch( real_obj, "XML_LIBXML_GDOME", 16, 0 );
 
@@ -1531,7 +1568,12 @@ parse_sgml_fh(self, fh, encoding)
 
         item = hv_fetch( real_obj, "XML_LIBXML_RECOVER", 18, 0 );
         recover = ( item != NULL && SvTRUE( *item ) ) ? 1 : 0;
-        if (!recover) LibXML_croak_error();
+        if (!recover) {
+            LibXML_croak_error();
+        }
+        else {
+            /* LibXML_warn_error(); */ /* if the parser causes some noise */
+        }
 
         newURI = newSVpvf("unknown-%12.12d", real_doc);
         real_doc->URL = xmlStrdup((const xmlChar*)SvPV(newURI, n_a));
@@ -1586,7 +1628,12 @@ parse_sgml_string(self, string, encoding)
 
         item = hv_fetch( real_obj, "XML_LIBXML_RECOVER", 18, 0 );
         recover = ( item != NULL && SvTRUE( *item ) ) ? 1 : 0;
-        if (!recover) LibXML_croak_error();
+        if (!recover) {
+            LibXML_croak_error();
+        }
+        else {
+            /* LibXML_warn_error(); */ /* if the parser causes some noise */
+        }
 
         newURI = newSVpvf("unknown-%12.12d", real_doc);
         real_doc->URL = xmlStrdup((const xmlChar*)SvPV(newURI, n_a));
@@ -1630,7 +1677,12 @@ parse_sgml_file(self, fn, encoding)
         else {
             item = hv_fetch( real_obj, "XML_LIBXML_RECOVER", 18, 0 );
             recover = ( item != NULL && SvTRUE( *item ) ) ? 1 : 0;
-            if (!recover) LibXML_croak_error();
+            if (!recover) {
+                LibXML_croak_error();
+            }
+            else {
+                /* LibXML_warn_error(); */ /* if the parser causes some noise */
+            }
             
             item = hv_fetch( real_obj, "XML_LIBXML_GDOME", 16, 0 );
 
@@ -2276,6 +2328,8 @@ toFile( self, filename, format=0 )
 SV *
 toStringHTML(self)
         xmlDocPtr self
+    ALIAS:
+       XML::LibXML::Document::serialize_html = 1 
     PREINIT:
         xmlChar *result=NULL;
         STRLEN len = 0;
@@ -2909,17 +2963,17 @@ createProcessingInstruction(self, name, value=&PL_sv_undef)
     PREINIT:
         xmlChar * n = NULL;
         xmlChar * v = NULL;
-        xmlNodePtr PI = NULL;
+        xmlNodePtr pinode = NULL;
     CODE:
         n = nodeSv2C(name, (xmlNodePtr)self);
         if ( !n ) {
             XSRETURN_UNDEF;
         }
         v = nodeSv2C(value, (xmlNodePtr)self);
-        PI = xmlNewPI(n,v);      
-        PI->doc = self;
+        pinode = xmlNewPI(n,v);      
+        pinode->doc = self;
 
-        RETVAL = PmmNodeToSv(PI,NULL);
+        RETVAL = PmmNodeToSv(pinode,NULL);
 
         xmlFree(v);
         xmlFree(n);
@@ -3703,10 +3757,12 @@ _attributes( self )
                      * this avoids segfaults in the end.
                      */
                     xmlNsPtr tns = xmlCopyNamespace(ns);
-                    element = sv_newmortal();
-                    XPUSHs(sv_setref_pv( element, 
-                                         (char *)CLASS, 
-                                         (void*)tns));
+                    if ( tns != NULL ) {
+                        element = sv_newmortal();
+                        XPUSHs(sv_setref_pv( element, 
+                                             (char *)CLASS, 
+                                             (void*)tns));
+                    }
                 }
                 ns = ns->next;
                 len++;
@@ -3982,6 +4038,9 @@ removeChildNodes( self )
 void
 unbindNode( self )
         xmlNodePtr self
+    ALIAS:
+        XML::LibXML::Node::unlink = 1
+        XML::LibXML::Node::unlinkNode = 2
     PREINIT:
         ProxyNodePtr dfProxy  = NULL;
         ProxyNodePtr docfrag     = NULL;
@@ -4121,7 +4180,7 @@ isSameNode( self, oNode )
     ALIAS:
         XML::LibXML::Node::isEqual = 1
     CODE:
-        RETVAL = self == oNode ? 1 : 0;
+        RETVAL = ( self == oNode ) ? 1 : 0;
     OUTPUT:
         RETVAL
 
@@ -4154,6 +4213,8 @@ toString( self, format=0, useDomEncoding = &PL_sv_undef )
         xmlNodePtr self
         SV * useDomEncoding
         int format
+    ALIAS:
+        XML::LibXML::Node::serialize = 1
     PREINIT:
         xmlBufferPtr buffer;
         const xmlChar *ret = NULL;
@@ -4199,6 +4260,133 @@ toString( self, format=0, useDomEncoding = &PL_sv_undef )
             xmlBufferFree( buffer );
 	        xs_warn("Failed to convert doc to string");           
             XSRETURN_UNDEF;
+        }
+    OUTPUT:
+        RETVAL
+
+
+SV *
+_toStringC14N(self, comments, xpath)
+        xmlNodePtr self
+        int comments
+        SV * xpath
+    PREINIT:
+        xmlChar *result               = NULL;
+        xmlChar *nodepath             = NULL;
+        xmlXPathContextPtr child_ctxt = NULL;
+        xmlXPathObjectPtr child_xpath = NULL;
+        xmlNodeSetPtr nodelist        = NULL;
+        xmlNodePtr refNode            = NULL;
+    INIT:
+        /* due to how c14n is implemented, the nodeset it receives must
+          include child nodes; ie, child nodes aren't assumed to be rendered.
+          so we use an xpath expression to find all of the child nodes. */
+        
+        if ( self->doc == NULL ) {
+            croak("Node passed to toStringC14N must be part of a document");
+        }
+
+        refNode = self;
+    CODE:
+        if ( xpath != NULL && xpath != &PL_sv_undef ) {
+            nodepath = Sv2C( xpath, NULL );
+        }
+
+        if ( nodepath != NULL && xmlStrlen( nodepath ) == 0 ) {
+            xmlFree( nodepath );
+            nodepath = NULL;
+        }
+
+        if ( nodepath == NULL 
+             && self->type != XML_DOCUMENT_NODE 
+             && self->type != XML_HTML_DOCUMENT_NODE 
+             && self->type != XML_DOCB_DOCUMENT_NODE
+           ) {
+            nodepath = xmlStrdup( ".//*" );         
+        }
+
+        if ( nodepath != NULL ) {
+            if ( self->type == XML_DOCUMENT_NODE
+                 || self->type == XML_HTML_DOCUMENT_NODE
+                 || self->type == XML_DOCB_DOCUMENT_NODE ) {
+                refNode = xmlDocGetRootElement( self->doc );
+            }
+        
+            child_ctxt = xmlXPathNewContext(self->doc);
+            if (!child_ctxt) {
+                if ( nodepath != NULL ) {
+                    xmlFree( nodepath );
+                }
+                croak("Failed to create xpath context");
+            }
+    
+            child_ctxt->node = self;
+            /* get the namespace information */
+            if (self->type == XML_DOCUMENT_NODE) {
+                child_ctxt->namespaces = xmlGetNsList( self->doc,
+                                                       xmlDocGetRootElement( self->doc ) );
+            }
+            else {
+                child_ctxt->namespaces = xmlGetNsList(self->doc, self);
+            }
+            child_ctxt->nsNr = 0;
+            if (child_ctxt->namespaces != NULL) {
+                while (child_ctxt->namespaces[child_ctxt->nsNr] != NULL)
+                child_ctxt->nsNr++;
+            }
+
+            child_xpath = xmlXPathEval(nodepath, child_ctxt);
+            if (child_xpath == NULL) {
+                if (child_ctxt->namespaces != NULL) {
+                    xmlFree( child_ctxt->namespaces );
+                }
+                xmlXPathFreeContext(child_ctxt);
+                if ( nodepath != NULL ) {
+                    xmlFree( nodepath );
+                }
+                croak("2 Failed to compile xpath expression");
+            }
+
+            nodelist = child_xpath->nodesetval;        
+            if ( nodelist == NULL ) {
+                xmlFree( nodepath );
+                xmlXPathFreeObject(child_xpath);
+                if (child_ctxt->namespaces != NULL) {
+                    xmlFree( child_ctxt->namespaces );
+                }
+                xmlXPathFreeContext(child_ctxt);
+                croak( "cannot canonize empty nodeset!" );
+            }
+        }
+        /* LibXML_init_error(); */
+        
+        xmlC14NDocDumpMemory( self->doc,
+                              nodelist,
+                              0, NULL,
+                              comments,
+                              &result );
+
+        if ( child_xpath ) {
+            xmlXPathFreeObject(child_xpath);
+        }
+        if ( child_ctxt ) {
+            if (child_ctxt->namespaces != NULL) {
+                xmlFree( child_ctxt->namespaces );
+            }
+            xmlXPathFreeContext(child_ctxt);
+        }
+        if ( nodepath != NULL ) {
+            xmlFree( nodepath );
+        }
+
+        /* sv_2mortal( LibXML_error ); */
+        /* LibXML_croak_error(); */
+
+        if (result == NULL) {
+             croak("Failed to convert doc to string in doc->toStringC14N");
+        } else {
+            RETVAL = C2Sv( result, NULL );
+            xmlFree(result);
         }
     OUTPUT:
         RETVAL

@@ -1,5 +1,5 @@
 ##
-# $Id: 19encoding.t,v 1.14 2002/10/28 09:28:40 phish Exp $
+# $Id: 19encoding.t,v 1.15 2003/08/19 21:07:28 phish Exp $
 #
 # This should test the XML::LibXML internal encoding/ decoding.
 # Since most of the internal encoding code is depentend to 

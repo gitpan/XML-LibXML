@@ -1,11 +1,21 @@
 Revision history for Perl extension XML::LibXML
 
+1.55
+   - fixed possible problems with math.h
+   - added C14N interface "toStringC14N()" (thanks to Chip Turner)
+   - fixed default namespace bug with libxml2 2.5.8 (by Vaclav Barta)
+   - fixed a NOOP in the XPath code.
+   - fixed insertBefore() behaviour to be DOM conform
+   - fixed a minor problem in Makefile.PL
+   - improved more documentation
+   - converted documentation to DocBook
+
 *NOTE:* 
 Version 1.54 fixes potentional buffer overflows were possible with earlier
 versions of the package. 
 
 1.54
-   - fixed major bugs, works now with libxml2 2.5.7 or later versions
+   - fixed some major bugs, works now with libxml2 2.5.x
    - fixed problem with empty document fragments
    - bad tag and attribute names cannot be created anymore
    - Catalog interface is aware about libxml2 configuration
@@ -33,7 +43,7 @@ versions of the package.
      (after realizing some CPAN testers refuse to read their warnings
      from Makefile.PL)
    - improved parser testsuite
-   - improved Makefile.PL
+   - improved M
    - more documentation 
 
 1.53
