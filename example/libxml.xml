@@ -83,6 +83,23 @@
 	synopsis="$bool = $dom->is_valid();">
 	Returns either TRUE or FALSE depending on the DOM Tree is a
 	valid Document or not.
+  
+  You may also pass in a XML::LibXML::Dtd object, to validate
+  against an external DTD:
+  <example>
+  if (!$dom->is_valid($dtd)) {
+    warn("document is not valid!");
+  }
+  </example>
+</method>
+
+<method name="validate"
+    synopsis="$dom->validate();">
+  This is an exception throwing equivalent of is_valid. If the document
+  is not valid it will throw an exception containing the error. This
+  allows you much better error reporting than simply is_valid or not.
+  
+  Again, you may pass in a DTD object.
 </method>
 
 <method name="getDocumentElement" 
@@ -426,6 +443,11 @@
    returns all attributes for the given namespace.
 </method>
 
+<method name="getNamespaces"
+    synopsis="@nslist = $node->getNamespaces();">
+  returns all the namespace declaration nodes bound to this node. The items
+  are instances of the class XML::LibXML::Namespace.
+</method>
 
 <method name="iterator" synopsis="$node->iterator( \&amp;nodehandler );">
    This is little helper function, that lets one define a function, that
@@ -717,4 +739,98 @@ document subtree) are implicit member of document fragments.
 </also>
 <version>0.95</version>
 </class>
+
+<class name="XML::LibXML::Namespace">
+<short>A Namespace Class to hold namespace nodes</short>
+<description>
+Namespace nodes are returned by both $element->findnodes('namespace::foo') or
+by $node->getNamespaces().
+
+The namespace node API is not part of any current DOM API, and so it is quite
+minimal. It should be noted that namespace nodes are <b>not</b> a sub
+class of XML::LibXML::Node, however Namespace nodes act a lot like
+attribute nodes, and similarly named methods will return what you would
+expect if you treated the namespace node as an attribute.
+
+<method name="getName" synopsis="print $ns->getName()">
+  Returns "xmlns:prefix", where prefix is the prefix for this namespace.
+</method>
+
+<method name="name" synopsis="print $ns->name()">
+  Alias for getName()
+</method>
+
+<method name="prefix" synopsis="print $ns->prefix()">
+  Returns the prefix bound to this namespace declaration.
+</method>
+
+<method name="getLocalName" synopsis="$localname = $ns->getLocalName()">
+  Alias for prefix()
+</method>
+
+<method name="getData" synopsis="print $ns->getData()">
+  Returns the URI of the namespace.
+</method>
+
+<method name="getValue" synopsis="print $ns->getValue()">
+  Alias for getData()
+</method>
+
+<method name="value" synopsis="print $ns->value()">
+  Alias for getData()
+</method>
+
+<method name="uri" synopsis="print $ns->uri()">
+  Alias for getData()
+</method>
+
+<method name="getNamespaceURI" 
+    synopsis="$known_uri = $ns->getNamespaceURI()">
+  Returns the string "http://www.w3.org/2000/xmlns/"
+</method>
+
+<method name="getPrefix"
+    synopsis="$known_prefix = $ns->getPredix()">
+  Returns the string "xmlns"
+</method>
+
+</description>
+
+</class>
+
+<class name="XML::LibXML::Dtd">
+<short>A Class implementing Dtd Nodes</short>
+<description>
+
+  This class holds a DTD. You may parse a DTD from either a string,
+  or from an external SYSTEM identifier.
+
+  No support is available as yet for parsing from a filehandle.
+  
+  XML::LibXML::Dtd is a sub-class of Node, so all the methods available
+  to nodes (particularly toString()) are available to Dtd objects.
+
+<method name="new" 
+  synopsis="$dtd = XML::LibXML::Dtd->new($public_id, $system_id)">
+  Parse a DTD from the system identifier, and return a DTD object that
+  you can pass to $doc->is_valid() or $doc->validate().
+  
+  <example>
+  my $dtd = XML::LibXML::Dtd->new(
+              "SOME // Public / ID / 1.0",
+              "test.dtd"
+              );
+  my $doc = XML::LibXML->new->parse_file("test.xml");
+  $doc->validate($dtd);
+  </example>
+</method>
+
+<method name="parse_string"
+  synopsis="$dtd = XML::LibXML::Dtd->parse_string($dtd_str)">
+  The same as new() above, except you can parse a DTD from a string.
+</method>
+
+</description>
+</class>
+
 </module>

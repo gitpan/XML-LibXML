@@ -13,6 +13,7 @@ XML::LibXML::Document - DOM Document Class
   $docstring = $dom->toString([$format]);
   $document->toStringHTML();
   $bool = $dom->is_valid();
+  $dom->validate();
   $root = $dom->getDocumentElement($name, $namespace );
   $root = $dom->documentElement;
   $dom->setDocumentElement( $root );
@@ -100,6 +101,21 @@ B<toStringHTML> deparses the tree to a string as HTML. With this method indentin
 
 Returns either TRUE or FALSE depending on the DOM Tree is a
 valid Document or not.
+You may also pass in a XML::LibXML::Dtd object, to validate
+against an external DTD:
+
+  
+  if (!$dom->is_valid($dtd)) {
+    warn("document is not valid!");
+  }
+  
+
+=item B<validate>
+
+This is an exception throwing equivalent of is_valid. If the document
+is not valid it will throw an exception containing the error. This
+allows you much better error reporting than simply is_valid or not.
+Again, you may pass in a DTD object.
 
 =item B<getDocumentElement>
 

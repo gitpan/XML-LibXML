@@ -1,4 +1,4 @@
-# $Id: LibXML.pm,v 1.14 2001/06/19 19:28:10 matt Exp $
+# $Id: LibXML.pm,v 1.16 2001/06/29 20:07:57 matt Exp $
 
 package XML::LibXML;
 
@@ -6,7 +6,7 @@ use strict;
 use vars qw($VERSION @ISA @EXPORT);
 use Carp;
 
-$VERSION = "0.96";
+$VERSION = "0.97";
 require Exporter;
 require DynaLoader;
 
@@ -122,6 +122,7 @@ sub XML_XINCLUDE_END(){20;}
 @XML::LibXML::CDATASection::ISA     = 'XML::LibXML::Text';
 @XML::LibXML::Attr::ISA             = 'XML::LibXML::Node';
 @XML::LibXML::DocumentFragment::ISA = 'XML::LibXML::Node';
+@XML::LibXML::Dtd::ISA              = 'XML::LibXML::Node';
 
 
 sub XML::LibXML::Node::iterator {

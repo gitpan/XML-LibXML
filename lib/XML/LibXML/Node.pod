@@ -49,6 +49,7 @@ XML::LibXML::Node - "virtual" Base Class DOM-Nodes
   @attributelist = $node->getAttributes;
   @attributelist = $node->attributes;
   @attributelist = $node->attributesNS( $URI );
+  @nslist = $node->getNamespaces();
   $node->iterator( \&nodehandler );
 
 =head1 DESCRIPTION
@@ -265,6 +266,11 @@ Alias for B<getAttributes()>
 =item B<getAttributesNS>
 
 returns all attributes for the given namespace.
+
+=item B<getNamespaces>
+
+returns all the namespace declaration nodes bound to this node. The items
+are instances of the class XML::LibXML::Namespace.
 
 =item B<iterator>
 

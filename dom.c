@@ -1,4 +1,4 @@
-/* $Id: dom.c,v 1.14 2001/06/19 08:54:40 phish Exp $ */
+/* $Id: dom.c,v 1.16 2001/06/29 15:30:03 matt Exp $ */
 #include <libxml/tree.h>
 #include <libxml/encoding.h>
 #include <libxml/xmlmemory.h>
@@ -758,6 +758,12 @@ domNodeTypeName( xmlNodePtr elem ){
       break;
     case XML_DOCUMENT_FRAG_NODE:
       name = "XML::LibXML::DocumentFragment";
+      break;
+    case XML_NAMESPACE_DECL:
+      name = "XML::LibXML::Namespace";
+      break;
+    case XML_DTD_NODE:
+      name = "XML::LibXML::Dtd";
       break;
     default:
       name = "XML::LibXML::Node";

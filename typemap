@@ -1,9 +1,10 @@
 TYPEMAP
 const char *        T_PV
-xmlDocPtr           O_OBJECT
+xmlDocPtr           PROXY_OBJECT
 xmlNodePtr          PROXY_OBJECT
+xmlNsPtr            O_OBJECT
 xmlParserCtxtPtr    O_OBJECT
-xmlDtdPtr           O_OBJECT
+xmlDtdPtr           PROXY_OBJECT
 xmlNodeSetPtr       O_OBJECT
 ProxyObject *       O_OBJECT
 
