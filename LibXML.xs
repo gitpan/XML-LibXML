@@ -45,8 +45,10 @@ extern "C" {
  * therefore there is the need to ship as well the GDOME core headers.
  */
 #ifdef XML_LIBXML_GDOME_SUPPORT
+
 #include <libgdome/gdome.h>
 #include <libgdome/gdome-libxml-util.h>
+
 #endif
 
 /* XML::LibXML stuff */

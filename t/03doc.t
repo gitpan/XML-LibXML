@@ -1,4 +1,4 @@
-# $Id: 03doc.t,v 1.9 2003/03/18 12:10:53 phish Exp $
+# $Id: 03doc.t,v 1.10 2003/05/23 15:05:47 phish Exp $
 
 ##
 # this test checks the DOM Document interface of XML::LibXML
@@ -323,7 +323,7 @@ use XML::LibXML::Common qw(:libxml);
             my $doc2 = $parser2->parse_string($string2);
             my @as   = $doc2->getElementsByTagName( "C:A" );
             ok( scalar( @as ), 3);
-            my @as   = $doc2->getElementsByTagNameNS( "D", "A" );
+            @as   = $doc2->getElementsByTagNameNS( "D", "A" );
             ok( scalar( @as ), 3);
             @as   = $doc2->getElementsByLocalName( "A" );
             ok( scalar( @as ), 3);

@@ -19,6 +19,7 @@ XML::LibXML::Node - abstract Base Class DOM-Nodes
  $node->replaceNode($newNode);
  $childnode = $node->appendChild( $childnode );
  $childnode = $node->addChild( $chilnode );
+ $node = $parent->addNewChild( $nsURI, $name );
  $node->addSibling($newNode);
  $newnode =$node->cloneNode( $deep )
  $parentnode = $node->parentNode;
@@ -303,6 +304,44 @@ If you are not shure about the source of your
 nodes, you better stay with appendChild(), because
 this function is more user friendly in the sense
 of more error tolerance.
+
+
+
+
+=item B<addNewChild>
+
+
+
+
+Similar to I<addChild()>, this function uses
+low level libxml2 functionality to provide faster
+interface for DOM building. B<addNewChild()>
+uses I<xmlNewChild()> to create a new node
+on a given parent element. 
+
+
+
+
+addNewChild() has two parameters $nsURI and $name,
+where $nsURI is an (optional) namespace URI. $name
+is the fully qualified element name; addNewChild()
+will determine the correct prefix if nessecary.
+
+
+
+
+
+The function returns the newly created node.
+
+
+
+
+
+This function is very usefull for DOM building,
+where a created node can be directly associated to
+its parent. B<NOTE> this function is not
+part of the DOM specification and its use will
+limit your code to XML::LibXML.
 
 
 

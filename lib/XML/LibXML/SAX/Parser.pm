@@ -1,4 +1,4 @@
-# $Id: Parser.pm,v 1.21 2003/05/22 23:23:44 phish Exp $
+# $Id: Parser.pm,v 1.22 2003/05/23 15:05:47 phish Exp $
 
 package XML::LibXML::SAX::Parser;
 
@@ -160,7 +160,7 @@ sub process_element {
         }
         else {
             my $ns = $attr->namespaceURI;
-            my $ns = $attr->namespaceURI;
+
             $ns = '' unless defined $ns;
             $key = "{$ns}".$attr->localname;
             ## Not sure why, but $attr->name is coming through stripped

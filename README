@@ -79,6 +79,20 @@ $ XMLPREFIX=/usr/brand-new perl Makefile.PL
 will ask '/usr/brand-new/bin/xml2-config' about your real 
 libxml2 configuration.
 
+Which libxml2 version are tested with XML::LibXML?
+==================================================
+
+This little table gives a clue which versions of libxml2 will run with 
+the version of XML::LibXML of this release.
+
+prior    2.4.25,     tested, not working
+past     2.4.25,     tested,     working 
+past     2.5.0 ,     tested,     working
+version  2.5.5 ,     tested,     working, but known as broken
+version  2.5.6 ,     tested,     working
+version  2.5.7 ,     tested,     working
+
+
 NOTES FOR HPUX
 ==============
 
