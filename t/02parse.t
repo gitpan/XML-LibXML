@@ -1,4 +1,4 @@
-# $Id: 02parse.t,v 1.15 2002/10/14 20:15:37 phish Exp $
+# $Id: 02parse.t,v 1.16 2002/11/13 15:22:15 matt Exp $
 
 ##
 # this test checks the parsing capabilities of XML::LibXML
