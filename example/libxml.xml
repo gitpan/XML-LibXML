@@ -1,6 +1,7 @@
 <?xml version="1.0"?>
+<!-- $Id: libxml.xml,v 1.37 2002/10/26 14:29:26 phish Exp $ -->
+<!-- Copyright (c) 2001-2002 AxKit.com. All rights reserved -->
 <module name="XML::LibXML">
-    <!-- $Id: libxml.xml,v 1.32 2002/09/14 20:49:33 phish Exp $ -->
     <version>1.53</version>
     <authors>
         <author>Matt Sergeant</author>
@@ -404,7 +405,8 @@ is therefore a shortcut for
 
                 <p>
                     Note that this feature will <st>only</st> work if
-                    libxml2 is compiled with zlib support.
+                    libxml2 is compiled with zlib support and toFile()
+                    is used for output.
                 </p>
             </method>
 
@@ -643,6 +645,59 @@ is therefore a shortcut for
                     ]]></example>
             </method>
 
+            <method name="createInternalSubset"
+                    synopsis="$dtd = $document->createInternalSubset( $rootnode, $public, $system);">
+                <p>
+                    This function creates and adds an internal subset
+                    to the given document. Because the function
+                    automaticly adds the DTD to the document there is
+                    no need to add the created node explicitly to the
+                    document.
+                </p>
+
+                <example><![CDATA[
+ my $document = XML::LibXML::Document->new();
+ my $dtd      = $document->createInternalSubset( "foo", undef, "foo.dtd" );
+                    ]]></example>
+                <p>
+                    will result in the following XML document:
+                </p>
+                <example><![CDATA[
+ <?xml version="1.0"?>
+ <!DOCTYPE foo SYSTEM "foo.dtd">
+                    ]]></example>
+
+                <p>
+                    By setting the public parameter it is possible to
+                    set PUBLIC dtds to a given document. So
+                </p>
+                <example><![CDATA[
+ my $document = XML::LibXML::Document->new();
+ my $dtd      = $document->createInternalSubset( "foo", "-//FOO//DTD FOO 0.1//EN", undef );
+
+                    ]]></example>
+                <p>
+                    will cause the following declaration to be created
+                    on the document:
+                </p>
+
+                <example><![CDATA[
+ <?xml version="1.0"?>
+ <!DOCTYPE foo PUBLIC "-//FOO//DTD FOO 0.1//EN">
+                ]]></example>
+           </method>
+
+            <method name="createExternalSubset"
+                    synopsis="$dtd = $document->createExternalSubset( $rootnode, $public, $system);">
+                <p>
+                    This function is similar to
+                    <em>createInternalSubset()</em> but this DTD is
+                    concidered to be external and is therefore not
+                    added to the document itself. Nevertheless it can
+                    be used for validation purposes.
+                </p>
+            </method>
+
             <method name="importNode"
                     synopsis="$document->importNode( $node );">
                 <p>
@@ -807,7 +862,7 @@ is therefore a shortcut for
                     synopsis="$bool = $node->isSameNode( $other_node );">
                 <p>
                     returns TRUE (1) if the given nodes refer to the same
-                    nodestructure, otherwise FALSE (0) is returned.
+                    node structure, otherwise FALSE (0) is returned.
                 </p>
             </method>
 
@@ -898,7 +953,7 @@ is therefore a shortcut for
             </method>
 
             <method name="appendChild"
-                    synopsis="$childnode = $node->appendChild( $childnode )">
+                    synopsis="$childnode = $node->appendChild( $childnode );">
                 <p>
                     The function will add the <em>$childnode</em> to
                     the end of <em>$node</em>'s children. The function
@@ -907,6 +962,58 @@ is therefore a shortcut for
                     from the DOM L2 specification, in the case, if the
                     new node is not part of the document, the node
                     will be imported first.
+                </p>
+            </method>
+            <method name="addChild"
+                    synopsis="$childnode = $node->addChild( $chilnode );">
+                <p>
+                    As an alternative to appendChild() one can use the
+                    addChild() function. This function is a bit
+                    faster, because it avoids all DOM confomity
+                    checks. Therefore this function is quite usefull
+                    if one builds XML documents in memory where the
+                    order and ownership (<em>ownerDocument</em>) is
+                    ashured.
+                </p>
+                <p>
+                    addChild() uses libxml2's own xmlAddChild()
+                    function. Thus it has to be used with extra care:
+                    If a text node is added to a node and the node
+                    itself or its last childnode is aswell a text
+                    node, the node to add will be merged with the one
+                    already available. The current node will be
+                    removed from memory after this action. Because
+                    perl is not aware about this action, the perl
+                    instance is still available. XML::LibXML will
+                    catch the loss of a node an avoid to run any
+                    function called on that node.
+                </p>
+                <example><![CDATA[
+ my $t1 = $doc->createTextNode( "foo" );
+ my $t2 = $doc->createTextNode( "bar" );
+ $t1->addChild( $t2 );       # is ok
+ my $val = $t2->nodeValue(); # will fail, script dies
+                    ]]></example>
+
+                <p>
+                    Also addChild() will not check it the added node
+                    belongs to the same document as the node it will
+                    be added to. This could lead to inconsistent
+                    documents and in more worse cases even to memory
+                    violations, if one does not keep track of this
+                    issue.
+                </p>
+                <p>
+                    Although this sounds like a lot of trouble,
+                    addChild() is usefull if a document is build from
+                    a stream, such as happens sometimes in SAX
+                    handlers or filters.
+                </p>
+                <p>
+                    If you are not shure about the source of your
+                    nodes, you better stay with appendChild(), because
+                    this function is more user friendly in the sense
+                    of more error tolerance.
                 </p>
             </method>
 
@@ -925,14 +1032,9 @@ is therefore a shortcut for
                     the function will copy all childnodes as well. If
                     $deep is 0 only the current node will be copied.
                 </p>
-            </method>
-
-            <method name="attributes" synopsis="@attrs =$node->attributes;">
                 <p>
-                    This function returns all attributes assigned to
-                    the given node. if this function is called in
-                    scalar context, it will return a
-                    XML::LibXML::NodeList.
+                    <st>cloneNode</st> will not copy any namespace
+                    information if it is not run recursivly. 
                 </p>
             </method>
 
@@ -1070,15 +1172,15 @@ is therefore a shortcut for
                 <p>
                     <st>findvalue</st> is exactly equivalent to:
                 </p>
-                <example>
- $node->find( $xpath )-&gt;to_literal;
-                </example>
+                <example><![CDATA[
+ $node->find( $xpath )->to_literal;
+                ]]></example>
                 <p>
                     That is, it returns the literal value of the
                     results. This enables you to ensure that you get a
                     string back from your search, allowing certain
                     shortcuts. This could be used as the equivalent of
-                    XSLT's &lt;xsl:value-of select="some_xpath"/&gt;.
+                    XSLT's <![CDATA[<xsl:value-of select="some_xpath"/>]]>.
                 </p>
             </method>
 
@@ -1148,7 +1250,15 @@ is therefore a shortcut for
             <method name="attributes" 
                     synopsis="@attributelist = $node->attributes();">
                 <p>
-                    Returns all attributes of a given node.
+
+                    This function returns all attributes and namespace
+                    declarations assigned to the given node.
+                </p>
+                <p>
+                    Because XML::LibXML does not implement namespace
+                    declarations and attributes the same way, it is
+                    required to test what kind of node is handled
+                    while accessing the functions result.
                 </p>
                 <p>
                     If this function is called in array context the
@@ -1373,7 +1483,7 @@ is therefore a shortcut for
             </method>
 
             <method name="getElementsByTagName"
-                    synopsis="@nodes = $node-&gt;getElementsByTagName($tagname);">
+                    synopsis="@nodes = $node->;getElementsByTagName($tagname);">
                 <p>
                     This function is part of the spec it fetches all
                     descendants of a node with a given tagname. If one

@@ -1,4 +1,4 @@
-# $Id: Builder.pm,v 1.22 2002/06/25 18:16:54 phish Exp $
+# $Id: Builder.pm,v 1.26 2002/10/24 11:35:01 phish Exp $
 
 package XML::LibXML::SAX::Builder;
 
@@ -9,6 +9,18 @@ sub new {
     my $class = shift;
     return bless {@_}, $class;
 }
+
+sub done {
+    my ($self) = @_;
+    my $dom = $self->{DOM};
+    $dom = $self->{Parent} unless defined $dom; # this is for parsing document chunks
+    delete $self->{NamespaceStack};
+    delete $self->{Parent};
+    delete $self->{DOM};
+
+    return $dom;
+}
+
 
 sub start_document {
     my ($self, $doc) = @_;
@@ -38,12 +50,8 @@ sub xml_decl {
 
 sub end_document {
     my ($self, $doc) = @_;
-    my $dom = $self->{DOM};
-    $dom = $self->{Parent} unless defined $dom; # this is for parsing document chunks
-    delete $self->{NamespaceStack};
-    delete $self->{Parent};
-    delete $self->{DOM};
-    return $dom;
+    my $d = $self->done();
+    return $d;
 }
 
 sub start_prefix_mapping {
@@ -65,7 +73,6 @@ sub start_prefix_mapping {
 sub end_prefix_mapping {
     my $self = shift;
     my $ns = shift;
-
     $self->{NamespaceStack}->undeclare_prefix( $ns->{Prefix} );
 }
 
@@ -101,20 +108,23 @@ sub start_element {
     }
 
     # build namespaces
+    my $skip_ns= 0;
     foreach my $p ( $self->{NamespaceStack}->get_declared_prefixes() ) {
+         $skip_ns= 1;
         my $uri = $self->{NamespaceStack}->get_uri($p);
         my $nodeflag = 0;
         if ( defined $uri
              and defined $el->{NamespaceURI}
              and $uri eq $el->{NamespaceURI} ) {
-            $nodeflag = 1;
+#            $nodeflag = 1;
+            next;
         }
-        $node->setNamespace($uri, $p, $nodeflag );
+        $node->setNamespace($uri, $p, 0 );
     }
 
     # append
     if ($self->{Parent}) {
-        $self->{Parent}->appendChild($node);
+        $self->{Parent}->addChild($node);
         $self->{Parent} = $node;
     }
     else {
@@ -137,7 +147,7 @@ sub start_element {
 
 
             if ( defined $attr->{Prefix}
-                 and $attr->{Prefix} eq "xmlns" ) {
+                 and $attr->{Prefix} eq "xmlns" and $skip_ns == 0 ) {
                 # ok, the generator does not set namespaces correctly!
                 my $uri = $attr->{Value};
                 $node->setNamespace($uri,
@@ -163,6 +173,16 @@ sub end_element {
     $self->{Parent} = $self->{Parent}->parentNode();
 }
 
+sub start_cdata {
+    my $self = shift;
+    $self->{IN_CDATA} = 1;
+}
+
+sub end_cdata {
+    my $self = shift;
+    $self->{IN_CDATA} = 0;
+}
+
 sub characters {
     my ($self, $chars) = @_;
     if ( not defined $self->{DOM} and not defined $self->{Parent} ) {
@@ -172,14 +192,27 @@ sub characters {
     }
     return unless $self->{Parent};
     my $node;
+
+    unless ( defined $chars and defined $chars->{Data} ) {
+        return;
+    }
+
     if ( defined $self->{DOM} ) {
-        $node = $self->{DOM}->createTextNode($chars->{Data});
+        if ( defined $self->{IN_CDATA} and $self->{IN_CDATA} == 1 ) {
+            $node = $self->{DOM}->createCDATASection($chars->{Data});
+        }
+        else {
+            $node = $self->{DOM}->createTextNode($chars->{Data});
+        }
+    }
+    elsif ( defined $self->{IN_CDATA} and $self->{IN_CDATA} == 1 ) {
+        $node = XML::LibXML::CDATASection->new($chars->{Data});
     }
     else {
         $node = XML::LibXML::Text->new($chars->{Data});
     }
 
-    $self->{Parent}->appendChild($node);
+    $self->{Parent}->addChild($node);
 }
 
 sub comment {
@@ -191,6 +224,10 @@ sub comment {
         $self->{NamespaceStack}->push_context;
     }
 
+    unless ( defined $chars and defined $chars->{Data} ) {
+        return;
+    }
+
     if ( defined $self->{DOM} ) {
         $comment = $self->{DOM}->createComment( $chars->{Data} );
     }
@@ -199,10 +236,10 @@ sub comment {
     }
 
     if ( defined $self->{Parent} ) {
-        $self->{Parent}->appendChild($comment);
+        $self->{Parent}->addChild($comment);
     }
     else {
-        $self->{DOM}->appendChild($comment);
+        $self->{DOM}->addChild($comment);
     }
 }
 
@@ -213,10 +250,10 @@ sub processing_instruction {
     $PI = $self->{DOM}->createPI( $pi->{Target}, $pi->{Data} );
 
     if ( defined $self->{Parent} ) {
-        $self->{Parent}->appendChild( $PI );
+        $self->{Parent}->addChild( $PI );
     }
     else {
-        $self->{DOM}->appendChild( $PI );
+        $self->{DOM}->addChild( $PI );
     }
 }
 

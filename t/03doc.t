@@ -1,4 +1,4 @@
-# $Id: 03doc.t,v 1.5 2002/09/02 11:08:03 phish Exp $
+# $Id: 03doc.t,v 1.7 2002/10/24 20:16:40 phish Exp $
 
 ##
 # this test checks the DOM Document interface of XML::LibXML
@@ -12,7 +12,7 @@
 use Test;
 use strict;
 
-BEGIN { plan tests => 78 };
+BEGIN { plan tests => 84 };
 use XML::LibXML;
 use XML::LibXML::Common qw(:libxml);
 
@@ -62,6 +62,32 @@ use XML::LibXML::Common qw(:libxml);
         ok($node->nodeType, XML_ELEMENT_NODE );
         ok($node->nodeName, "foo" );
     }
+    
+    {
+        print "# document with encoding\n";
+        my $encdoc = XML::LibXML::Document->new( "1.0" );
+        $encdoc->setEncoding( "iso-8859-1" );
+        {
+            my $node = $encdoc->createElement( "foo" );
+            ok($node);
+            ok($node->nodeType, XML_ELEMENT_NODE );
+            ok($node->nodeName, "foo" );
+        }
+
+        print "# SAX style document with encoding\n";
+        my $node_def = {
+            Name => "object",
+            LocalName => "object",
+            Prefix => "",
+            NamespaceURI => "",
+                       };
+        {
+            my $node = $encdoc->createElement( $node_def->{Name} );
+            ok($node);
+            ok($node->nodeType, XML_ELEMENT_NODE );
+            ok($node->nodeName, "object" );
+        }
+    }
 
     {
         # namespaced element test
@@ -97,6 +123,7 @@ use XML::LibXML::Common qw(:libxml);
         ok($node->toString, "<![CDATA[foo]]>");
     }
 
+    print "# 2.1 Create Attributes\n";
     {
         my $attr = $doc->createAttribute("foo", "bar");
         ok($attr);
@@ -128,6 +155,7 @@ use XML::LibXML::Common qw(:libxml);
         
     }
 
+    print "# 2.2 Create PIs\n";
     {
         my $pi = $doc->createProcessingInstruction( "foo", "bar" );
         ok($pi);

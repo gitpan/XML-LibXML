@@ -1,6 +1,6 @@
 /**
  * perl-libxml-mm.h
- * $Id: perl-libxml-mm.h,v 1.8 2002/09/02 11:08:03 phish Exp $
+ * $Id: perl-libxml-mm.h,v 1.9 2002/10/04 09:13:47 phish Exp $
  *
  * Basic concept:
  * perl varies in the implementation of UTF8 handling. this header (together
@@ -60,6 +60,7 @@ typedef ProxyNode* ProxyNodePtr;
 
 /* this my go only into the header used by the xs */
 #define SvPROXYNODE(x) ((ProxyNodePtr)SvIV(SvRV(x)))
+#define PmmPROXYNODE(x) ((ProxyNodePtr)x->_private)
 
 #define PmmREFCNT(node)      node->count
 #define PmmREFCNT_inc(node)  node->count++

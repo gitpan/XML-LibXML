@@ -33,6 +33,8 @@ XML::LibXML::Document - DOM Document Class
  $cdata = $dom->create( $cdata_content );
  my $pi = $doc->createProcessingInstruction( $target, $data );
  my $entref = $doc->createEntityReference($refname);
+ $dtd = $document->createInternalSubset( $rootnode, $public, $system);
+ $dtd = $document->createExternalSubset( $rootnode, $public, $system);
  $document->importNode( $node );
  $document->adoptNode( $node );
  my $dtd = $doc->externalSubset;
@@ -278,7 +280,8 @@ to compress use B<-1> (default).
 
 
 Note that this feature will B<only> work if
-libxml2 is compiled with zlib support.
+libxml2 is compiled with zlib support and toFile()
+is used for output.
 
 
 
@@ -601,6 +604,67 @@ predefined entity
  $some_element->appendText( $string );
  print $some_element->textContent; # prints "&amp;foo;"
                     
+
+=item B<createInternalSubset>
+
+
+
+
+This function creates and adds an internal subset
+to the given document. Because the function
+automaticly adds the DTD to the document there is
+no need to add the created node explicitly to the
+document.
+
+
+
+ my $document = XML::LibXML::Document->new();
+ my $dtd      = $document->createInternalSubset( "foo", undef, "foo.dtd" );
+                    
+
+
+will result in the following XML document:
+
+
+
+ <?xml version="1.0"?>
+ <!DOCTYPE foo SYSTEM "foo.dtd">
+                    
+
+
+By setting the public parameter it is possible to
+set PUBLIC dtds to a given document. So
+
+
+
+ my $document = XML::LibXML::Document->new();
+ my $dtd      = $document->createInternalSubset( "foo", "-//FOO//DTD FOO 0.1//EN", undef );
+
+                    
+
+
+will cause the following declaration to be created
+on the document:
+
+
+
+ <?xml version="1.0"?>
+ <!DOCTYPE foo PUBLIC "-//FOO//DTD FOO 0.1//EN">
+                
+
+=item B<createExternalSubset>
+
+
+
+
+This function is similar to
+I<createInternalSubset()> but this DTD is
+concidered to be external and is therefore not
+added to the document itself. Nevertheless it can
+be used for validation purposes.
+
+
+
 
 =item B<importNode>
 

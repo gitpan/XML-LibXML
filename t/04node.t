@@ -1,4 +1,4 @@
-# $Id: 04node.t,v 1.8 2002/09/12 18:16:15 phish Exp $
+# $Id: 04node.t,v 1.10 2002/10/25 10:05:09 phish Exp $
 
 ##
 # this test checks the DOM Node interface of XML::LibXML
@@ -11,7 +11,7 @@
 
 use Test;
 
-BEGIN { plan tests => 122 };
+BEGIN { plan tests => 125 };
 use XML::LibXML;
 use XML::LibXML::Common qw(:libxml);
 
@@ -110,6 +110,17 @@ print "# 1.1 Node Attributes\n";
             ok( scalar(@cn), 1);
             ok( $cn[0]->nodeName, "bar" );
             ok( !$cn[0]->isSameNode( $c1node ) );
+
+            print "# clone namespaced elements\n";
+            my $nsnode = $doc->createElementNS( "foo", "foo:bar" );
+
+            my $cnsnode = $nsnode->cloneNode(0);
+            ok( $cnsnode->nodeName, "bar" );
+            ok( $cnsnode->localNS(), undef );
+
+            print "# clone namespaced elements (recursive)\n";
+            my $c2nsnode = $nsnode->cloneNode(1);
+            ok( $c2nsnode->toString(), $nsnode->toString() );
         }
 
         print "# 1.3 Node Value\n";
@@ -278,8 +289,7 @@ print "# 4.   Document swtiching\n";
     my $xroot = $c[0]->ownerDocument;
     ok( $xroot->isSameNode($docA) );
 
-    print "# 4.2 move NS node where NS is defiend elsewhere\n";
-
+ 
 }
 
 print "# 5.   libxml2 specials\n";
@@ -313,10 +323,10 @@ print "# 6.   implicit attribute manipulation\n";
     my $root = $doc->documentElement;
     my $attributes = $root->attributes;
     ok($attributes);
-    
+
     my $newAttr = $doc->createAttribute( "kung", "foo" );
     $attributes->setNamedItem( $newAttr );
-
+        
     my @att = $root->attributes;
     ok(@att);
     ok(scalar(@att), 2);
@@ -326,7 +336,7 @@ print "# 6.   implicit attribute manipulation\n";
     @att = $root->attributes;
     ok(@att);
     ok(scalar(@att), 4); # because of the namespace ...
-    
+
     $newAttr = $doc->createAttributeNS( "http://kungfoo", "x:kung", "bar" );
     $attributes->setNamedItem($newAttr);
     @att = $root->attributes;
@@ -369,7 +379,7 @@ print "# 7. importing and adopting\n";
     my $cndoc2 = $node2->ownerDocument;
     ok( $cndoc2 );
     ok( $cndoc2->isSameNode( $doc2 ) );
- 
+
     my $doc3 = XML::LibXML::Document->new;
     my $node3 = $doc3->adoptNode( $xnode );
     ok( $node3 );

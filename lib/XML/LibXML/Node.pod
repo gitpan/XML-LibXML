@@ -17,10 +17,10 @@ XML::LibXML::Node - abstract Base Class DOM-Nodes
  $childnode = $node->removeChild( $childnode )
  $oldnode = $node->replaceChild( $newNode, $oldNode )
  $node->replaceNode($newNode);
- $childnode = $node->appendChild( $childnode )
+ $childnode = $node->appendChild( $childnode );
+ $childnode = $node->addChild( $chilnode );
  $node->addSibling($newNode);
  $newnode =$node->cloneNode( $deep )
- @attrs =$node->attributes;
  $parentnode = $node->parentNode;
  $nextnode = $node->nextSibling()
  $prevnode = $node->previousSibling()
@@ -103,7 +103,7 @@ namespaces.
 
 
 returns TRUE (1) if the given nodes refer to the same
-nodestructure, otherwise FALSE (0) is returned.
+node structure, otherwise FALSE (0) is returned.
 
 
 
@@ -241,6 +241,72 @@ will be imported first.
 
 
 
+=item B<addChild>
+
+
+
+
+As an alternative to appendChild() one can use the
+addChild() function. This function is a bit
+faster, because it avoids all DOM confomity
+checks. Therefore this function is quite usefull
+if one builds XML documents in memory where the
+order and ownership (I<ownerDocument>) is
+ashured.
+
+
+
+
+
+addChild() uses libxml2's own xmlAddChild()
+function. Thus it has to be used with extra care:
+If a text node is added to a node and the node
+itself or its last childnode is aswell a text
+node, the node to add will be merged with the one
+already available. The current node will be
+removed from memory after this action. Because
+perl is not aware about this action, the perl
+instance is still available. XML::LibXML will
+catch the loss of a node an avoid to run any
+function called on that node.
+
+
+
+ my $t1 = $doc->createTextNode( "foo" );
+ my $t2 = $doc->createTextNode( "bar" );
+ $t1->addChild( $t2 );       # is ok
+ my $val = $t2->nodeValue(); # will fail, script dies
+                    
+
+
+Also addChild() will not check it the added node
+belongs to the same document as the node it will
+be added to. This could lead to inconsistent
+documents and in more worse cases even to memory
+violations, if one does not keep track of this
+issue.
+
+
+
+
+
+Although this sounds like a lot of trouble,
+addChild() is usefull if a document is build from
+a stream, such as happens sometimes in SAX
+handlers or filters.
+
+
+
+
+
+If you are not shure about the source of your
+nodes, you better stay with appendChild(), because
+this function is more user friendly in the sense
+of more error tolerance.
+
+
+
+
 =item B<addSibling>
 
 
@@ -265,16 +331,9 @@ $deep is 0 only the current node will be copied.
 
 
 
-=item B<attributes>
 
-
-
-
-This function returns all attributes assigned to
-the given node. if this function is called in
-scalar context, it will return a
-XML::LibXML::NodeList.
-
+B<cloneNode> will not copy any namespace
+information if it is not run recursivly. 
 
 
 
@@ -468,7 +527,7 @@ That is, it returns the literal value of the
 results. This enables you to ensure that you get a
 string back from your search, allowing certain
 shortcuts. This could be used as the equivalent of
-XSLT's <xsl:value-of select="some_xpath"/>.
+XSLT's .
 
 
 
@@ -561,7 +620,17 @@ attributes set, otherwise 0 (FALSE) is returned.
 
 
 
-Returns all attributes of a given node.
+This function returns all attributes and namespace
+declarations assigned to the given node.
+
+
+
+
+
+Because XML::LibXML does not implement namespace
+declarations and attributes the same way, it is
+required to test what kind of node is handled
+while accessing the functions result.
 
 
 

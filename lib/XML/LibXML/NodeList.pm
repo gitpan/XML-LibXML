@@ -159,7 +159,7 @@ sub iterate  {
     return unless defined $funcref && ref( $funcref ) eq 'CODE';
     $self->[1] = -1;
     my $rv;
-    while ( <$self> ) {
+    while ( $self->next ) {
         $rv = $funcref->( $self, $_ );
     }
     return $rv;

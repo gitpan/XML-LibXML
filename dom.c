@@ -1,4 +1,4 @@
-/* $Id: dom.c,v 1.44 2002/09/12 18:16:15 phish Exp $ */
+/* $Id: dom.c,v 1.48 2002/10/24 20:56:01 phish Exp $ */
 #include <libxml/tree.h>
 #include <libxml/encoding.h>
 #include <libxml/xmlerror.h>
@@ -267,11 +267,18 @@ domImportNode( xmlDocPtr doc, xmlNodePtr node, int move ) {
         }
     }
 
+
     /* tell all children about the new boss */ 
     if ( node && doc && node->doc != doc ) {
         xmlSetTreeDoc(return_node, doc);
     }
- 
+
+    if ( doc != NULL 
+         && return_node != NULL
+         && return_node->type != XML_ENTITY_REF_NODE ) {
+        xmlReconciliateNs(doc, return_node);     
+    }
+
     return return_node;
 }
 
@@ -289,7 +296,7 @@ domName(xmlNodePtr node) {
     if ( node ) {
         if (node->ns != NULL && node->ns->prefix != NULL) {
             xmlChar *tname = xmlStrdup( node->ns->prefix );
-            tname = xmlStrcat( tname , ":" );
+            tname = xmlStrcat( tname , (const xmlChar *) ":" );
             tname = xmlStrcat( tname , node->name );
             qname = tname;
         } 
@@ -359,7 +366,9 @@ domAppendChild( xmlNodePtr self,
         newChild->parent= self;
     }
  
-    xmlReconciliateNs(self->doc, newChild);     
+    if ( newChild->type != XML_ENTITY_REF_NODE ) {
+        xmlReconciliateNs(self->doc, newChild);     
+    }
 
     return newChild;
 }
@@ -459,7 +468,9 @@ domInsertBefore( xmlNodePtr self,
     }
     
     domAddNodeToList(newChild, refChild->prev, refChild);
-     xmlReconciliateNs(self->doc, newChild);     
+    if ( newChild->type != XML_ENTITY_REF_NODE ) {
+        xmlReconciliateNs(self->doc, newChild);     
+    }
 
     return newChild;
 }
@@ -502,7 +513,9 @@ domInsertAfter( xmlNodePtr self,
     }
 
     domAddNodeToList(newChild, refChild, refChild->next);
-     xmlReconciliateNs(self->doc, newChild);     
+    if ( newChild->type != XML_ENTITY_REF_NODE ) {
+        xmlReconciliateNs(self->doc, newChild);     
+    }
 
     return newChild;
 }
@@ -548,7 +561,9 @@ domReplaceNode( xmlNodePtr oldNode, xmlNodePtr newNode ) {
         domAddNodeToList( newNode, prev,  next );
     }
 
-     xmlReconciliateNs(newNode->doc, newNode); 
+    if ( newNode->type != XML_ENTITY_REF_NODE ) {
+        xmlReconciliateNs(newNode->doc, newNode); 
+    }
 
     return oldNode;
 }
@@ -610,7 +625,7 @@ domSetNodeValue( xmlNodePtr n , xmlChar* val ){
     if ( n == NULL ) 
         return;
     if ( val == NULL ){
-        val = "";
+        val = (xmlChar *) "";
     }
   
     if( n->type == XML_ATTRIBUTE_NODE ){

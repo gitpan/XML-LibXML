@@ -1,5 +1,5 @@
-# $Id: SAX.pm,v 1.3 2002/06/21 11:33:35 phish Exp $
-
+# $Id: SAX.pm,v 1.4 2002/09/27 09:05:06 phish Exp $
+# Copyright (c) 2001-2002, AxKit.com Ltd. All rights reserved.
 package XML::LibXML::SAX;
 
 use strict;
@@ -32,7 +32,8 @@ sub _parse_bytestream {
 
 sub _parse_string {
     my ( $self, $string ) = @_;
-    $self->{ParserOptions}{LibParser}      = XML::LibXML->new;
+#    $self->{ParserOptions}{LibParser}      = XML::LibXML->new;
+    $self->{ParserOptions}{LibParser}      = XML::LibXML->new()     unless defined $self->{ParserOptions}{LibParser};
     $self->{ParserOptions}{ParseFunc}      = \&XML::LibXML::parse_string;
     $self->{ParserOptions}{ParseFuncParam} = $string;
     return $self->_parse;

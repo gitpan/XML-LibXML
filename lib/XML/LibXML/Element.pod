@@ -19,7 +19,7 @@ XML::LibXML::Element - The DOM Element Class
  $boolean = $node->hasAttributeNS( $nsURI, $aname );
  @nodes = $node->getChildrenByTagName($tagname);
  @nodes = $node->getChildrenByTagNameNS($nsURI,$tagname);
- @nodes = $node->getElementsByTagName($tagname);
+ @nodes = $node->;getElementsByTagName($tagname);
  @nodes = $node->getElementsByTagNameNS($nsURI,$localname);
  @nodes = $node->getElementsByLocalName($localname);
  $node->appendWellBalancedChunk( $chunk )
