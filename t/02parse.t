@@ -424,7 +424,7 @@ print "# 3 SAX PARSER\n";
         ok( $doc );
 
         # skip the nested node tests until there is a xmlNormalizeNs().
-        ok(1),next if $i > 2;
+        #ok(1),next if $i > 2;
 
         ok( $doc->toString(), $str );
         $i++
@@ -452,8 +452,8 @@ print "# 3 SAX PARSER\n";
     # libxml2 will only do some fixing. this will lead to multiple 
     # declarations, if a node with a new namespace is added.
 
-    # my $vstring = q{<foo xmlns:bar="http://foo.bar">bar<bar:bi/></foo>};
-    my $vstring = q{<foo xmlns:bar="http://foo.bar">bar<bar:bi xmlns:bar="http://foo.bar"/></foo>};
+    my $vstring = q{<foo xmlns:bar="http://foo.bar">bar<bar:bi/></foo>};
+    # my $vstring = q{<foo xmlns:bar="http://foo.bar">bar<bar:bi xmlns:bar="http://foo.bar"/></foo>};
     ok($root->toString, $vstring );
 
     print "# 3.3 INTERNAL SUBSETS\n";

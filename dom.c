@@ -894,3 +894,4 @@ domNodeNormalizeList( xmlNodePtr nodelist )
     }
     return(1);
 }
+

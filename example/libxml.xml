@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<!-- $Id: libxml.xml,v 1.37 2002/10/26 14:29:26 phish Exp $ -->
+<!-- $Id: libxml.xml,v 1.38 2002/10/28 09:46:14 phish Exp $ -->
 <!-- Copyright (c) 2001-2002 AxKit.com. All rights reserved -->
 <module name="XML::LibXML">
     <version>1.53</version>
@@ -1014,6 +1014,33 @@ is therefore a shortcut for
                     nodes, you better stay with appendChild(), because
                     this function is more user friendly in the sense
                     of more error tolerance.
+                </p>
+            </method>
+
+            <method name="addNewChild"
+                    synopsis="$node = $parent->addNewChild( $nsURI, $name );">
+                <p>
+                    Similar to <em>addChild()</em>, this function uses
+                    low level libxml2 functionality to provide faster
+                    interface for DOM building. <st>addNewChild()</st>
+                    uses <em>xmlNewChild()</em> to create a new node
+                    on a given parent element. 
+                </p>
+                <p>
+                    addNewChild() has two parameters $nsURI and $name,
+                    where $nsURI is an (optional) namespace URI. $name
+                    is the fully qualified element name; addNewChild()
+                    will determine the correct prefix if nessecary.
+                </p>
+                <p>
+                    The function returns the newly created node.
+                </p>
+                <p>
+                    This function is very usefull for DOM building,
+                    where a created node can be directly associated to
+                    its parent. <st>NOTE</st> this function is not
+                    part of the DOM specification and its use will
+                    limit your code to XML::LibXML.
                 </p>
             </method>
 

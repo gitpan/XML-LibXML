@@ -1,11 +1,11 @@
-# $Id: 06elements.t,v 1.4 2002/07/31 13:20:52 phish Exp $
+# $Id: 06elements.t,v 1.5 2002/10/28 09:28:40 phish Exp $
 
 ##
 # this test checks the DOM element and attribute interface of XML::LibXML
 
 use Test;
 
-BEGIN { plan tests => 58 };
+BEGIN { plan tests => 70 };
 use XML::LibXML;
 
 my $foo       = "foo";
@@ -18,12 +18,21 @@ my $attname2  = "B";
 my $attvalue2 = "b";
 my $attname3  = "C";
 
+my @badnames= ("1A", "<><", "&", "-:");
+
 print "# 1. bound node\n";
 {
     my $doc = XML::LibXML::Document->new();
     my $elem = $doc->createElement( $foo );
     ok($elem);
     ok($elem->tagName, $foo);
+    
+    {
+        foreach my $name ( @badnames ) {
+            eval { $elem->setNodeName( $name ); };
+            ok( $@ );
+        }
+    }
     
     $elem->setAttribute( $attname1, $attvalue1 );
     ok( $elem->hasAttribute($attname1) );
@@ -55,6 +64,15 @@ print "# 1. bound node\n";
     $elem->setAttribute($attname3, "");    
     ok($elem->hasAttribute($attname3) );
     ok($elem->getAttribute($attname3), "");
+
+    {
+        foreach my $name ( @badnames ) {
+            eval {$elem->setAttribute( $name, "X" );};
+            ok( $@ );
+        }
+
+    }
+
 
     print "# 1.1 Namespaced Attributes\n";
 
@@ -93,6 +111,13 @@ print "# 1. bound node\n";
     ok( $elem->hasAttribute($attname1) );
     ok( $elem->hasAttributeNS($nsURI,$attname1) );
     # warn $elem->toString;
+
+    {
+        foreach my $name ( @badnames ) {
+            eval {$elem->setAttributeNS( undef, $name, "X" );};
+            ok( $@ );
+        }
+    }
 } 
 
 print "# 2. unbound node\n";
