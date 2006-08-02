@@ -1,4 +1,4 @@
-/* $Id: dom.c,v 1.56 2004/02/14 18:35:13 pajas Exp $ */
+/* $Id: dom.c,v 1.59 2006/06/22 10:08:59 pajas Exp $ */
 #include <libxml/tree.h>
 #include <libxml/encoding.h>
 #include <libxml/xmlerror.h>
@@ -412,11 +412,11 @@ domName(xmlNodePtr node) {
     case XML_DOCUMENT_NODE :
     case XML_HTML_DOCUMENT_NODE :
     case XML_DOCB_DOCUMENT_NODE :
-        name = "document";
+        name = (const xmlChar *) "document";
         break;
 
     case XML_DOCUMENT_FRAG_NODE :
-        name = "document_fragment";
+        name = (const xmlChar *) "document_fragment";
         break;
 
     case XML_ELEMENT_NODE :
@@ -759,6 +759,7 @@ domSetNodeValue( xmlNodePtr n , xmlChar* val ){
     }
   
     if( n->type == XML_ATTRIBUTE_NODE ){
+      /* can't use xmlNodeSetContent - for Attrs it parses entities */
         if ( n->children != NULL ) {
             n->last = NULL;
             xmlFreeNodeList( n->children );
@@ -768,10 +769,8 @@ domSetNodeValue( xmlNodePtr n , xmlChar* val ){
         n->children->doc = n->doc;
         n->last = n->children; 
     }
-    else if( n->content != NULL ) {
-        /* free old content */
-        xmlFree( n->content );
-        n->content = xmlStrdup(val);   
+    else {
+        xmlNodeSetContent( n, val );
     }
 }
 
@@ -976,6 +975,9 @@ domSetAttributeNode( xmlNodePtr node, xmlAttrPtr attr ) {
 
     return attr;
 }
+
+int
+domNodeNormalize( xmlNodePtr node );
 
 int
 domNodeNormalizeList( xmlNodePtr nodelist )

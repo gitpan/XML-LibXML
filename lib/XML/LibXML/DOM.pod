@@ -41,16 +41,16 @@ reasons only. They might disappear in one of the future versions of
 XML::LibXML, so a user is requested to switch over to the official functions.
 
 More recent versions of perl (e.g. 5.6.1 or higher) support special flags to
-disinguish between UTF8 and so called binary data. XML::LibXML provides for
+disinguish between UTF-8 and so called binary data. XML::LibXML provides for
 these versions functionality to make efficient use of these flags: If a
-document has set an encoding other than UTF8 all strings that are not already
-in UTF8 are implicitly encoded from the document encoding to UTF8. On output
-these strings are commonly returned as UTF8 unless a user does request
+document has set an encoding other than UTF-8 all strings that are not already
+in UTF-8 are implicitly encoded from the document encoding to UTF-8. On output
+these strings are commonly returned as UTF-8 unless a user does request
 explicitly the original (aka. document) encoding.
 
 Older version of perl (such as 5.00503 or less) do not support these flags. If
 XML::LibXML is build for these versions, all strings have to get encoded to
-UTF8 manualy before they are passed to any DOM functions.
+UTF-8 manualy before they are passed to any DOM functions.
 
 NOTE: XML::LibXML's magic encoding may not work on all plattforms. Some
 platforms are known to have a broken iconv(), which is partly used by libxml2.
@@ -101,9 +101,10 @@ setAttributeNodeNS().
 
 Matt Sergeant, 
 Christian Glahn, 
+
 =head1 VERSION
 
-1.58
+1.59
 
 =head1 COPYRIGHT
 

@@ -22,14 +22,13 @@ DEPENDENCIES
 Prior to installation you MUST have installed the libxml2 library. You can get
 the latest libxml2 version from
 
-http://xmlsoft.org
+http://xmlsoft.org/
 
 Without libxml2 installed this module will neither build nor run.
 
 Also XML::LibXML requires the following packages:
 
-   o XML::LibXML::Common - general functions used by various
-          XML::LibXML modules
+   o XML::LibXML::Common - general functions used by various XML::LibXML modules
    o XML::SAX - DOM building support from SAX
    o XML::NamespaceSupport - DOM building support from SAX
 
@@ -57,7 +56,7 @@ Note that you have to rebuild XML::LibXML once you upgrade libxml2. This avoids
 problems with binary incompatibilities between releases of the library.
 
 
-Notes On libxml2 Versions
+Notes on libxml2 versions
 =========================
 
 libxml2 claims binary compatibility between its patch levels. This is not all
@@ -92,7 +91,7 @@ configuration tests in these cases. There will be no report, if the given
 installation is known to be broken.
 
 
-Which Version of libxml2 should be used?
+Which version of libxml2 should be used?
 ========================================
 
 XML::LibXML is tested against many versions of libxml2 before it is released.

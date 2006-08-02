@@ -1,6 +1,6 @@
 /**
  * perl-libxml-sax.h
- * $Id: perl-libxml-sax.h,v 1.3 2003/08/22 22:16:16 phish Exp $
+ * $Id: perl-libxml-sax.h,v 1.4 2006/07/28 10:44:05 pajas Exp $
  */
 
 #ifndef __PERL_LIBXML_SAX_H__
@@ -21,7 +21,7 @@ void
 PmmSAXInitialize(pTHX);
 
 void
-PmmSAXInitContext( xmlParserCtxtPtr ctxt, SV * parser );
+PmmSAXInitContext( xmlParserCtxtPtr ctxt, SV * parser, SV * saved_error );
 
 void 
 PmmSAXCloseContext( xmlParserCtxtPtr ctxt );

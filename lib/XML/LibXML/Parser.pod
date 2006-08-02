@@ -11,9 +11,6 @@ XML::LibXML::Parser - Parsing XML Data with XML::LibXML
   $doc = $parser->parse_html_file( $htmlfile );
   $doc = $parser->parse_html_fh( $io_fh );
   $doc = $parser->parse_html_string( $htmlstring );
-  $doc = $parser->parse_sgml_file( $sgmlfile );
-  $doc = $parser->parse_sgml_fh( $io_fh );
-  $doc = $parser->parse_sgml_string( $sgmlstring );
   $fragment = $parser->parse_balanced_chunk( $wbxmlstring );
   $fragment = $parser->parse_xml_chunk( $wbxmlstring );
   $parser->process_xincludes( $doc );
@@ -24,6 +21,7 @@ XML::LibXML::Parser - Parsing XML Data with XML::LibXML
   $doc = $parser->finish_push( $recover );
   $parser->validation(1);
   $parser->recover(1);
+  $parser->recover_silently(1);
   $parser->expand_entities(0);
   $parser->keep_blanks(0);
   $parser->pedantic_parser(1)
@@ -35,10 +33,6 @@ XML::LibXML::Parser - Parsing XML Data with XML::LibXML
   $parser->base_uri( $your_base_uri );
   $parser->gdome_dom(1);
   $parser->clean_namespaces( 1 );
-  $parser->match_callback($subref);
-  $parser->open_callback($subref);
-  $parser->read_callback($subref);
-  $parser->close_callback($subref);
 
 
 =head1 DESCRIPTION
@@ -109,8 +103,8 @@ parser reads XML data into a DOM like datastructure, so each tag can get
 accessed and transformed.
 
 XML::LibXML's DOM parser is not only capable to parse XML data, but also
-(strict) HTML and SGML files. There are three ways to parse documents - as a
-string, as a Perl filehandle, or as a filename. The return value from each is a
+(strict) HTML files. There are three ways to parse documents - as a string, as
+a Perl filehandle, or as a filename. The return value from each is a
 XML::LibXML::Document object, which is a DOM object.
 
 All of the functions listed below will throw an exception if the document is
@@ -151,7 +145,7 @@ This function is similar to parse_fh(), but it parses a XML document that is
 available as a single string in memory. Again, you can pass an optional base
 URI to the function.
 
-  my $doc = $parser->parse_stirng( $xmlstring, $baseuri );
+  my $doc = $parser->parse_string( $xmlstring, $baseuri );
 
 
 =item B<parse_html_file>
@@ -173,27 +167,6 @@ Similar to parse_fh() but parses HTML (strict) streams.
   $doc = $parser->parse_html_string( $htmlstring );
 
 Similar to parse_file() but parses HTML (strict) strings.
-
-
-=item B<parse_sgml_file>
-
-  $doc = $parser->parse_sgml_file( $sgmlfile );
-
-Similar to parse_file() but parses SGML documents.
-
-
-=item B<parse_sgml_fh>
-
-  $doc = $parser->parse_sgml_fh( $io_fh );
-
-Similar to parse_file() but parses SGML streams.
-
-
-=item B<parse_sgml_string>
-
-  $doc = $parser->parse_sgml_string( $sgmlstring );
-
-Similar to parse_file() but parses SGML strings.
 
 
 
@@ -474,7 +447,23 @@ efficiently. That is for example a document that forgets to close the document
 tag (or any other tag inside the document). The recover mode of XML::LibXML has
 problems restoring documents that are more like well ballanced chunks.
 
-XML::LibXML will only parse until the first fatal error occours.
+XML::LibXML will only parse until the first fatal error occours, reporting
+recoverable parsing errors as warnings. To suppress these warnings use
+$parser->recover_silently(1); or, equivalently, $parser->recover(2).
+
+
+=item B<recover_silently>
+
+  $parser->recover_silently(1);
+
+Turns the parser warnings off (or on). Defaults to on.
+
+This allows to switch off warnings printed to STDERR when parsing documents
+with recover(1).
+
+Please note that calling recover_silently(0) also turns the parser recover mode
+off and calling recover_silently(1) automatically activates the parser recover
+mode.
 
 
 =item B<expand_entities>
@@ -518,6 +507,14 @@ By default line numbering is switched off (0).
   $parser->load_ext_dtd(1);
 
 Load external DTD subsets while parsing.
+
+This flag is also required for DTD Validation, to provide complete attribute,
+and to expand entities, regardless if the document has an internal subset. Thus
+switching off external DTD loading, will disable entity expansion, validation,
+and complete attributes on internal subsets as well.
+
+If you leave this parser flag untouched, everythig will work, because the
+default is 1 (activated)
 
 
 =item B<complete_attributes>
@@ -587,161 +584,32 @@ default no namespace cleanup is done.
 =back
 
 
-=head2 Input Callbacks
-
-If libxml2 has to load external documents during parsing, this may cause
-strange results, if the location is not a HTTP, FTP or relative location. To
-get around this limitation, one may add its own input handler, to open, read
-and close particular locations or URI classes.
-
-The input callbacks are used whenever LibXML has to get something other than
-external parsed entities from somewhere. The input callbacks in LibXML are
-stacked on top of the original input callbacks within the libxml library. This
-means that if you decide not to use your own callbacks (see match()), then you
-can revert to the default way of handling input. This allows, for example, to
-only handle certain URI schemes.
-
-Callbacks are only used on files, but not on strings or filehandles. This is
-because LibXML requires the match event to find out about which callback set is
-shall be used for the current input stream. LibXML can decide this only before
-the stream is open. For LibXML strings and filehandles are already opened
-streams.
-
-The following callbacks are defined:
-
-=over 4
-
-=item B<match_callback>
-
-  $parser->match_callback($subref);
-
-If you want to handle the URI, simply return a true value from this callback.
-
-
-=item B<open_callback>
-
-  $parser->open_callback($subref);
-
-Open something and return it to handle that resource.
-
-
-=item B<read_callback>
-
-  $parser->read_callback($subref);
-
-Read a certain number of bytes from the resource. This callback is called even
-if the entire Document has already read. This callback has to return a string
-which will be parsed by the libxml2 parser.
-
-
-=item B<close_callback>
-
-  $parser->close_callback($subref);
-
-Close the handle associated with the resource.
-
-
-
-=back
-
-It is important that one must not create a new parser instance and parse some
-XML data from within any callback. This is forbidden, because the new parser
-will override the existing callbacks and will leave the calling parser in an
-undefined state. Most likely memory violations will follow and break the
-running parsing process without returning control to the perl layer.
-
-The following example explains the concept a bit. It is a purely fictitious
-example that uses a MyScheme::Handler object that responds to methods similar
-to an IO::Handle.
-
-  $parser->match_callback(\&match_uri);
-    
-    $parser->open_callback(\&open_uri);
-    
-    $parser->read_callback(\&read_uri);
-    
-    $parser->close_callback(\&close_uri);
-    
-    sub match_uri {
-      my $uri = shift;
-      return $uri =~ /^myscheme:/;
-    }
-    
-    sub open_uri {
-      my $uri = shift;
-      return MyScheme::Handler->new($uri);
-    }
-    
-    sub read_uri {
-      my $handler = shift;
-      my $length = shift;
-      my $buffer;
-      read($handler, $buffer, $length);
-      return $buffer;
-    }
-    
-    sub close_uri {
-      my $handler = shift;
-      close($handler);
-    }
-
-A more realistic example can be found in the "example" directory.
-
-Since the parser requires all callbacks defined it is also possible to set all
-callbacks with a single call of callbacks(). This would implify the example
-code to:
-
-  $parser->callbacks( \&match_uri, \&open_uri, \&read_uri, \&close_uri);
-
-All functions that are used to set the callbacks, can also be used to retrieve
-the callbacks from the parser.
-
-Optionaly it is possible to apply global callback on the XML::LibXML class
-level. This allows multiple parses to share the same callbacks. To set these
-global callbacks one can use the callback access functions directly on the
-class.
-
-  XML::LibXML->callbacks( \&match_uri, \&open_uri, \&read_uri, \&close_uri);
-
-The previous code snippet will set the callbacks from the first example as
-global callbacks.
-
-
 =head1 ERROR REPORTING
 
 XML::LibXML throws exceptions during parsing, validation or XPath processing
 (and some other occations). These errors can be caught by using eval blocks.
-The error then will be stored in $@. Alternatively one can use the
-get_last_error() function of XML::LibXML. It will return the same string that
-is stored in $@. Using get_last_error() makes it still nessecary to eval the
-statement, since these function groups will die() on errors.
+The error then will be stored in $@.
 
-Note, that the use of get_last_error() still requires eval blocks. XML::LibXML
-throws errors as they occour and does not wait if a user test for them. This is
-a very common misunderstanding in the use of XML::LibXML. If the eval is
-ommited, XML::LibXML will allways halt your script by "croaking" (see Carp man
-page for details).
+XML::LibXML throws errors as they occour and does not wait if a user test for
+them. This is a very common misunderstanding in the use of XML::LibXML. If the
+eval is ommited, XML::LibXML will allways halt your script by "croaking" (see
+Carp man page for details).
 
-Also note that an increasing number throws errors if bad data is passed. If you
-cannot asure valid data passed to XML::LibXML you should eval these functions.
+Also note that an increasing number of functions throw errors if bad data is
+passed. If you cannot asure valid data passed to XML::LibXML you should eval
+these functions.
 
-get_last_error() can be called either by the class itself or by a parser
-instance:
-
-  $errstring = XML::LibXML->get_last_error();
-  $errstring = $parser->get_last_error();
-
-However, XML::LibXML exceptions are global. That means if get_last_error() is
-called on an parser instance, the last global error will be returned. This is
-not necessarily the error caused by the parser instance itself.
+Note: since version 1.59, get_last_error() is no longer available in
+XML::LibXML for thread-safety reasons.
 
 =head1 AUTHORS
 
 Matt Sergeant, 
 Christian Glahn, 
+
 =head1 VERSION
 
-1.58
+1.59
 
 =head1 COPYRIGHT
 

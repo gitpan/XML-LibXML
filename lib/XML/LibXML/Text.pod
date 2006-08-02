@@ -207,9 +207,10 @@ complex variants it is recommended to use the code snippet above.
 
 Matt Sergeant, 
 Christian Glahn, 
+
 =head1 VERSION
 
-1.58
+1.59
 
 =head1 COPYRIGHT
 

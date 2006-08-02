@@ -1,4 +1,4 @@
-# $Id: SAX.pm,v 1.7 2004/02/14 18:35:12 pajas Exp $
+# $Id: SAX.pm,v 1.9 2006/06/22 07:34:07 pajas Exp $
 # Copyright (c) 2001-2002, AxKit.com Ltd. All rights reserved.
 package XML::LibXML::SAX;
 
@@ -60,12 +60,19 @@ sub _parse {
     my $args = bless $self->{ParserOptions}, ref($self);
 
     $args->{LibParser}->set_handler( $self );
-    $args->{ParseFunc}->($args->{LibParser}, $args->{ParseFuncParam});
+    eval {
+      $args->{ParseFunc}->($args->{LibParser}, $args->{ParseFuncParam});
+    };
 
     if ( $args->{LibParser}->{SAX}->{State} == 1 ) {
         croak( "SAX Exception not implemented, yet; Data ended before document ended\n" );
     }
 
+    # break a possible circular reference    
+    $args->{LibParser}->set_handler( undef );
+    if ( $@ ) {
+        croak $@;
+    }
     return $self->end_document({});
 }
 

@@ -30,9 +30,10 @@ because libxml2 treats text nodes and comment nodes slightly differently.
 
 Matt Sergeant, 
 Christian Glahn, 
+
 =head1 VERSION
 
-1.58
+1.59
 
 =head1 COPYRIGHT
 

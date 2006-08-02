@@ -230,9 +230,10 @@ Allows to clone an XML::LibXML node into a XML::GDOME node.
 
 Matt Sergeant, 
 Christian Glahn, 
+
 =head1 VERSION
 
-1.58
+1.59
 
 =head1 COPYRIGHT
 
