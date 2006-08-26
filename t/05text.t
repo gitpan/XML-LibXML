@@ -1,4 +1,4 @@
-# $Id: 05text.t,v 1.5 2006/06/21 15:13:08 pajas Exp $
+# $Id: 05text.t 556 2006-06-21 15:13:08Z pajas $
 
 ##
 # this test checks the DOM Characterdata interface of XML::LibXML

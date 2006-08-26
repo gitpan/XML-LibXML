@@ -1,4 +1,4 @@
-# $Id: 20extras.t,v 1.5 2003/11/07 18:09:05 pajas Exp $
+# $Id: 20extras.t 486 2003-11-07 18:09:05Z pajas $
 
 use Test;
 

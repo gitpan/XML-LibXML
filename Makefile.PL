@@ -1,5 +1,5 @@
 # -------------------------------------------------------------------------- #
-# $Id: Makefile.PL,v 1.49 2006/06/23 13:13:03 pajas Exp $
+# $Id: Makefile.PL 569 2006-06-23 13:13:04Z pajas $
 # -------------------------------------------------------------------------- #
 # Makefile.PL for XML::LibXML.
 # This file is required to generate a localized Makefile

@@ -1,4 +1,4 @@
-# $Id: Boolean.pm,v 1.2 2003/02/04 23:01:33 phish Exp $
+# $Id: Boolean.pm 431 2003-02-04 23:01:33Z phish $
 # Copyright 2001-2002, AxKit.com Ltd. All rights reserved.
 
 package XML::LibXML::Boolean;

@@ -1,4 +1,4 @@
-# $Id: LibXML.pm,v 1.109 2006/07/27 12:08:20 pajas Exp $
+# $Id: LibXML.pm 584 2006-08-26 17:46:22Z pajas $
 
 package XML::LibXML;
 
@@ -15,7 +15,7 @@ use XML::LibXML::NodeList;
 use IO::Handle; # for FH reads called as methods
 
 
-$VERSION = "1.59";
+$VERSION = "1.60";
 require Exporter;
 require DynaLoader;
 
@@ -965,11 +965,6 @@ sub getElementsByLocalName {
     my $xpath = "descendant-or-self::*[local-name()='$name']";
     my @nodes = $doc->_findnodes($xpath);
     return wantarray ? @nodes : XML::LibXML::NodeList->new(@nodes);
-}
-
-sub getElementsById {
-    my ( $doc, $id ) = @_;
-    return ($doc->findnodes( "id('$id')" ))[0];
 }
 
 1;

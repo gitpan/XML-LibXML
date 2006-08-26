@@ -1,4 +1,4 @@
-# $Id: 27new_callbacks_simple.t,v 1.1 2004/11/06 21:34:58 phish Exp $
+# $Id: 27new_callbacks_simple.t 540 2004-11-06 21:34:58Z phish $
 use Test;
 BEGIN { plan tests => 21 }
 END { ok(0) unless $loaded }

@@ -1,6 +1,6 @@
 /**
  * perl-libxml-mm.h
- * $Id: perl-libxml-mm.h,v 1.10 2004/01/19 22:45:54 phish Exp $
+ * $Id: perl-libxml-mm.h 490 2004-01-19 22:45:55Z phish $
  *
  * Basic concept:
  * perl varies in the implementation of UTF8 handling. this header (together

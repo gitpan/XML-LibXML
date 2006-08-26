@@ -1,6 +1,6 @@
 /**
  * perl-libxml-mm.c
- * $Id: perl-libxml-mm.c,v 1.43 2006/06/22 10:08:58 pajas Exp $
+ * $Id: perl-libxml-mm.c 565 2006-06-22 10:08:59Z pajas $
  *
  * Basic concept:
  * perl varies in the implementation of UTF8 handling. this header (together

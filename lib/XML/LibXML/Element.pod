@@ -4,7 +4,7 @@ XML::LibXML::Element - XML::LibXML Class for Element Nodes
 
 =head1 SYNOPSIS
 
-  $node = XML::LibXML::Element->new( $name )
+  $node = XML::LibXML::Element->new( $name );
   $node->setAttribute( $aname, $avalue );
   $node->setAttributeNS( $nsURI, $aname, $avalue );
   $avalue = $node->getAttribute( $aname );
@@ -17,14 +17,14 @@ XML::LibXML::Element - XML::LibXML Class for Element Nodes
   $boolean = $node->hasAttributeNS( $nsURI, $aname );
   @nodes = $node->getChildrenByTagName($tagname);
   @nodes = $node->getChildrenByTagNameNS($nsURI,$tagname);
-  @nodes = $node->;getElementsByTagName($tagname);
+  @nodes = $node->getElementsByTagName($tagname);
   @nodes = $node->getElementsByTagNameNS($nsURI,$localname);
   @nodes = $node->getElementsByLocalName($localname);
-  $node->appendWellBalancedChunk( $chunk )
+  $node->appendWellBalancedChunk( $chunk );
   $node->appendText( $PCDATA );
   $node->appendTextNode( $PCDATA );
-  $node->appendTextChild( $childname , $PCDATA )
-  $node->setNamespace( $nsURI , $nsPrefix, $activate )
+  $node->appendTextChild( $childname , $PCDATA );
+  $node->setNamespace( $nsURI , $nsPrefix, $activate );
 
 
 =head1 DESCRIPTION
@@ -33,7 +33,7 @@ XML::LibXML::Element - XML::LibXML Class for Element Nodes
 
 =item B<new>
 
-  $node = XML::LibXML::Element->new( $name )
+  $node = XML::LibXML::Element->new( $name );
 
 This function creates a new node unbound to any DOM.
 
@@ -84,7 +84,7 @@ will get returned.
 
   $avalue = $node->setAttributeNS( $nsURI, $aname );
 
-Namespaceversion of getAttribute.
+Retrieves an attribute value by local name and namespace URI.
 
 
 
@@ -96,8 +96,8 @@ Namespaceversion of getAttribute.
 
   $attrnode = $node->getAttributeNode( $aname );
 
-Returns the attribute as a node if the attribute exists. If the Attribute does
-not exists undef will be returned.
+Retrieve an attribute node by name. If no attribute with a given name exists,
+undef is returned.
 
 
 
@@ -109,7 +109,8 @@ not exists undef will be returned.
 
   $attrnode = $node->getAttributeNodeNS( $namespaceURI, $aname );
 
-Namespaceversion of getAttributeNode.
+Retrieves an attribute node by local name and namespace URI. If no attribute
+with a given localname and namespace exists, undef is returned.
 
 
 
@@ -201,7 +202,7 @@ found.
 
 =item B<getElementsByTagName>
 
-  @nodes = $node->;getElementsByTagName($tagname);
+  @nodes = $node->getElementsByTagName($tagname);
 
 This function is part of the spec it fetches all descendants of a node with a
 given tagname. If one is as confused with tagname as I was, tagname is a
@@ -248,7 +249,7 @@ In SCALAR context this function returns a XML::LibXML::NodeList object.
 
 =item B<appendWellBalancedChunk>
 
-  $node->appendWellBalancedChunk( $chunk )
+  $node->appendWellBalancedChunk( $chunk );
 
 Sometimes it is nessecary to append a string coded XML Tree to a node.
 appendWellBalancedChunk will do the trick for you. But this is only done if the
@@ -294,7 +295,7 @@ This wrapper function lets you add a string directly to an element node.
 
 =item B<appendTextChild>
 
-  $node->appendTextChild( $childname , $PCDATA )
+  $node->appendTextChild( $childname , $PCDATA );
 
 Somewhat similar with appendTextNode: It lets you set an Element, that contains
 only a text node directly by specifying the name and the text content.
@@ -307,7 +308,7 @@ only a text node directly by specifying the name and the text content.
 
 =item B<setNamespace>
 
-  $node->setNamespace( $nsURI , $nsPrefix, $activate )
+  $node->setNamespace( $nsURI , $nsPrefix, $activate );
 
 setNamespace() allows one to apply a namespace to an element. The function
 takes three parameters: 1. the namespace URI, which is required and the two
@@ -360,13 +361,14 @@ has the same result as
 
 Matt Sergeant, 
 Christian Glahn, 
+Petr Pajas, 
 
 =head1 VERSION
 
-1.59
+1.60
 
 =head1 COPYRIGHT
 
-2001-2004, AxKit.com Ltd; 2002-2004 Christian Glahn, All rights reserved.
+2001-2006, AxKit.com Ltd; 2002-2006 Christian Glahn; 2006 Petr Pajas, All rights reserved.
 
 =cut

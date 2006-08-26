@@ -1,4 +1,4 @@
-# $Id: 24c14n.t,v 1.3 2004/11/14 19:37:33 pajas Exp $
+# $Id: 24c14n.t 547 2004-11-14 19:37:33Z pajas $
 
 ##
 # these testcases are for xml canonization interfaces.

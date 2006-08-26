@@ -1,4 +1,4 @@
-# $Id: 03doc.t,v 1.13 2006/06/21 15:13:08 pajas Exp $
+# $Id: 03doc.t 556 2006-06-21 15:13:08Z pajas $
 
 ##
 # this test checks the DOM Document interface of XML::LibXML

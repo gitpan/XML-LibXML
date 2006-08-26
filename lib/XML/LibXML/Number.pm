@@ -1,4 +1,4 @@
-# $Id: Number.pm,v 1.2 2003/11/07 16:35:34 pajas Exp $
+# $Id: Number.pm 484 2003-11-07 16:35:34Z pajas $
 
 package XML::LibXML::Number;
 use XML::LibXML::Boolean;

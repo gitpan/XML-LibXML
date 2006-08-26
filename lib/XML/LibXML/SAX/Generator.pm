@@ -1,4 +1,4 @@
-# $Id: Generator.pm,v 1.4 2003/08/19 21:06:32 phish Exp $
+# $Id: Generator.pm 467 2003-08-19 21:06:32Z phish $
 
 package XML::LibXML::SAX::Generator;
 

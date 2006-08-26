@@ -1,4 +1,4 @@
-# $Id: Builder.pm,v 1.30 2004/02/14 18:35:12 pajas Exp $
+# $Id: Builder.pm 492 2004-02-14 18:35:14Z pajas $
 
 package XML::LibXML::SAX::Builder;
 

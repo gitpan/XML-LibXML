@@ -11,26 +11,26 @@ XML::LibXML::Node - Abstract Base Class of XML::LibXML Nodes
   $content = $node->nodeValue;
   $content = $node->textContent;
   $type = $node->nodeType;
-  $node->unbindNode()
-  $childnode = $node->removeChild( $childnode )
-  $oldnode = $node->replaceChild( $newNode, $oldNode )
+  $node->unbindNode();
+  $childnode = $node->removeChild( $childnode );
+  $oldnode = $node->replaceChild( $newNode, $oldNode );
   $node->replaceNode($newNode);
   $childnode = $node->appendChild( $childnode );
   $childnode = $node->addChild( $chilnode );
   $node = $parent->addNewChild( $nsURI, $name );
   $node->addSibling($newNode);
-  $newnode =$node->cloneNode( $deep )
+  $newnode =$node->cloneNode( $deep );
   $parentnode = $node->parentNode;
-  $nextnode = $node->nextSibling()
-  $prevnode = $node->previousSibling()
+  $nextnode = $node->nextSibling();
+  $prevnode = $node->previousSibling();
   $boolean = $node->hasChildNodes();
   $childnode = $node->firstChild;
   $childnode = $node->lastChild;
   $documentnode = $node->ownerDocument;
   $node = $node->getOwner;
   $node->setOwnerDocument( $doc );
-  $node->insertBefore( $newNode, $refNode )
-  $node->insertAfter( $newNode, $refNode )
+  $node->insertBefore( $newNode, $refNode );
+  $node->insertAfter( $newNode, $refNode );
   @nodes = $node->findnodes( $xpath_statement );
   $result = $node->find( $xpath );
   print $node->findvalue( $xpath );
@@ -41,7 +41,7 @@ XML::LibXML::Node - Abstract Base Class of XML::LibXML Nodes
   $c14nstr = $doc->serialize_c14n($comment_flag,$xpath); 
   $localname = $node->localname;
   $nameprefix = $node->prefix;
-  $uri = $node->namespaceURI()
+  $uri = $node->namespaceURI();
   $boolean = $node->hasAttributes();
   @attributelist = $node->attributes();
   $URI = $node->lookupNamespaceURI( $prefix );
@@ -163,7 +163,7 @@ it differs from the result of perl ref function.
 
 =item B<unbindNode>
 
-  $node->unbindNode()
+  $node->unbindNode();
 
 Unbinds the Node from its siblings and Parent, but not from the Document it
 belongs to. If the node is not inserted into the DOM afterwards it will be lost
@@ -178,7 +178,7 @@ stripped from the context it is and inserted into a (hidden) document-fragment.
 
 =item B<removeChild>
 
-  $childnode = $node->removeChild( $childnode )
+  $childnode = $node->removeChild( $childnode );
 
 This will unbind the Child Node from its parent $node. The function returns the
 unbound node. If oldNode is not a child of the given Node the function will
@@ -192,7 +192,7 @@ fail.
 
 =item B<replaceChild>
 
-  $oldnode = $node->replaceChild( $newNode, $oldNode )
+  $oldnode = $node->replaceChild( $newNode, $oldNode );
 
 Replaces the $oldNode with the $newNode. The $oldNode will be unbound from the
 Node. This function differs from the DOM L2 specification, in the case, if the
@@ -312,7 +312,7 @@ by the given node.
 
 =item B<cloneNode>
 
-  $newnode =$node->cloneNode( $deep )
+  $newnode =$node->cloneNode( $deep );
 
 cloneNode creates a copy of $node. When $deep is set to 1 (true) the function
 will copy all childnodes as well. If $deep is 0 only the current node will be
@@ -340,7 +340,7 @@ Returns simply the Parent Node of the current node.
 
 =item B<nextSibling>
 
-  $nextnode = $node->nextSibling()
+  $nextnode = $node->nextSibling();
 
 Returns the next sibling if any .
 
@@ -352,7 +352,7 @@ Returns the next sibling if any .
 
 =item B<previousSibling>
 
-  $prevnode = $node->previousSibling()
+  $prevnode = $node->previousSibling();
 
 Analogous to getNextSibling the function returns the previous sibling if any.
 
@@ -445,7 +445,7 @@ adoptNode().
 
 =item B<insertBefore>
 
-  $node->insertBefore( $newNode, $refNode )
+  $node->insertBefore( $newNode, $refNode );
 
 The method inserts $newNode before $refNode. If $refNode is undefined, the
 newNode will be set as the new last child of the parent node. This function
@@ -469,7 +469,7 @@ parent node.
 
 =item B<insertAfter>
 
-  $node->insertAfter( $newNode, $refNode )
+  $node->insertAfter( $newNode, $refNode );
 
 The method inserts $newNode after $refNode. If $refNode is undefined, the
 newNode will be set as the new last child of the parent node.
@@ -631,7 +631,7 @@ Returns the prefix of a tag. This is the part before the colon.
 
 =item B<namespaceURI>
 
-  $uri = $node->namespaceURI()
+  $uri = $node->namespaceURI();
 
 returns the URI of the current namespace.
 
@@ -801,13 +801,14 @@ line_number() will always return 0.
 
 Matt Sergeant, 
 Christian Glahn, 
+Petr Pajas, 
 
 =head1 VERSION
 
-1.59
+1.60
 
 =head1 COPYRIGHT
 
-2001-2004, AxKit.com Ltd; 2002-2004 Christian Glahn, All rights reserved.
+2001-2006, AxKit.com Ltd; 2002-2006 Christian Glahn; 2006 Petr Pajas, All rights reserved.
 
 =cut

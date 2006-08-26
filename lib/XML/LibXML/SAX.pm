@@ -1,4 +1,4 @@
-# $Id: SAX.pm,v 1.9 2006/06/22 07:34:07 pajas Exp $
+# $Id: SAX.pm 562 2006-06-22 07:34:07Z pajas $
 # Copyright (c) 2001-2002, AxKit.com Ltd. All rights reserved.
 package XML::LibXML::SAX;
 

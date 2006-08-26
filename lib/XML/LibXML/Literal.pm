@@ -1,4 +1,4 @@
-# $Id: Literal.pm,v 1.1 2001/08/07 07:34:24 matt Exp $
+# $Id: Literal.pm 102 2001-08-07 07:34:25Z matt $
 
 package XML::LibXML::Literal;
 use XML::LibXML::Boolean;

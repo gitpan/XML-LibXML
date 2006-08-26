@@ -1,11 +1,11 @@
-# $Id: 06elements.t,v 1.6 2006/06/22 07:34:06 pajas Exp $
+# $Id: 06elements.t 580 2006-08-04 21:13:04Z pajas $
 
 ##
 # this test checks the DOM element and attribute interface of XML::LibXML
 
 use Test;
 
-BEGIN { plan tests => 81 };
+BEGIN { plan tests => 82 };
 use XML::LibXML;
 
 my $foo       = "foo";
@@ -78,6 +78,7 @@ print "# 1. bound node\n";
 
     $elem->setAttributeNS( $nsURI, $prefix . ":". $foo, $attvalue2 );
     ok( $elem->hasAttributeNS( $nsURI, $foo ) );
+    ok( ! $elem->hasAttribute( $foo ) );
     # warn $elem->toString() , "\n";
     $tattr = $elem->getAttributeNodeNS( $nsURI, $foo );
     ok($tattr);
@@ -127,7 +128,7 @@ print "# 1. bound node\n";
     $elem->removeAttributeNS("",$attname1);
     # warn $elem->toString;
 
-    ok( $elem->hasAttribute($attname1) );
+    ok( ! $elem->hasAttribute($attname1) );
     ok( $elem->hasAttributeNS($nsURI,$attname1) );
     # warn $elem->toString;
 

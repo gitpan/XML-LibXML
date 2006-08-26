@@ -1,4 +1,4 @@
-# $Id: 26schema.t,v 1.2 2004/02/26 18:52:37 phish Exp $
+# $Id: 26schema.t 497 2004-02-26 18:52:37Z phish $
 
 ##
 # Testcases for the XML Schema interface

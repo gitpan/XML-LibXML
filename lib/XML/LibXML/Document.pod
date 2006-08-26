@@ -31,7 +31,7 @@ XML::LibXML::Document - XML::LibXML DOM Document Class
   $comment = $dom->createComment( $comment_text );
   $attrnode = $doc->createAttribute($name [,$value]);
   $attrnode = $doc->createAttributeNS( namespaceURI, $name [,$value] );
-  $fragment = $doc->createDocumentFragment()
+  $fragment = $doc->createDocumentFragment();
   $cdata = $dom->create( $cdata_content );
   my $pi = $doc->createProcessingInstruction( $target, $data );
   my $entref = $doc->createEntityReference($refname);
@@ -48,7 +48,7 @@ XML::LibXML::Document - XML::LibXML DOM Document Class
   my @nodelist = $doc->getElementsByTagName($tagname);
   my @nodelist = $doc->getElementsByTagName($nsURI,$tagname);
   my @nodelist = $doc->getElementsByLocalName($localname);
-  my $node = $doc->getElementsById($id);
+  my $node = $doc->getElementById($id);
   $dom->indexElements();
 
 
@@ -364,7 +364,7 @@ Creates an Attribute bound to a namespace.
 
 =item B<createDocumentFragment>
 
-  $fragment = $doc->createDocumentFragment()
+  $fragment = $doc->createDocumentFragment();
 
 This function creates a DocumentFragment.
 
@@ -566,13 +566,23 @@ Localname.
 In SCALAR context this function returns a XML::LibXML::NodeList object.
 
 
-=item B<getElementsById>
+=item B<getElementById>
 
-  my $node = $doc->getElementsById($id);
+  my $node = $doc->getElementById($id);
 
-This allows the fetching of the node at a given position in the DOM.
+Returns the element that has an ID attribute with the given value. If no such
+element exists, this returns undef.
 
-Note: The Id of a node might change while manipulating the document.
+Note: the ID of an element may change while manipulating the document. For
+documents with a DTD, the information about ID attributes is only available if
+DTD loading/validation has been requested. For HTML documents parsed with the
+HTML parser ID detection is done automatically. In XML documents, all "xml:id"
+attributes are considered to be of type ID. You can test ID-ness of an
+attribute node with $attr->isId().
+
+In versions 1.59 and earlier this method was called getElementsById() (plural)
+by mistake. Starting from 1.60 this name is maintained as an alias only for
+backward compatibility.
 
 
 =item B<indexElements>
@@ -600,13 +610,14 @@ if this feature is not available in the running libxml2.
 
 Matt Sergeant, 
 Christian Glahn, 
+Petr Pajas, 
 
 =head1 VERSION
 
-1.59
+1.60
 
 =head1 COPYRIGHT
 
-2001-2004, AxKit.com Ltd; 2002-2004 Christian Glahn, All rights reserved.
+2001-2006, AxKit.com Ltd; 2002-2006 Christian Glahn; 2006 Petr Pajas, All rights reserved.
 
 =cut

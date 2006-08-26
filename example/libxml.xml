@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<!-- $Id: libxml.xml,v 1.38 2002/10/28 09:46:14 phish Exp $ -->
+<!-- $Id: libxml.xml 415 2002-10-28 09:46:14Z phish $ -->
 <!-- Copyright (c) 2001-2002 AxKit.com. All rights reserved -->
 <module name="XML::LibXML">
     <version>1.53</version>

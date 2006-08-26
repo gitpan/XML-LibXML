@@ -1,4 +1,4 @@
-# $Id: Parser.pm,v 1.23 2003/07/12 22:17:55 phish Exp $
+# $Id: Parser.pm 457 2003-07-12 22:17:55Z phish $
 
 package XML::LibXML::SAX::Parser;
 

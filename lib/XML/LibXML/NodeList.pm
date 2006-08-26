@@ -1,4 +1,4 @@
-# $Id: NodeList.pm,v 1.5 2002/11/08 17:10:30 phish Exp $
+# $Id: NodeList.pm 422 2002-11-08 17:10:30Z phish $
 
 package XML::LibXML::NodeList;
 use strict;

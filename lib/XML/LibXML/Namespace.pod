@@ -5,16 +5,16 @@ XML::LibXML::Namespace - XML::LibXML Namespace Implementation
 =head1 SYNOPSIS
 
   my $ns = XML::LibXML::Namespace->new($nsURI);
-  print $ns->getName()
-  print $ns->name()
-  print $ns->prefix()
-  $localname = $ns->getLocalName()
-  print $ns->getData()
-  print $ns->getValue()
-  print $ns->value()
-  print $ns->uri()
-  $known_uri = $ns->getNamespaceURI()
-  $known_prefix = $ns->getPredix()
+  print $ns->getName();
+  print $ns->name();
+  print $ns->prefix();
+  $localname = $ns->getLocalName();
+  print $ns->getData();
+  print $ns->getValue();
+  print $ns->value();
+  print $ns->uri();
+  $known_uri = $ns->getNamespaceURI();
+  $known_prefix = $ns->getPredix();
 
 
 =head1 DESCRIPTION
@@ -46,70 +46,70 @@ should not expect it to be available in an existing document.
 
 =item B<getName>
 
-  print $ns->getName()
+  print $ns->getName();
 
 Returns "xmlns:prefix", where prefix is the prefix for this namespace.
 
 
 =item B<name>
 
-  print $ns->name()
+  print $ns->name();
 
 Alias for getName()
 
 
 =item B<prefix>
 
-  print $ns->prefix()
+  print $ns->prefix();
 
 Returns the prefix bound to this namespace declaration.
 
 
 =item B<getLocalName>
 
-  $localname = $ns->getLocalName()
+  $localname = $ns->getLocalName();
 
 Alias for prefix()
 
 
 =item B<getData>
 
-  print $ns->getData()
+  print $ns->getData();
 
 Returns the URI of the namespace.
 
 
 =item B<getValue>
 
-  print $ns->getValue()
+  print $ns->getValue();
 
 Alias for getData()
 
 
 =item B<value>
 
-  print $ns->value()
+  print $ns->value();
 
 Alias for getData()
 
 
 =item B<uri>
 
-  print $ns->uri()
+  print $ns->uri();
 
 Alias for getData()
 
 
 =item B<getNamespaceURI>
 
-  $known_uri = $ns->getNamespaceURI()
+  $known_uri = $ns->getNamespaceURI();
 
 Returns the string "http://www.w3.org/2000/xmlns/"
 
 
 =item B<getPrefix>
 
-  $known_prefix = $ns->getPredix()
+  $known_prefix = $ns->getPredix();
 
 Returns the string "xmlns"
 
@@ -121,13 +121,14 @@ Returns the string "xmlns"
 
 Matt Sergeant, 
 Christian Glahn, 
+Petr Pajas, 
 
 =head1 VERSION
 
-1.59
+1.60
 
 =head1 COPYRIGHT
 
-2001-2004, AxKit.com Ltd; 2002-2004 Christian Glahn, All rights reserved.
+2001-2006, AxKit.com Ltd; 2002-2006 Christian Glahn; 2006 Petr Pajas, All rights reserved.
 
 =cut

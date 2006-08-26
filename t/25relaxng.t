@@ -1,4 +1,4 @@
-# $Id: 25relaxng.t,v 1.2 2004/02/26 18:52:37 phish Exp $
+# $Id: 25relaxng.t 497 2004-02-26 18:52:37Z phish $
 
 ##
 # Testcases for the RelaxNG interface

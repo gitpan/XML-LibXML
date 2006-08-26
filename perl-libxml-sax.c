@@ -1,6 +1,6 @@
 /**
  * perl-libxml-sax.c
- * $Id: perl-libxml-sax.c,v 1.32 2006/07/28 10:44:05 pajas Exp $
+ * $Id: perl-libxml-sax.c 576 2006-07-28 10:44:05Z pajas $
  */
 
 #ifdef __cplusplus
