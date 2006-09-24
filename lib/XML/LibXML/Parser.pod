@@ -62,13 +62,29 @@ interfaces:
 
 =over 4
 
-=item * A DOM Pull-Parser
+=item *
 
-=item * A DOM Push-Parser
+A DOM Pull-Parser
 
-=item * A SAX Parser
 
-=item * A DOM based SAX Parser.
+
+=item *
+
+A DOM Push-Parser
+
+
+
+=item *
+
+A SAX Parser
+
+
+
+=item *
+
+A DOM based SAX Parser.
+
+
 
 =back
 
@@ -383,11 +399,23 @@ the serialization process:
 
 =over 4
 
-=item * skipXMLDeclaration
+=item *
 
-=item * skipDTD
+skipXMLDeclaration
 
-=item * setTagCompression
+
+
+=item *
+
+skipDTD
+
+
+
+=item *
+
+setTagCompression
+
+
 
 =back
 
@@ -610,7 +638,7 @@ Petr Pajas,
 
 =head1 VERSION
 
-1.60
+1.61
 
 =head1 COPYRIGHT
 

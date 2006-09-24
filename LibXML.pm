@@ -1,4 +1,4 @@
-# $Id: LibXML.pm 584 2006-08-26 17:46:22Z pajas $
+# $Id: LibXML.pm 603 2006-09-23 21:47:38Z pajas $
 
 package XML::LibXML;
 
@@ -11,15 +11,18 @@ use Carp;
 
 use XML::LibXML::Common qw(:encoding :libxml);
 
+use constant XML_XMLNS_NS => 'http://www.w3.org/2000/xmlns/';
+use constant XML_XML_NS => 'http://www.w3.org/XML/1998/namespace';
+
 use XML::LibXML::NodeList;
+use XML::LibXML::XPathContext;
 use IO::Handle; # for FH reads called as methods
 
-
-$VERSION = "1.60";
-require Exporter;
-require DynaLoader;
-
-@ISA = qw(DynaLoader Exporter);
+BEGIN {
+  $VERSION = "1.61"; # VERSION TEMPLATE: DO NOT CHANGE
+  require Exporter;
+  require DynaLoader;
+  @ISA = qw(DynaLoader Exporter);
 
 #-------------------------------------------------------------------------#
 # export information                                                      #
@@ -48,6 +51,8 @@ require DynaLoader;
                            XML_XINCLUDE_START
                            encodeToUTF8
                            decodeFromUTF8
+		           XML_XMLNS_NS
+		           XML_XML_NS
                           )],
                 libxml => [qw(
                            XML_ELEMENT_NODE
@@ -75,6 +80,10 @@ require DynaLoader;
                                 encodeToUTF8
                                 decodeFromUTF8
                                )],
+		ns => [qw(
+		           XML_XMLNS_NS
+		           XML_XML_NS		    
+		 )],
                );
 
 @EXPORT_OK = (
@@ -101,6 +110,8 @@ $CloseCB = undef;
 # bootstrapping                                                           #
 #-------------------------------------------------------------------------#
 bootstrap XML::LibXML $VERSION;
+
+} # BEGIN
 
 #-------------------------------------------------------------------------#
 # parser constructor                                                      #
@@ -804,7 +815,7 @@ sub getChildNodes { my $self = shift; return $self->childNodes(); }
 sub childNodes {
     my $self = shift;
     my @children = $self->_childNodes();
-    return wantarray ? @children : XML::LibXML::NodeList->new( @children );
+    return wantarray ? @children : XML::LibXML::NodeList->new_from_ref(\@children , 1);
 }
 
 sub attributes {
@@ -826,7 +837,7 @@ sub findnodes {
         return @nodes;
     }
     else {
-        return XML::LibXML::NodeList->new(@nodes);
+        return XML::LibXML::NodeList->new_from_ref(\@nodes, 1);
     }
 }
 
@@ -946,26 +957,9 @@ sub insertPI {
 # DOM L3 Document functions.
 # added after robins implicit feature requst
 #-------------------------------------------------------------------------#
-sub getElementsByTagName {
-    my ( $doc , $name ) = @_;
-    my $xpath = "descendant-or-self::node()/$name";
-    my @nodes = $doc->_findnodes($xpath);
-    return wantarray ? @nodes : XML::LibXML::NodeList->new(@nodes);
-}
-
-sub  getElementsByTagNameNS {
-    my ( $doc, $nsURI, $name ) = @_;
-    my $xpath = "descendant-or-self::*[local-name()='$name' and namespace-uri()='$nsURI']";
-    my @nodes = $doc->_findnodes($xpath);
-    return wantarray ? @nodes : XML::LibXML::NodeList->new(@nodes);
-}
-
-sub getElementsByLocalName {
-    my ( $doc,$name ) = @_;
-    my $xpath = "descendant-or-self::*[local-name()='$name']";
-    my @nodes = $doc->_findnodes($xpath);
-    return wantarray ? @nodes : XML::LibXML::NodeList->new(@nodes);
-}
+*getElementsByTagName = \&XML::LibXML::Element::getElementsByTagName;
+*getElementsByTagNameNS = \&XML::LibXML::Element::getElementsByTagNameNS;
+*getElementsByLocalName = \&XML::LibXML::Element::getElementsByLocalName;
 
 1;
 
@@ -1003,6 +997,8 @@ package XML::LibXML::Element;
 
 use vars qw(@ISA);
 @ISA = ('XML::LibXML::Node');
+use XML::LibXML qw(:ns :libxml);
+use Carp;
 
 sub setNamespace {
     my $self = shift;
@@ -1016,57 +1012,154 @@ sub setNamespace {
     return 0;
 }
 
+sub getAttribute {
+    my $self = shift;
+    my $name = $_[0];
+    if ( $name =~ /^xmlns(?::|$)/ ) {
+        # user wants to get a namespace ...
+        (my $prefix = $name )=~s/^xmlns:?//;
+	$self->_getNamespaceDeclURI($prefix);
+    }
+    else {
+        $self->_getAttribute(@_);
+    }
+}
+
 sub setAttribute {
     my ( $self, $name, $value ) = @_;
-    if ( $name =~ /^xmlns/ ) {
-        # user wants to set a namespace ...
+    if ( $name =~ /^xmlns(?::|$)/ ) {
+      # user wants to set the special attribute for declaring XML namespace ...
 
-        (my $lname = $name )=~s/^xmlns://;
-        my $nn = $self->nodeName;
-        if ( $nn =~ /^$lname\:/ ) {
-            $self->setNamespace($value, $lname);
-        }
-        else {
-            # use a ($active = 0) namespace
-            $self->setNamespace($value, $lname, 0);
-        }
+      # this is fine but not exactly DOM conformant behavior, btw (according to DOM we should
+      # probably declare an attribute which looks like XML namespace declaration
+      # but isn't)
+      (my $nsprefix = $name )=~s/^xmlns:?//;
+      my $nn = $self->nodeName;
+      if ( $nn =~ /^\Q${nsprefix}\E:/ ) {
+	# the element has the same prefix
+	$self->setNamespaceDeclURI($nsprefix,$value) ||
+	  $self->setNamespace($value,$nsprefix,1);
+        ##
+        ## We set the namespace here.
+        ## This is helpful, as in:
+        ##
+        ## |  $e = XML::LibXML::Element->new('foo:bar');
+        ## |  $e->setAttribute('xmlns:foo','http://yoyodine')
+        ##
+      }
+      else {
+	# just modify the namespace
+	$self->setNamespaceDeclURI($nsprefix, $value) ||
+	  $self->setNamespace($value,$nsprefix,0);
+      }
     }
     else {
         $self->_setAttribute($name, $value);
     }
 }
 
+sub getAttributeNS {
+    my $self = shift;
+    my ($nsURI, $name) = @_;
+    croak("invalid attribute name") if !defined($name) or $name eq q{};
+    if ( defined($nsURI) and $nsURI eq XML_XMLNS_NS ) {
+	$self->_getNamespaceDeclURI($name eq 'xmlns' ? undef : $name);
+    }
+    else {
+        $self->_getAttributeNS(@_);
+    }
+}
+
+sub setAttributeNS {
+  my ($self, $nsURI, $qname, $value)=@_;
+  unless (defined $qname and length $qname) {
+    croak("bad name");
+  }
+  if (defined($nsURI) and $nsURI eq XML_XMLNS_NS) {
+    if ($qname !~ /^xmlns(?::|$)/) {
+      croak("NAMESPACE ERROR: Namespace declartions must have the prefix 'xmlns'");
+    }
+    $self->setAttribute($qname,$value); # see implementation above
+    return;
+  }
+  if ($qname=~/:/ and not (defined($nsURI) and length($nsURI))) {
+    croak("NAMESPACE ERROR: Attribute without a prefix cannot be in a namespace");
+  }
+  if ($qname=~/^xmlns(?:$|:)/) {
+    croak("NAMESPACE ERROR: 'xmlns' prefix and qualified-name are reserved for the namespace ".XML_XMLNS_NS);
+  }
+  if ($qname=~/^xml:/ and not (defined $nsURI and $nsURI eq XML_XML_NS)) {
+    croak("NAMESPACE ERROR: 'xml' prefix is reserved for the namespace ".XML_XML_NS);
+  }
+  $self->_setAttributeNS( defined $nsURI ? $nsURI : undef, $qname, $value );
+}
+
 sub getElementsByTagName {
     my ( $node , $name ) = @_;
-    my $xpath = "descendant::$name";
+    my $xpath = $name eq '*' ? "descendant::*" : "descendant::*[name()='$name']";
     my @nodes = $node->_findnodes($xpath);
-    return wantarray ? @nodes : XML::LibXML::NodeList->new(@nodes);
+    return wantarray ? @nodes : XML::LibXML::NodeList->new_from_ref(\@nodes, 1);
 }
 
 sub  getElementsByTagNameNS {
     my ( $node, $nsURI, $name ) = @_;
-    my $xpath = "descendant::*[local-name()='$name' and namespace-uri()='$nsURI']";
+    my $xpath;
+    if ( $name eq '*' ) {
+      if ( $nsURI eq '*' ) {
+	$xpath = "descendant::*";
+      } else {
+	$xpath = "descendant::*[namespace-uri()='$nsURI']";
+      }
+    } elsif ( $nsURI eq '*' ) {
+      $xpath = "descendant::*[local-name()='$name']";
+    } else {
+      $xpath = "descendant::*[local-name()='$name' and namespace-uri()='$nsURI']";
+    }
     my @nodes = $node->_findnodes($xpath);
-    return wantarray ? @nodes : XML::LibXML::NodeList->new(@nodes);
+    return wantarray ? @nodes : XML::LibXML::NodeList->new_from_ref(\@nodes, 1);
 }
 
 sub getElementsByLocalName {
     my ( $node,$name ) = @_;
-    my $xpath = "descendant::*[local-name()='$name']";
-        my @nodes = $node->_findnodes($xpath);
-    return wantarray ? @nodes : XML::LibXML::NodeList->new(@nodes);
+    my $xpath;
+    if ($name eq '*') {
+      $xpath = "descendant::*";
+    } else {
+      $xpath = "descendant::*[local-name()='$name']";
+    }
+    my @nodes = $node->_findnodes($xpath);
+    return wantarray ? @nodes : XML::LibXML::NodeList->new_from_ref(\@nodes, 1);
 }
 
 sub getChildrenByTagName {
     my ( $node, $name ) = @_;
-    my @nodes = grep { $_->nodeName eq $name } $node->childNodes();
-    return wantarray ? @nodes : XML::LibXML::NodeList->new(@nodes);
+    my @nodes;
+    if ($name eq '*') {
+      @nodes = grep { $_->nodeType == XML_ELEMENT_NODE() }
+	$node->childNodes();
+    } else {
+      @nodes = grep { $_->nodeName eq $name } $node->childNodes();
+    }
+    return wantarray ? @nodes : XML::LibXML::NodeList->new_from_ref(\@nodes, 1);
+}
+
+sub getChildrenByLocalName {
+    my ( $node, $name ) = @_;
+    my @nodes;
+    if ($name eq '*') {
+      @nodes = grep { $_->nodeType == XML_ELEMENT_NODE() }
+	$node->childNodes();
+    } else {
+      @nodes = grep { $_->nodeType == XML_ELEMENT_NODE() and
+		      $_->localName eq $name } $node->childNodes();
+    }
+    return wantarray ? @nodes : XML::LibXML::NodeList->new_from_ref(\@nodes, 1);
 }
 
 sub getChildrenByTagNameNS {
     my ( $node, $nsURI, $name ) = @_;
     my @nodes = $node->_getChildrenByTagNameNS($nsURI,$name);
-    return wantarray ? @nodes : XML::LibXML::NodeList->new(@nodes);
+    return wantarray ? @nodes : XML::LibXML::NodeList->new_from_ref(\@nodes, 1);
 }
 
 sub appendWellBalancedChunk {

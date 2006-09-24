@@ -33,11 +33,6 @@ well for Comments or CDATA-sections.
 The constuctor of the class. It creates an unbound text node.
 
 
-
-=back
-
-=over 4
-
 =item B<data>
 
   $nodedata = $text->data;
@@ -56,11 +51,6 @@ and
 will have the same result and are not different entities.
 
 
-
-=back
-
-=over 4
-
 =item B<setData($string)>
 
   $text->setData( $text_content );
@@ -68,11 +58,6 @@ will have the same result and are not different entities.
 This function sets or replaces text content to a node. The node has to be of
 the type "text", "cdata" or "comment".
 
-
-
-=back
-
-=over 4
 
 =item B<substringData($offset,$length)>
 
@@ -86,11 +71,6 @@ this function will return undef. If $length is out of range substringData will
 return the data starting at $offset instead of causing an error.
 
 
-
-=back
-
-=over 4
-
 =item B<appendData($string)>
 
   $text->appendData( $somedata );
@@ -98,11 +78,6 @@ return the data starting at $offset instead of causing an error.
 Appends a string to the end of the existing data. If the current text node
 contains no data, this function has the same effect as setData.
 
-
-
-=back
-
-=over 4
 
 =item B<insertData($offset,$string)>
 
@@ -116,11 +91,6 @@ The $offset has to be a positive value. If $offset is out of range, insertData
 will have the same behaviour as appendData.
 
 
-
-=back
-
-=over 4
-
 =item B<deleteData($offset, $length)>
 
   $text->deleteData($offset, $length);
@@ -129,11 +99,6 @@ This method removes a chunk from the existing node data at the given offset.
 The $length parameter tells, how many characters should be removed from the
 string.
 
-
-
-=back
-
-=over 4
 
 =item B<deleteDataString($string, [$all])>
 
@@ -149,22 +114,12 @@ of $string. If $all is TRUE deleteDataString will remove all occurrences of
 $string from the node data.
 
 
-
-=back
-
-=over 4
-
 =item B<replaceData($offset, $length, $string)>
 
   $text->replaceData($offset, $length, $string);
 
 The DOM style version to replace node data.
 
-
-
-=back
-
-=over 4
 
 =item B<replaceDataString($oldstring, $newstring, [$all])>
 
@@ -176,11 +131,6 @@ Instead of giving offsets and length one can specify the exact string
 ($oldstring) to be replaced. Additionally the $all flag allows to replace all
 occourences of $oldstring.
 
-
-
-=back
-
-=over 4
 
 =item B<replaceDataRegEx( $search_cond, $replace_cond, $reflags )>
 
@@ -211,7 +161,7 @@ Petr Pajas,
 
 =head1 VERSION
 
-1.60
+1.61
 
 =head1 COPYRIGHT
 

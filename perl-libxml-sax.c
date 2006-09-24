@@ -1,6 +1,6 @@
 /**
  * perl-libxml-sax.c
- * $Id: perl-libxml-sax.c 576 2006-07-28 10:44:05Z pajas $
+ * $Id: perl-libxml-sax.c 598 2006-09-22 15:12:26Z pajas $
  */
 
 #ifdef __cplusplus
@@ -1035,8 +1035,9 @@ PmmSaxError(void * ctx, const char * msg, ...)
 
     va_list args;
     SV * svMessage;
+#if LIBXML_VERSION > 20600
     xmlErrorPtr last_err = xmlCtxtGetLastError( ctxt );
-    
+#endif    
     dTHX;
     dSP;
 
@@ -1060,6 +1061,7 @@ PmmSaxError(void * ctx, const char * msg, ...)
     XPUSHs(sv_2mortal(newSViv(ctxt->input->col)));
 
     PUTBACK;
+#if LIBXML_VERSION > 20600
     /* 
        this is a workaround: at least some versions of libxml2 didn't not call 
        the fatalError callback at all
@@ -1069,6 +1071,10 @@ PmmSaxError(void * ctx, const char * msg, ...)
     } else {
       call_pv( "XML::LibXML::_SAXParser::error", G_SCALAR | G_EVAL | G_DISCARD );
     }
+#else
+    /* actually, we do not know if it is a fatal error or not */
+    call_pv( "XML::LibXML::_SAXParser::fatal_error", G_SCALAR | G_EVAL | G_DISCARD );
+#endif
     if (SvTRUE(ERRSV)) {
         STRLEN n_a;
         croak(SvPV(ERRSV, n_a));

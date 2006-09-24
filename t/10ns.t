@@ -1,5 +1,6 @@
+# -*- cperl -*-
 use Test;
-BEGIN { plan tests=>22; }
+BEGIN { plan tests=>104; }
 use XML::LibXML;
 use XML::LibXML::Common qw(:libxml);
 
@@ -118,9 +119,8 @@ EOX
     ok( $attrb[0]->nodeType, 18 );
 }
 
-print "# 6. lossless stetting of namespaces with setAttribute\n";
+print "# 6. lossless setting of namespaces with setAttribute\n";
 # reported by Kurt George Gjerde
-
 {
     my $doc = XML::LibXML->createDocument; 
     my $root = $doc->createElementNS('http://example.com', 'document');
@@ -130,4 +130,152 @@ print "# 6. lossless stetting of namespaces with setAttribute\n";
 
     my $strnode = $root->toString();
     ok ( $strnode =~ /xmlns:xxx/ and $strnode =~ /xmlns=/ );
+}
+
+print "# 7. namespaced attributes\n";
+{
+  my $doc = XML::LibXML->new->parse_string(<<'EOF');
+<test xmlns:xxx="http://example.com"/>
+EOF
+  my $root = $doc->getDocumentElement();
+  # namespaced attributes
+  $root->setAttribute('xxx:attr', 'value');
+  ok ( $root->getAttributeNode('xxx:attr') );
+  ok ( $root->getAttribute('xxx:attr'), 'value' );
+  print $root->toString(1),"\n";
+  ok ( $root->getAttributeNodeNS('http://example.com','attr') );
+  ok ( $root->getAttributeNS('http://example.com','attr'), 'value' );
+  ok ( $root->getAttributeNode('xxx:attr')->getNamespaceURI(), 'http://example.com');
+}
+
+print "# 8. changing namespace declarations\n";
+{
+  my $xmlns = 'http://www.w3.org/2000/xmlns/';
+
+    my $doc = XML::LibXML->createDocument; 
+    my $root = $doc->createElementNS('http://example.com', 'document');
+    $root->setAttributeNS($xmlns, 'xmlns:xxx', 'http://example.com');
+    $root->setAttribute('xmlns:yyy', 'http://yonder.com');
+    $doc->setDocumentElement( $root );
+
+    # can we get the namespaces ?
+    ok ( $root->getAttribute('xmlns:xxx'), 'http://example.com');
+    ok ( $root->getAttributeNS($xmlns,'xmlns'), 'http://example.com' );
+    ok ( $root->getAttribute('xmlns:yyy'), 'http://yonder.com');
+    ok ( $root->lookupNamespacePrefix('http://yonder.com'), 'yyy');
+    ok ( $root->lookupNamespaceURI('yyy'), 'http://yonder.com');
+
+    # can we change the namespaces ?
+    ok ( $root->setAttribute('xmlns:yyy', 'http://newyonder.com') );
+    ok ( $root->getAttribute('xmlns:yyy'), 'http://newyonder.com');
+    ok ( $root->lookupNamespacePrefix('http://newyonder.com'), 'yyy');
+    ok ( $root->lookupNamespaceURI('yyy'), 'http://newyonder.com');
+
+    # can we change the default namespace ?
+    $root->setAttribute('xmlns', 'http://other.com' );
+    ok ( $root->getAttribute('xmlns'), 'http://other.com' );
+    ok ( $root->lookupNamespacePrefix('http://other.com'), "" );
+    ok ( $root->lookupNamespaceURI(''), 'http://other.com' );
+
+    # non-existent namespaces
+    ok ( $root->lookupNamespaceURI('foo'), undef );
+    ok ( $root->lookupNamespacePrefix('foo'), undef );
+    ok ( $root->getAttribute('xmlns:foo'), undef );
+
+    # changing namespace declaration URI and prefix
+    ok ( $root->setNamespaceDeclURI('yyy', 'http://changed.com') );
+    ok ( $root->getAttribute('xmlns:yyy'), 'http://changed.com');
+    ok ( $root->lookupNamespaceURI('yyy'), 'http://changed.com');
+    eval { $root->setNamespaceDeclPrefix('yyy','xxx'); };
+    ok ( $@ );  # prefix occupied
+    eval { $root->setNamespaceDeclPrefix('yyy',''); };
+    ok ( $@ );  # prefix occupied
+    ok ( $root->setNamespaceDeclPrefix('yyy', 'zzz') );
+    ok ( $root->lookupNamespaceURI('yyy'), undef );
+    ok ( $root->lookupNamespaceURI('zzz'), 'http://changed.com' );
+    ok ( $root->setNamespaceDeclURI('zzz',undef ) ); 
+    ok ( $root->lookupNamespaceURI('zzz'), undef );
+    $strnode = $root->toString();
+    ok ( $strnode !~ /xmlns:zzz/ );
+
+    # changing the default namespace declaration
+    ok ( $root->setNamespaceDeclURI('','http://test') );	
+    ok ( $root->lookupNamespaceURI(''), 'http://test' );
+    ok ( $root->getNamespaceURI(), 'http://test' );
+
+    # changing prefix of the default ns declaration
+    ok ( $root->setNamespaceDeclPrefix('','foo') );	
+    ok ( $root->lookupNamespaceURI(''), undef );
+    ok ( $root->lookupNamespaceURI('foo'), 'http://test' );
+    ok ( $root->getNamespaceURI(),  'http://test' );
+    ok ( $root->prefix(),  'foo' );
+
+    # turning a ns declaration to a default ns declaration
+    ok ( $root->setNamespaceDeclPrefix('foo','') );	
+    ok ( $root->lookupNamespaceURI('foo'), undef );
+    ok ( $root->lookupNamespaceURI(''), 'http://test' );
+    ok ( $root->lookupNamespaceURI(undef), 'http://test' );
+    ok ( $root->getNamespaceURI(),  'http://test' );
+    ok ( $root->prefix(),  undef );
+
+    # removing the default ns declaration
+    ok ( $root->setNamespaceDeclURI('',undef) );
+    ok ( $root->lookupNamespaceURI(''), undef );
+    ok ( $root->getNamespaceURI(), undef );
+
+    $strnode = $root->toString();
+    ok ( $strnode !~ /xmlns=/ );
+
+    # namespaced attributes
+    $root->setAttribute('xxx:attr', 'value');
+    ok ( $root->getAttributeNode('xxx:attr') );
+    ok ( $root->getAttribute('xxx:attr'), 'value' );
+    print $root->toString(1),"\n";
+   ok ( $root->getAttributeNodeNS('http://example.com','attr') );
+   ok ( $root->getAttributeNS('http://example.com','attr'), 'value' );
+   ok ( $root->getAttributeNode('xxx:attr')->getNamespaceURI(), 'http://example.com');
+
+    # removing other xmlns declarations
+    $root->addNewChild('http://example.com', 'xxx:foo');
+    ok( $root->setNamespaceDeclURI('xxx',undef) );	
+    ok ( $root->lookupNamespaceURI('xxx'), undef );
+    ok ( $root->getNamespaceURI(), undef );
+    ok ( $root->firstChild->getNamespaceURI(), undef );
+    ok ( $root->prefix(),  undef );
+    ok ( $root->firstChild->prefix(),  undef );
+
+
+    print $root->toString(1),"\n";
+    # check namespaced attributes
+    ok ( $root->getAttributeNode('xxx:attr'), undef );
+   ok ( $root->getAttributeNodeNS('http://example.com', 'attr'), undef );
+   ok ( $root->getAttributeNode('attr') );
+    ok ( $root->getAttribute('attr'), 'value' );
+   ok ( $root->getAttributeNodeNS(undef,'attr') );
+   ok ( $root->getAttributeNS(undef,'attr'), 'value' );
+    ok ( $root->getAttributeNode('attr')->getNamespaceURI(), undef);
+
+
+    $strnode = $root->toString();
+    ok ( $strnode !~ /xmlns=/ );
+    ok ( $strnode !~ /xmlns:xxx=/ );
+    ok ( $strnode =~ /<foo/ );
+    
+    ok ( $root->setNamespaceDeclPrefix('xxx',undef) );
+
+    ok ( $doc->findnodes('/document/foo')->size(), 1 );
+    ok ( $doc->findnodes('/document[foo]')->size(), 1 );
+    ok ( $doc->findnodes('/document[*]')->size(), 1 );
+   ok ( $doc->findnodes('/document[@attr and foo]')->size(), 1 );
+   ok ( $doc->findvalue('/document/@attr'), 'value' );
+
+    $xp = XML::LibXML::XPathContext->new($doc);
+    ok ( $xp->findnodes('/document/foo')->size(), 1 );
+    ok ( $xp->findnodes('/document[foo]')->size(), 1 );
+    ok ( $xp->findnodes('/document[*]')->size(), 1 );
+
+   ok ( $xp->findnodes('/document[@attr and foo]')->size(), 1 );
+   ok ( $xp->findvalue('/document/@attr'), 'value' );
+
+    ok ( $root->firstChild->prefix(),  undef );
 }

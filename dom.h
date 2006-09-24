@@ -1,5 +1,5 @@
 /* dom.h
- * $Id: dom.h 580 2006-08-04 21:13:04Z pajas $
+ * $Id: dom.h 597 2006-09-21 22:25:25Z pajas $
  * Author: Christian Glahn (2001)
  * 
  * This header file provides some definitions for wrapper functions.
@@ -245,5 +245,8 @@ domNodeNormalize( xmlNodePtr node );
 
 int
 domNodeNormalizeList( xmlNodePtr nodelist );
+
+int
+domRemoveNsRefs(xmlNodePtr tree, xmlNsPtr ns);
 
 #endif

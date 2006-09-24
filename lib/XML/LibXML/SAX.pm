@@ -1,11 +1,11 @@
-# $Id: SAX.pm 562 2006-06-22 07:34:07Z pajas $
+# $Id: SAX.pm 603 2006-09-23 21:47:38Z pajas $
 # Copyright (c) 2001-2002, AxKit.com Ltd. All rights reserved.
 package XML::LibXML::SAX;
 
 use strict;
 use vars qw($VERSION @ISA);
 
-$VERSION = '1.00';
+  $VERSION = "1.61"; # VERSION TEMPLATE: DO NOT CHANGE
 
 use XML::LibXML;
 use XML::SAX::Base;

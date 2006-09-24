@@ -1,10 +1,13 @@
-# $Id: NodeList.pm 422 2002-11-08 17:10:30Z phish $
+# $Id: NodeList.pm 603 2006-09-23 21:47:38Z pajas $
 
 package XML::LibXML::NodeList;
 use strict;
 use XML::LibXML::Boolean;
 use XML::LibXML::Literal;
 use XML::LibXML::Number;
+
+use vars qw ($VERSION);
+  $VERSION = "1.61"; # VERSION TEMPLATE: DO NOT CHANGE
 
 use overload 
 		'""' => \&to_literal,
@@ -14,6 +17,11 @@ use overload
 sub new {
 	my $class = shift;
 	bless [@_], $class;
+}
+
+sub new_from_ref {
+	my ($class,$array_ref,$reuse) = @_;
+	return bless $reuse ? $array_ref : [@$array_ref], $class;
 }
 
 sub pop {

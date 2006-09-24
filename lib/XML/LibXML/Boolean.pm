@@ -1,10 +1,14 @@
-# $Id: Boolean.pm 431 2003-02-04 23:01:33Z phish $
+# $Id: Boolean.pm 603 2006-09-23 21:47:38Z pajas $
 # Copyright 2001-2002, AxKit.com Ltd. All rights reserved.
 
 package XML::LibXML::Boolean;
 use XML::LibXML::Number;
 use XML::LibXML::Literal;
 use strict;
+
+use vars qw ($VERSION);
+
+  $VERSION = "1.61"; # VERSION TEMPLATE: DO NOT CHANGE
 
 use overload
         '""' => \&value,
