@@ -118,5 +118,6 @@ lib/XML/LibXML/Parser.pod
 lib/XML/LibXML/PI.pod
 lib/XML/LibXML/RelaxNG.pod
 lib/XML/LibXML/Schema.pod
+lib/XML/LibXML/XPathContext.pod
 LibXML.pod
 META.yml                                 Module meta-data (added by MakeMaker)

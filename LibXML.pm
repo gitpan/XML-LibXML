@@ -1,4 +1,4 @@
-# $Id: LibXML.pm 603 2006-09-23 21:47:38Z pajas $
+# $Id: LibXML.pm 608 2006-09-25 07:39:01Z pajas $
 
 package XML::LibXML;
 
@@ -19,10 +19,11 @@ use XML::LibXML::XPathContext;
 use IO::Handle; # for FH reads called as methods
 
 BEGIN {
-  $VERSION = "1.61"; # VERSION TEMPLATE: DO NOT CHANGE
-  require Exporter;
-  require DynaLoader;
-  @ISA = qw(DynaLoader Exporter);
+
+$VERSION = "1.61"; # VERSION TEMPLATE: DO NOT CHANGE
+require Exporter;
+require DynaLoader;
+@ISA = qw(DynaLoader Exporter);
 
 #-------------------------------------------------------------------------#
 # export information                                                      #
