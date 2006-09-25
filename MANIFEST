@@ -23,6 +23,7 @@ example/article_internal_bad.xml
 example/article_internal.xml
 example/article.xml
 example/bad.xml
+example/bad.dtd
 example/catalog.xml
 example/cb_example.pl
 example/complex/complex.dtd
