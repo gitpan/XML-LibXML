@@ -20,7 +20,7 @@
             </author>
         </authorgroup>
 
-        <edition>1.61</edition>
+        <edition>1.62</edition>
 
         <copyright>
             <year>2001-2006</year>
@@ -365,6 +365,14 @@ EOT</programlisting>
                 </varlistentry>
 
                 <varlistentry>
+                    <term>XML::LibXML::Reader</term>
+
+                    <listitem>
+                        <para>Reading XML with a pull-parser</para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
                     <term>XML::LibXML::Document</term>
 
                     <listitem>
@@ -461,8 +469,23 @@ EOT</programlisting>
                 </varlistentry>
 
                 <varlistentry>
-                    <term>XML::LibXMLguts</term>
+                    <term>XML::LibXML::Schema</term>
 
+                    <listitem>
+                        <para>XML::LibXML frontend for W3C Schema schema validation</para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>XML::LibXML::XPathContext</term>
+                    <listitem>
+                        <para>API for evaluating XPath expressions</para>
+                    </listitem>
+                </varlistentry>
+
+
+                <varlistentry>
+                    <term>XML::LibXMLguts</term>
                     <listitem>
                         <para>Internal of the Perl Layer for libxml2 (not done yet)</para>
                     </listitem>
@@ -473,9 +496,17 @@ EOT</programlisting>
         <sect1>
             <title>Version Information</title>
 
-            <para>Sometimes it is usefull to figure out, for which version XML::LibXML was compiled for. In most cases this is for debugging or to check if a
-            given installation meets all functionality for the package. The functiones XML::LibXML::LIBXML_DOTTED_VERSION and XML::LibXML::LIBXML_VERSION
-            provide this version information. Both functions simply pass through the values of the similar named macros of libxml2.</para>
+            <para>Sometimes it is usefull to figure out, for which
+            version XML::LibXML was compiled for. In most cases this
+            is for debugging or to check if a given installation meets
+            all functionality for the package. The functiones
+            XML::LibXML::LIBXML_DOTTED_VERSION and
+            XML::LibXML::LIBXML_VERSION provide this version
+            information. Both functions simply pass through the values
+            of the similar named macros of libxml2.
+	    Similarly, XML::LibXML::LIBXML_RUNTIME_VERSION returns
+            the version of the (usually dynamically) linked libxml2.
+            </para>
 
             <variablelist>
                 <varlistentry>
@@ -486,7 +517,9 @@ EOT</programlisting>
                             <funcsynopsisinfo>$Version_String = XML::LibXML::LIBXML_DOTTED_VERSION;</funcsynopsisinfo>
                         </funcsynopsis>
 
-                        <para>Returns the Versionstring of the libxml2 version XML::LibXML was compiled for. This will be "2.6.2" for "libxml2
+                        <para>Returns the version string of the
+                        libxml2 version XML::LibXML was compiled
+                        for. This will be "2.6.2" for "libxml2
                         2.6.2".</para>
                     </listitem>
                 </varlistentry>
@@ -499,11 +532,37 @@ EOT</programlisting>
                             <funcsynopsisinfo>$Version_ID = XML::LibXML::LIBXML_VERSION;</funcsynopsisinfo>
                         </funcsynopsis>
 
-                        <para>Returns the version id of the libxml2 version XML::LibXML was compiled for. This will be "20602" for "libxml2
-                        2.6.2". Don't mix this version id with $XML::LibXML::VERSION. The latter contains the version of XML::LibXML itself while the
-                        first contains the version of libxml2 XML::LibXML was compiled for.</para>
+                        <para>Returns the version id of the libxml2
+                        version XML::LibXML was compiled for. This
+                        will be "20602" for "libxml2 2.6.2". Don't mix
+                        this version id with
+                        $XML::LibXML::VERSION. The latter contains the
+                        version of XML::LibXML itself while the first
+                        contains the version of libxml2 XML::LibXML
+                        was compiled for.</para>
                     </listitem>
                 </varlistentry>
+                <varlistentry>
+                    <term>XML::LibXML::LIBXML_RUNTIME_VERSION</term>
+
+                    <listitem>
+                        <funcsynopsis>
+                            <funcsynopsisinfo>$DLL_Version = XML::LibXML::LIBXML_RUNTIME_VERSION;</funcsynopsisinfo>
+                        </funcsynopsis>
+
+                        <para>Returns a version string of the libxml2
+                        which is (usually dynamically) linked by
+                        XML::LibXML. This will be "20602" for libxml2
+                        released as "2.6.2" and something like
+                        "20602-CVS2032" for a CVS build of
+                        libxml2.</para>
+                        <para>XML::LibXML issues a warning if the version
+                         of libxml2 dynamically linked to it is less than the version of libxml2 
+                         which it was compiled against. 
+                         </para>
+                    </listitem>
+                </varlistentry>
+
             </variablelist>
         </sect1>
 
@@ -665,7 +724,7 @@ my $fragment = $parser-&gt;parse_xml_chunk( $xml_wb_chunk );</programlisting>
                 tag can get accessed and transformed.</para>
 
                 <para>XML::LibXML's DOM parser is not only capable to parse XML data, but also (strict) HTML files. There are three ways to parse
-                documents - as a string, as a Perl filehandle, or as a filename. The return value from each is a XML::LibXML::Document object, which is a DOM
+                documents - as a string, as a Perl filehandle, or as a filename/URL. The return value from each is a XML::LibXML::Document object, which is a DOM
                 object.</para>
 
                 <para>All of the functions listed below will throw an exception if the document is invalid. To prevent this causing your program exiting, wrap
@@ -680,9 +739,11 @@ my $fragment = $parser-&gt;parse_xml_chunk( $xml_wb_chunk );</programlisting>
                                 <funcsynopsisinfo>$doc = $parser-&gt;parse_file( $xmlfilename );</funcsynopsisinfo>
                             </funcsynopsis>
 
-                            <para>This function reads an absolute filename into the memory. It causes XML::LibXML to use libxml2's file parser instead of
-                            letting perl reading the file such as with parse_fh(). If you need to parse files directly, this function would be the faster
-                            choice, since this function is about 6-8 times faster then parse_fh().</para>
+                            <para>This function parses an XML document from a file or network;
+		              $xmlfilename can be either a filename or an URL.
+                              Note that for parsing files, this function is the fastest choice,
+		              about 6-8 times faster then parse_fh().
+	                     </para>
                         </listitem>
                     </varlistentry>
 
@@ -723,10 +784,23 @@ my $fragment = $parser-&gt;parse_xml_chunk( $xml_wb_chunk );</programlisting>
 
                         <listitem>
                             <funcsynopsis>
-                                <funcsynopsisinfo>$doc = $parser-&gt;parse_html_file( $htmlfile );</funcsynopsisinfo>
+                                <funcsynopsisinfo>$doc = $parser-&gt;parse_html_file( $htmlfile, \%opts );</funcsynopsisinfo>
                             </funcsynopsis>
 
-                            <para>Similar to parse_file() but parses HTML (strict) documents.</para>
+                            <para>Similar to parse_file() but parses HTML (strict) documents;
+		               $htmlfile can be filename or URL.
+                            </para>
+                            <para>An optional second argument can be
+                               used to pass some options to the HTML
+                               parser as a HASH reference. Possible
+                               options are: Possible options are:
+                               encoding and URI for libxml2 &lt;
+                               2.6.27, and for later versions of
+                               libxml2 additionally: recover,
+                               suppress_errors, suppress_warnings,
+                               pedantic_parser, no_blanks, and
+                               no_network.
+	                    </para>
                         </listitem>
                     </varlistentry>
 
@@ -735,10 +809,23 @@ my $fragment = $parser-&gt;parse_xml_chunk( $xml_wb_chunk );</programlisting>
 
                         <listitem>
                             <funcsynopsis>
-                                <funcsynopsisinfo>$doc = $parser-&gt;parse_html_fh( $io_fh );</funcsynopsisinfo>
+                                <funcsynopsisinfo>$doc = $parser-&gt;parse_html_fh( $io_fh, \%opts );</funcsynopsisinfo>
                             </funcsynopsis>
-
                             <para>Similar to parse_fh() but parses HTML (strict) streams.</para>
+                            <para>
+                               An optional second argument can be used
+                               to pass some options to the HTML parser
+                               as a HASH reference.  Possible options
+                               are: encoding and URI for libxml2 &lt;
+                               2.6.27, and for later versions of
+                               libxml2 additionally: recover,
+                               suppress_errors, suppress_warnings,
+                               pedantic_parser, no_blanks, and
+                               no_network. Note: encoding option may
+                               not work correctly with this function
+                               in libxml2 &lt; 2.6.27 if the HTML file
+                               declares charset using a META tag.
+	                    </para>
                         </listitem>
                     </varlistentry>
 
@@ -747,22 +834,37 @@ my $fragment = $parser-&gt;parse_xml_chunk( $xml_wb_chunk );</programlisting>
 
                         <listitem>
                             <funcsynopsis>
-                                <funcsynopsisinfo>$doc = $parser-&gt;parse_html_string( $htmlstring );</funcsynopsisinfo>
+                                <funcsynopsisinfo>$doc = $parser-&gt;parse_html_string( $htmlstring, \%opts );</funcsynopsisinfo>
                             </funcsynopsis>
-
-                            <para>Similar to parse_file() but parses HTML (strict) strings.</para>
+                            <para>Similar to parse_string() but parses HTML (strict) strings.</para>
+                            <para>An optional second argument can be used to pass some options to the
+                               HTML parser as a HASH reference. Possible options are:
+		               encoding and URI for libxml2 &lt; 2.6.27, and for later versions of libxml2 additionally:
+                               recover, suppress_errors, suppress_warnings, pedantic_parser,
+		               no_blanks, and no_network.
+	                    </para>
                         </listitem>
                     </varlistentry>
                 </variablelist>
 
-                <para>Parsing HTML may cause problems, especially if the ampersand ('&amp;') is used. This is a common problem if HTML code is parsed
-                that contains links to CGI-scripts. Such links cause the parser to throw errors. In such cases libxml2 still parses the entire document as there
-                was no error, but the error causes XML::LibXML to stop the parsing process. However, the document is not lost. Such HTML documents should be
-                parsed using the <emphasis>recover</emphasis> flag. By default recovering is deactivated.</para>
+                <para>Parsing HTML may cause problems, especially if
+                the ampersand ('&amp;') is used. This is a common
+                problem if HTML code is parsed that contains links to
+                CGI-scripts. Such links cause the parser to throw
+                errors. In such cases libxml2 still parses the entire
+                document as there was no error, but the error causes
+                XML::LibXML to stop the parsing process. However, the
+                document is not lost. Such HTML documents should be
+                parsed using the <emphasis>recover</emphasis> flag. By
+                default recovering is deactivated.</para>
 
-                <para>The functions described above are implemented to parse well formed documents. In some cases a program gets well balanced XML instead of
-                well formed documents (e.g. a XML fragment from a Database). With XML::LibXML it is not required to wrap such fragments in the code, because
-                XML::LibXML is capable even to parse well balanced XML fragments.</para>
+                <para>The functions described above are implemented to
+                parse well formed documents. In some cases a program
+                gets well balanced XML instead of well formed
+                documents (e.g. a XML fragment from a Database). With
+                XML::LibXML it is not required to wrap such fragments
+                in the code, because XML::LibXML is capable even to
+                parse well balanced XML fragments.</para>
 
                 <variablelist>
                     <varlistentry>
@@ -1374,16 +1476,16 @@ my $doc = $builder-&gt;result();</programlisting>
             <para>XML::LibXML's DOM implementation is 
             limitted by the DOM implementation of libxml2
             which treats namespaces slightly differently than
-            required by the DOM Layer 2 specification.
+            required by the DOM Level 2 specification.
             </para>
-            <para>According to the DOM Layer 2 specification,
+            <para>According to the DOM Level 2 specification,
              namespaces of elements and attributes should be
              persistent, and nodes should be permanently bound to
              namespace URIs as they get created; it should be
              possible to manipulate the special attributes used for
              declaring XML namespaces just as other attributes
              without affecting the namespaces of other nodes.
-             In DOM Layer 2, the application is responsible
+             In DOM Level 2, the application is responsible
              for creating the special attributes consistently and/or for correct
              serialization of the document.
             </para>
@@ -1407,7 +1509,7 @@ my $doc = $builder-&gt;result();</programlisting>
              Therefore current DOM implementation in XML::LibXML tries
              to treat namespace declarations in a compromise between
              reason, common sense, limitations of libxml2, and the DOM
-             Layer 2 specification.
+             Level 2 specification.
             </para>
             <para>In XML::LibXML, special attributes declaring XML namespaces
 	     are often created automatically, usually when
@@ -1416,7 +1518,7 @@ my $doc = $builder-&gt;result();</programlisting>
              scope to be reused.
              In this respect,
 	     XML::LibXML DOM implementation differs from the DOM
-             Layer 2 specification according to which special
+             Level 2 specification according to which special
               attributes for declaring the appropriate XML namespaces
               should not be added when a node with a namespace prefix
               and namespace URI is created.
@@ -2205,9 +2307,14 @@ my $dtd      = $document-&gt;createInternalSubset( "foo", "-//FOO//DTD FOO 0.1//
 
         <titleabbrev>XML::LibXML::Node</titleabbrev>
 
-        <para>XML::LibXML::Node defines functions that are common to all Node Types. A LibXML::Node should never be created standalone, but as an instance of a
-        high level class such as LibXML::Element or LibXML::Text. The class itself should provide only common functionality. In XML::LibXML each node is part
-        either of a document or a document-fragment. Because of this there is no node without a parent. This may causes confusion with "unbound" nodes.</para>
+        <para>XML::LibXML::Node defines functions that are common to
+        all Node Types. A LibXML::Node should never be created
+        standalone, but as an instance of a high level class such as
+        LibXML::Element or LibXML::Text. The class itself should
+        provide only common functionality. In XML::LibXML each node is
+        part either of a document or a document-fragment. Because of
+        this there is no node without a parent. This may causes
+        confusion with "unbound" nodes.</para>
 
         <variablelist>
             <varlistentry>
@@ -2218,11 +2325,17 @@ my $dtd      = $document-&gt;createInternalSubset( "foo", "-//FOO//DTD FOO 0.1//
                         <funcsynopsisinfo>$name = $node-&gt;nodeName;</funcsynopsisinfo>
                     </funcsynopsis>
 
-                    <para>Returns the node's name. This Function is aware of namesaces and returns the full name of the current node (<function>prefix:localname</function>)</para>
+                    <para>Returns the node's name. This function is
+	              aware of namespaces and returns the full name of
+                      the current node (<function>prefix:localname</function>).
+	            </para>
+                    <para>Since 1.62 this function also returns the correct
+	              DOM names for node types with constant names, namely:
+                      #text, #cdata-section, #comment, #document, 
+	              #document-fragment.
+	            </para>
                 </listitem>
             </varlistentry>
-        
-
         
             <varlistentry>
                 <term>setNodeName</term>
@@ -2247,7 +2360,9 @@ my $dtd      = $document-&gt;createInternalSubset( "foo", "-//FOO//DTD FOO 0.1//
                         <funcsynopsisinfo>$bool = $node-&gt;isSameNode( $other_node );</funcsynopsisinfo>
                     </funcsynopsis>
 
-                    <para>returns TRUE (1) if the given nodes refer to the same node structure, otherwise FALSE (0) is returned.</para>
+                    <para>returns TRUE (1) if the given nodes refer to
+                    the same node structure, otherwise FALSE (0) is
+                    returned.</para>
                 </listitem>
             </varlistentry>
         
@@ -2473,10 +2588,17 @@ my $dtd      = $document-&gt;createInternalSubset( "foo", "-//FOO//DTD FOO 0.1//
                         <funcsynopsisinfo>$newnode =$node-&gt;cloneNode( $deep );</funcsynopsisinfo>
                     </funcsynopsis>
 
-                    <para><emphasis>cloneNode</emphasis> creates a copy of <function>$node</function>. When $deep is set to 1 (true) the function will copy all
-                    childnodes as well. If $deep is 0 only the current node will be copied.</para>
-
-                    <para><emphasis>cloneNode</emphasis> will not copy any namespace information if it is not run recursivly.</para>
+                    <para><emphasis>cloneNode</emphasis> creates a
+                    copy of <function>$node</function>. When $deep is
+                    set to 1 (true) the function will copy all
+                    childnodes as well. If $deep is 0 only the current
+                    node will be copied. Note that in case of element,
+                    attributes are copied iven if $deep is 0.
+                    </para>
+                    <para>Note that the behavior of this function for $deep=0
+	              has changed in 1.62 in order to be consistent with the DOM spec
+                      (in older versions attributes and namespace information
+                      was not copied for elements).</para>
                 </listitem>
             </varlistentry>
         
@@ -2792,7 +2914,7 @@ $xpc-&gt;find('/x:html',$node);</programlisting>
 
                 <listitem>
                     <funcsynopsis>
-                        <funcsynopsisinfo>$c14nstring = $node-&gt;toString($with_comments, $xpath_expression);</funcsynopsisinfo>
+                        <funcsynopsisinfo>$c14nstring = $node-&gt;toStringC14N($with_comments, $xpath_expression);</funcsynopsisinfo>
                     </funcsynopsis>
 
                     <para>The function is similar to toString(). Instead of simply serializing the document tree, it transforms it as it is specified in the
@@ -3107,7 +3229,7 @@ $xpc-&gt;find('/x:html',$node);</programlisting>
                        to declare the prefix specified in <function>$aname</function>
                        and dies if the prefix is already taken by some other namespace.
 	            </para>
-                    <para>According to DOM Layer 2 specification, this method can also be used to
+                    <para>According to DOM Level 2 specification, this method can also be used to
 	              create or modify special attributes used for declaring XML namespaces
 	              (which belong to the namespace "http://www.w3.org/2000/xmlns/" and
 	              have prefix or name "xmlns"). This should work since version 1.61,
@@ -3839,7 +3961,7 @@ $xpc-&gt;find('/x:html',$node);</programlisting>
 
                 <listitem>
                     <funcsynopsis>
-                        <funcsynopsisinfo>$value = $attr-&gt;value;</funcsynopsisinfo>
+                        <funcsynopsisinfo>$string = $attr-&gt;value;</funcsynopsisinfo>
                     </funcsynopsis>
 
                     <para>Alias for <emphasis>getValue()</emphasis></para>
@@ -3921,6 +4043,27 @@ $xpc-&gt;find('/x:html',$node);</programlisting>
 		    </para>
                 </listitem>
             </varlistentry>
+
+            <varlistentry>
+                <term>serializeContent($docencoding)</term>
+
+                <listitem>
+                    <funcsynopsis>
+                        <funcsynopsisinfo>$string = $attr-&gt;serializeContent;</funcsynopsisinfo>
+                    </funcsynopsis>
+
+                    <para>This functin is not part of DOM API. It returns attribute content
+                       in the form in which it serializes into XML, that is
+	               with all meta-characters properly quoted and with raw
+	               entity references (except for entities expanded during parse time).
+	               Setting the optional $docencoding flag to 1 enforces document
+	               encoding for the output string (wich is then passed to Perl as a
+	               byte string). Otherwise the string is passed to Perl as (UTF-8 encododed)
+	               characters.
+                    </para>
+                </listitem>
+            </varlistentry>
+
         </variablelist>
     </chapter>
 
@@ -4933,6 +5076,782 @@ my @nodes = $xc-&gt;findnodes('$A[work_area/street = $B]/name');
       </para>
     </sect1>
   </chapter>
-
-
+  <chapter>
+    <title>XML::LibXML::Reader - interface to libxml2 pull parser</title>
+    <titleabbrev>XML::LibXML::Reader</titleabbrev>
+    <sect1>
+      <title>Synopsis</title>
+      <programlisting>use XML::LibXML::Reader;</programlisting>
+      <programlisting>$reader = new XML::LibXML::Reader("file.xml")
+       or die "cannot read file.xml\n";
+while ($reader-&gt;read) {
+  processNode($reader);
+}</programlisting>
+      <programlisting>
+sub processNode {
+    $reader = shift;
+    printf "%d %d %s %d\n", ($reader-&gt;depth,
+                             $reader-&gt;nodeType,
+                             $reader-&gt;name,
+                             $reader-&gt;isEmptyElement);
+}
+</programlisting>
+      <para>or</para>
+      <programlisting>
+  $reader = new XML::LibXML::Reader("file.xml")
+       or die "cannot read file.xml\n";
+  $reader-&gt;preservePattern('//table/tr');
+  $reader-&gt;finish;
+  print $reader-&gt;document-&gt;toString(1);
+</programlisting>
+    </sect1>
+    <sect1>
+      <title>DESCRIPTION</title>
+      <para>This is a perl interface to libxml2's pull-parser implementation
+	xmlTextReader
+	<emphasis>http://xmlsoft.org/html/libxml-xmlreader.html</emphasis>. 
+	Pull-parser (StAX in Java, XmlReader in C#) use an iterator
+	approach to parse a xml-file. They are easier to program than
+	event-based parser (SAX) and much more lightweight than
+	tree-based parser (DOM), which load the complete tree into
+	memory.</para>
+      <para>The Reader acts as a cursor going forward on the document
+	stream and stopping at each node in the way. At every point
+	DOM-like methods of the Reader object allow to examine the
+	current node (name, namespace, attributes, etc.)</para>
+      <para>The user's code keeps control of the progress and simply
+	calls the <literal>read()</literal> function repeatedly to
+	progress to the next node in the document order. Other
+	functions provide means for skipping complete subtrees, or
+	nodes until a specific element, etc.</para>
+      <para>At every time, only a very limitted portion of the
+	document is kept in the memory, which makes the API more
+	memory-efficient than using DOM. However, it is also possible
+	to mix Reader with DOM. At every point the user may copy the
+	current node (optionally expanded into a complete subtree)
+	from the processed document to another DOM tree, or to
+	instruct the Reader to collect sub-document in form of a DOM
+	tree consisting of selected nodes.</para>
+      <para>Reader API also supports namespaces, xml:base, entity
+	handling, and DTD validation. Schema and RelaxNG validation
+	support will probably be added in some later revision of the
+	Perl interface.</para>
+      <para>The naming of methods compared to libxml2 and C#
+	XmlTextReader has been changed slightly to match the
+	conventions of XML::LibXML. Some functions have been changed
+	or added with respect to the C interface.</para>
+    </sect1>
+    <sect1>
+      <title>CONSTRUCTOR</title>
+      <para>Depending on the XML source, the Reader object can be created with either of:</para>
+      <programlisting>
+  my $reader = XML::LibXML::Reader-&gt;new( location =&gt; "file.xml", ... );
+  my $reader = XML::LibXML::Reader-&gt;new( string =&gt; $xml_string, ... );
+  my $reader = XML::LibXML::Reader-&gt;new( IO =&gt; $file_handle, ... );
+  my $reader = XML::LibXML::Reader-&gt;new( DOM =&gt; $dom, ... );
+</programlisting>
+      <para>where ... are (optional) reader options described below in Parser options.
+	The constructor recognizes the following XML sources:</para>
+      <sect2>
+        <title>Source specification</title>
+        <variablelist>
+          <varlistentry>
+            <term>location</term>
+            <listitem>
+              <para>Read XML from a local file or URL.</para>
+            </listitem>
+          </varlistentry>
+          <varlistentry>
+            <term>string</term>
+            <listitem>
+              <para>Read XML from a string.</para>
+            </listitem>
+          </varlistentry>
+          <varlistentry>
+            <term>IO</term>
+            <listitem>
+              <para>Read XML a Perl IO filehandle.</para>
+            </listitem>
+          </varlistentry>
+          <varlistentry>
+            <term>FD</term>
+            <listitem>
+              <para>Read XML from a file descriptor (bypasses Perl I/O
+		layer, only applicable to filehandles for regular
+		files or pipes). Possibly faster than IO.</para>
+            </listitem>
+          </varlistentry>
+          <varlistentry>
+            <term>DOM</term>
+            <listitem>
+              <para>Use reader API to walk through a preparsed
+		XML::LibXML::Document.</para>
+            </listitem>
+          </varlistentry>
+        </variablelist>
+      </sect2>
+      <sect2>
+        <title>Parsing options</title>
+        <variablelist>
+          <varlistentry>
+            <term>URI</term>
+            <listitem>
+              <para>can be used to provide baseURI when parsing
+		strings or filehandles.</para>
+            </listitem>
+          </varlistentry>
+          <varlistentry>
+            <term>encoding</term>
+            <listitem>
+              <para>override document encoding.</para>
+            </listitem>
+          </varlistentry>
+          <varlistentry>
+            <term>RelaxNG</term>
+            <listitem>
+              <para>can be used to pass either a XML::LibXML::RelaxNG
+		object or a filename or URL of a RelaxNG schema to the
+		constructor. The schema is then used to validate the
+		document as it is processed.</para>
+            </listitem>
+          </varlistentry>
+          <varlistentry>
+            <term>Schema</term>
+            <listitem>
+              <para>can be used to pass either a XML::LibXML::Schema
+		object or a filename or URL of a W3C XSD schema to the
+		constructor. The schema is then used to validate the
+		document as it is processed.</para>
+            </listitem>
+          </varlistentry>
+          <varlistentry>
+            <term>recover</term>
+            <listitem>
+              <para>recover on errors (0 or 1)</para>
+            </listitem>
+          </varlistentry>
+          <varlistentry>
+            <term>expand_entities</term>
+            <listitem>
+              <para>substitute entities (0 or 1)</para>
+            </listitem>
+          </varlistentry>
+          <varlistentry>
+            <term>load_ext_dtd</term>
+            <listitem>
+              <para>load the external subset (0 or 1)</para>
+            </listitem>
+          </varlistentry>
+          <varlistentry>
+            <term>complete_attributes</term>
+            <listitem>
+              <para>default DTD attributes (0 or 1)</para>
+            </listitem>
+          </varlistentry>
+          <varlistentry>
+            <term>validation</term>
+            <listitem>
+              <para>validate with the DTD (0 or 1)</para>
+            </listitem>
+          </varlistentry>
+          <varlistentry>
+            <term>suppress_errors</term>
+            <listitem>
+              <para>suppress error reports (0 or 1)</para>
+            </listitem>
+          </varlistentry>
+          <varlistentry>
+            <term>suppress_warnings</term>
+            <listitem>
+              <para>suppress warning reports (0 or 1)</para>
+            </listitem>
+          </varlistentry>
+          <varlistentry>
+            <term>pedantic_parser</term>
+            <listitem>
+              <para>pedantic error reporting (0 or 1)</para>
+            </listitem>
+          </varlistentry>
+          <varlistentry>
+            <term>no_blanks</term>
+            <listitem>
+              <para>remove blank nodes (0 or 1)</para>
+            </listitem>
+          </varlistentry>
+          <varlistentry>
+            <term>expand_xinclude</term>
+            <listitem>
+              <para>Implement XInclude substitition (0 or 1)</para>
+            </listitem>
+          </varlistentry>
+          <varlistentry>
+            <term>no_network</term>
+            <listitem>
+              <para>Forbid network access (0 or 1)</para>
+            </listitem>
+          </varlistentry>
+          <varlistentry>
+            <term>clean_namespaces</term>
+            <listitem>
+              <para>remove redundant namespaces declarations (0 or 1)</para>
+            </listitem>
+          </varlistentry>
+          <varlistentry>
+            <term>no_cdata</term>
+            <listitem>
+              <para>merge CDATA as text nodes (0 or 1)</para>
+            </listitem>
+          </varlistentry>
+          <varlistentry>
+            <term>no_xinclude_nodes</term>
+            <listitem>
+              <para>do not generate XINCLUDE START/END nodes (0 or 1)</para>
+            </listitem>
+          </varlistentry>
+        </variablelist>
+      </sect2>
+    </sect1>
+    <sect1>
+      <title>METHODS CONTROLLING PARSING PROGRESS</title>
+<variablelist>
+        <varlistentry>
+          <term>read ()</term>
+          <listitem>
+            <para>Moves the position to the next node in the stream,
+	      exposing its properties.</para>
+            <para>Returns 1 if the node was read successfully, 0 if
+	      there is no more nodes to read, or -1 in case of
+	      error</para>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>readAttributeValue ()</term>
+          <listitem>
+            <para>Parses an attribute value into one or more Text and
+	      EntityReference nodes.</para>
+            <para>Returns 1 in case of success, 0 if the reader was not positionned on an attribute node or all the attribute values have been read, or -1 in case of error.</para>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>readState ()</term>
+          <listitem>
+            <para>Gets the read state of the reader. Returns the state
+	      value, or -1 in case of error. The module exports
+	      constants for the Reader states, see STATES
+	      below.</para>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>depth ()</term>
+          <listitem>
+            <para>The depth of the node in the tree, starts at 0 for
+	      the root node.</para>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>next ()</term>
+          <listitem>
+            <para>Skip to the node following the current one in the
+	      document order while avoiding the subtree if any.
+	      Returns 1 if the node was read successfully, 0 if there
+	      is no more nodes to read, or -1 in case of error.</para>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>nextElement (localname?,nsURI?)</term>
+          <listitem>
+            <para>Skip nodes following the current one in the document
+	      order until a specific element is reached. The element's
+	      name must be equal to a given localname if defined, and
+	      its namespace must equal to a given nsURI if defined.
+	      Either of the arguments can be undefined (or omitted, in
+	      case of the latter or both).</para>
+            <para>Returns 1 if the element was found, 0 if there is no more nodes to read, or -1 in case of error.</para>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>skipSiblings ()</term>
+          <listitem>
+            <para>Skip all nodes on the same or lower level until the
+	      first node on a higher level is reached. In particular,
+	      if the current node occurs in an element, the reader
+	      stops at the end tag of the parent element, otherwise it
+	      stops at a node immediately following the parent
+	      node.</para>
+            <para>Returns 1 if successful, 0 if end of the document is reached, or -1 in case of error.</para>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>nextSibling ()</term>
+          <listitem>
+            <para>It skips to the node following the current one in
+	      the document order while avoiding the subtree if
+	      any.</para>
+            <para>Returns 1 if the node was read successfully, 0 if
+	      there is no more nodes to read, or -1 in case of
+	      error</para>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>nextSiblingElement (name?,nsURI?)</term>
+          <listitem>
+            <para>Like nextElement but only processes sibling elements
+	      of the current node (moving forward using
+	      <literal>nextSibling ()</literal>  rather than
+	      <literal>read ()</literal>,  internally).</para>
+            <para>Returns 1 if the element was found, 0 if there is no
+	      more sibling nodes, or -1 in case of error.</para>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>finish ()</term>
+          <listitem>
+            <para>Skip all remaining nodes in the document, reaching end of the document.</para>
+            <para>Returns 1 if successful, 0 in case of error.</para>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>close ()</term>
+          <listitem>
+            <para>This method releases any resources allocated by the
+	      current instance and closes any underlying input. It
+	      returns 0 on failure and 1 on success. This method is
+	      automatically called by the destructor when the reader
+	      is forgotten, therefore you do not have to call it
+	      directly.</para>
+          </listitem>
+        </varlistentry>
+      </variablelist>
+    </sect1>
+    <sect1>
+      <title>METHODS EXTRACTING INFORMATION</title>
+<variablelist>
+        <varlistentry>
+          <term>name ()</term>
+          <listitem>
+            <para>Returns the qualified name of the current node, equal to (Prefix:)LocalName.</para>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>nodeType ()</term>
+          <listitem>
+            <para>Returns the type of the current node. See NODE TYPES below.</para>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>localName ()</term>
+          <listitem>
+            <para>Returns the local name of the node.</para>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>prefix ()</term>
+          <listitem>
+            <para>Returns the prefix of the namespace associated with the node.</para>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>namespaceURI ()</term>
+          <listitem>
+            <para>Returns the URI defining the namespace associated with the node.</para>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>isEmptyElement ()</term>
+          <listitem>
+            <para>Check if the current node is empty, this is a bit
+	      bizarre in the sense that &lt;a/&gt; will be considered
+	      empty while &lt;a&gt;&lt;/a&gt; will not.</para>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>hasValue ()</term>
+          <listitem>
+            <para>Returns true if the node can have a text value.</para>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>value ()</term>
+          <listitem>
+            <para>Provides the text value of the node if present or undef if not available.</para>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>readInnerXml ()</term>
+          <listitem>
+            <para>Reads the contents of the current node, including
+	      child nodes and markup. Returns a string containing the
+	      XML of the node's content, or undef if the current node
+	      is neither an element nor attribute, or has no child
+	      nodes.</para>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>readOuterXml ()</term>
+          <listitem>
+            <para>Reads the contents of the current node, including
+	      child nodes and markup.</para>
+            <para>Returns a string containing the XML of the node
+	      including its content, or undef if the current node is
+	      neither an element nor attribute.</para>
+          </listitem>
+        </varlistentry>
+      </variablelist>
+    </sect1>
+    <sect1>
+      <title>METHODS EXTRACTING DOM NODES</title>
+<variablelist>
+        <varlistentry>
+          <term>document ()</term>
+          <listitem>
+            <para>Provides access to the document tree built by the
+	      reader. This function can be used to collect the
+	      preserved nodes (see <literal>preserveNode()</literal>
+	      and preservePattern).</para>
+            <para>CAUTION: Never use this function to modify the tree
+	      unless reading of the whole document is
+	      completed!</para>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>copyCurrentNode (deep)</term>
+          <listitem>
+            <para>This function is similar a DOM function
+	      <literal>copyNode()</literal>. It returns a copy of the
+	      currently processed node as a corresponding DOM object.
+	      Use deep = 1 to obtain the full subtree.</para>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>preserveNode ()</term>
+          <listitem>
+            <para>This tells the XML Reader to preserve the current
+	      node in the document tree. A document tree consisting of
+	      the preserved nodes and their content can be obtained
+	      using the method <literal>document()</literal> once
+	      parsing is finished.</para>
+            <para>Returns the node or NULL in case of error.</para>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>preservePattern (pattern,\%ns_map)</term>
+          <listitem>
+            <para>This tells the XML Reader to preserve all nodes
+	      matched by the pattern (which is a streaming XPath
+	      subset). A document tree consisting of the preserved
+	      nodes and their content can be obtained using the method
+	      <literal>document()</literal> once parsing is
+	      finished.</para>
+            <para>An optional second argument can be used to provide a
+	      HASH reference mapping prefixes used by the XPath to
+	      namespace URIs.</para>
+            <para>The XPath subset available with this function is
+	      described at</para>
+            <programlisting>http://www.w3.org/TR/xmlschema-1/#Selector</programlisting>
+            <para>and matches the production</para>
+            <programlisting>Path ::= ('.//')? ( Step '/' )* ( Step | '@' NameTest )</programlisting>
+            <para>Returns a positive number in case of success and -1
+	      in case of error</para>
+          </listitem>
+        </varlistentry>
+      </variablelist>
+    </sect1>
+    <sect1>
+      <title>METHODS PROCESSING ATTRIBUTES</title>
+<variablelist>
+        <varlistentry>
+          <term>attributeCount ()</term>
+          <listitem>
+            <para>Provides the number of attributes of the current
+	      node.</para>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>hasAttributes ()</term>
+          <listitem>
+            <para>Whether the node has attributes.</para>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>getAttribute (name)</term>
+          <listitem>
+            <para>Provides the value of the attribute with the
+	      specified qualified name.</para>
+            <para>Returns a string containing the value of the
+	      specified attribute, or undef in case of error.</para>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>getAttributeNs (localName, namespaceURI)</term>
+          <listitem>
+            <para>Provides the value of the specified
+	      attribute.</para>
+            <para>Returns a string containing the value of the
+	      specified attribute, or undef in case of error.</para>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>getAttributeNo (no)</term>
+          <listitem>
+            <para>Provides the value of the attribute with the
+	      specified index relative to the containing
+	      element.</para>
+            <para>Returns a string containing the value of the
+	      specified attribute, or undef in case of error.</para>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>isDefault ()</term>
+          <listitem>
+            <para>Returns true if the current attribute node was
+	      generated from the default value defined in the
+	      DTD.</para>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>moveToAttribute (name)</term>
+          <listitem>
+            <para>Moves the position to the attribute with the
+	      specified local name and namespace URI.</para>
+            <para>Returns 1 in case of success, -1 in case of error, 0
+	      if not found</para>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>moveToAttributeNo (no)</term>
+          <listitem>
+            <para>Moves the position to the attribute with the
+	      specified index relative to the containing
+	      element.</para>
+            <para>Returns 1 in case of success, -1 in case of error, 0
+	      if not found</para>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>moveToAttributeNs (localName,namespaceURI)</term>
+          <listitem>
+            <para>Moves the position to the attribute with the
+	      specified local name and namespace URI.</para>
+            <para>Returns 1 in case of success, -1 in case of error, 0
+	      if not found</para>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>moveToFirstAttribute ()</term>
+          <listitem>
+            <para>Moves the position to the first attribute associated
+	      with the current node.</para>
+            <para>Returns 1 in case of success, -1 in case of error, 0
+	      if not found</para>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>moveToNextAttribute ()</term>
+          <listitem>
+            <para>Moves the position to the next attribute associated
+	      with the current node.</para>
+            <para>Returns 1 in case of success, -1 in case of error, 0
+	      if not found</para>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>moveToElement ()</term>
+          <listitem>
+            <para>Moves the position to the node that contains the
+	      current attribute node.</para>
+            <para>Returns 1 in case of success, -1 in case of error, 0
+	      if not moved</para>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>isNamespaceDecl ()</term>
+          <listitem>
+            <para>Determine whether the current node is a namespace
+	      declaration rather than a regular attribute.</para>
+            <para>Returns 1 if the current node is a namespace
+	      declaration, 0 if it is a regular attribute or other
+	      type of node, or -1 in case of error.</para>
+          </listitem>
+        </varlistentry>
+      </variablelist>
+    </sect1>
+    <sect1>
+      <title>OTHER METHODS</title>
+<variablelist>
+        <varlistentry>
+          <term>lookupNamespace (prefix)</term>
+          <listitem>
+            <para>Resolves a namespace prefix in the scope of the
+	      current element.</para>
+            <para>Returns a string containing the namespace URI to
+	      which the prefix maps or undef in case of error.</para>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>encoding ()</term>
+          <listitem>
+            <para>Returns a string containing the encoding of the
+	      document or undef in case of error.</para>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>standalone ()</term>
+          <listitem>
+            <para>Determine the standalone status of the document
+	      being read. Returns 1 if the document was declared to be
+	      standalone, 0 if it was declared to be not standalone,
+	      or -1 if the document did not specify its standalone
+	      status or in case of error.</para>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>xmlVersion ()</term>
+          <listitem>
+            <para>Determine the XML version of the document being
+	      read. Returns a string containing the XML version of the
+	      document or undef in case of error.</para>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>baseURI ()</term>
+          <listitem>
+            <para>The base URI of the node. See the XML Base W3C
+	      specification.</para>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>isValid ()</term>
+          <listitem>
+            <para>Retrieve the validity status from the parser.</para>
+            <para>Returns 1 if valid, 0 if no, and -1 in case of
+	      error.</para>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>xmlLang ()</term>
+          <listitem>
+            <para>The xml:lang scope within which the node
+	      resides.</para>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>lineNumber ()</term>
+          <listitem>
+            <para>Provide the line number of the current parsing
+	      point. Available if libxml2 &gt;= 2.6.17.</para>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>columnNumber ()</term>
+          <listitem>
+            <para>Provide the column number of the current parsing
+	      point. Available if libxml2 &gt;= 2.6.17.</para>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>byteConsumed ()</term>
+          <listitem>
+            <para>This function provides the current index of the
+	      parser relative to the start of the current entity. This
+	      function is computed in bytes from the beginning
+	      starting at zero and finishing at the size in bytes of
+	      the file if parsing a file. The function is of constant
+	      cost if the input is UTF-8 but can be costly if run on
+	      non-UTF-8 input. Available if libxml2 &gt;=
+	      2.6.18.</para>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>setParserProp (prop =&gt; value, ...)</term>
+          <listitem>
+            <para>Change the parser processing behaviour by changing
+	      some of its internal properties. The following
+	      properties are available with this function:
+	      ``load_ext_dtd'', ``complete_attributes'',
+	      ``validation'', ``expand_entities''.</para>
+            <para>Since some of the properties can only be changed
+	      before any read has been done, it is best to set the
+	      parsing properties at the constructor.</para>
+            <para>Returns 0 if the call was successful, or -1 in case
+	      of error</para>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>getParserProp (prop)</term>
+          <listitem>
+            <para>Get value of an parser internal property. The
+	      following property names can be used: ``load_ext_dtd'',
+	      ``complete_attributes'', ``validation'',
+	      ``expand_entities''.</para>
+            <para>Returns the value, usually 0 or 1, or -1 in case of
+	      error.</para>
+          </listitem>
+        </varlistentry>
+      </variablelist>
+    </sect1>
+    <sect1>
+      <title>DESTRUCTION</title>
+      <para>XML::LibXML takes care of the reader object destruction
+	when the last reference to the reader object goes out of
+	scope. The document tree is preserved, though, if either of
+	$reader-&gt;document or $reader-&gt;preserveNode was used and
+	references to the document tree exist.</para>
+    </sect1>
+    <sect1>
+      <title>NODE TYPES</title>
+      <para>The reader interface provides the following constants for
+	node types (the constant symbols are exported by default or if
+	tag <literal>:types</literal> is used).</para>
+      <programlisting>
+  XML_READER_TYPE_NONE                    =&gt; 0
+  XML_READER_TYPE_ELEMENT                 =&gt; 1
+  XML_READER_TYPE_ATTRIBUTE               =&gt; 2
+  XML_READER_TYPE_TEXT                    =&gt; 3
+  XML_READER_TYPE_CDATA                   =&gt; 4
+  XML_READER_TYPE_ENTITY_REFERENCE        =&gt; 5
+  XML_READER_TYPE_ENTITY                  =&gt; 6
+  XML_READER_TYPE_PROCESSING_INSTRUCTION  =&gt; 7
+  XML_READER_TYPE_COMMENT                 =&gt; 8
+  XML_READER_TYPE_DOCUMENT                =&gt; 9
+  XML_READER_TYPE_DOCUMENT_TYPE           =&gt; 10
+  XML_READER_TYPE_DOCUMENT_FRAGMENT       =&gt; 11
+  XML_READER_TYPE_NOTATION                =&gt; 12
+  XML_READER_TYPE_WHITESPACE              =&gt; 13
+  XML_READER_TYPE_SIGNIFICANT_WHITESPACE  =&gt; 14
+  XML_READER_TYPE_END_ELEMENT             =&gt; 15
+  XML_READER_TYPE_END_ENTITY              =&gt; 16
+  XML_READER_TYPE_XML_DECLARATION         =&gt; 17
+</programlisting>
+    </sect1>
+    <sect1>
+      <title>STATES</title>
+      <para>The following constants represent the values returned by
+	<literal>readState()</literal>. They are exported by default,
+	or if tag <literal>:states</literal> is used:</para>
+      <programlisting>
+  XML_READER_NONE      =&gt; -1
+  XML_READER_START     =&gt;  0
+  XML_READER_ELEMENT   =&gt;  1
+  XML_READER_END       =&gt;  2
+  XML_READER_EMPTY     =&gt;  3
+  XML_READER_BACKTRACK =&gt;  4
+  XML_READER_DONE      =&gt;  5
+  XML_READER_ERROR     =&gt;  6
+</programlisting>
+    </sect1>
+    <sect1>
+      <title>VERSION</title>
+      <para>0.02</para>
+    </sect1>
+    <sect1>
+      <title>AUTHORS</title>
+      <para>Heiko Klein, &lt;H.Klein@gmx.net&lt;gt&gt; and Petr Pajas,
+	&lt;pajas@matfyz.cz&lt;gt&gt;</para>
+    </sect1>
+    <sect1>
+      <title>SEE ALSO</title>
+      <para>http://xmlsoft.org/html/libxml-xmlreader.html</para>
+      <para>http://dotgnu.org/pnetlib-doc/System/Xml/XmlTextReader.html</para>
+    </sect1>
+  </chapter>
 </book>

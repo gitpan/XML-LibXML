@@ -1,5 +1,5 @@
 # -------------------------------------------------------------------------- #
-# $Id: Makefile.PL 603 2006-09-23 21:47:38Z pajas $
+# $Id: Makefile.PL 643 2006-11-17 20:23:34Z pajas $
 # -------------------------------------------------------------------------- #
 # Makefile.PL for XML::LibXML.
 # This file is required to generate a localized Makefile
@@ -27,7 +27,6 @@ my %INFOS = (
                      'XML::LibXML::Common' => 0,
                    },
     'OBJECT'    => '$(O_FILES)', # add the DOM extensions to libxml2
-    # 'dist'      => { PREOP => "$^X -Iblib/arch -Iblib/lib example/xml2pod.pl" },
             );
 # -------------------------------------------------------------------------- #
 # -------------------------------------------------------------------------- #
@@ -39,10 +38,15 @@ my %INFOS = (
 
 # -------------------------------------------------------------------------- #
 # read extra configurations from the commandline
-while($_ = shift) {
-    my ($key, $val) = split(/=/, $_, 2);
-    $config{$key} = $val;
-}
+my %params;
+@params{qw(DEBUG DEFINE EXTRALIBDIR GDOME INC LIBS SKIP_SAX_INSTALL XMLPREFIX)}=();
+
+@ARGV = grep {
+  my ($key, $val) = split(/=/, $_, 2);
+  if (exists $params{$key}) {
+    $config{$key} = $val; 0
+  } else { 1 }
+} @ARGV;
 
 $extralibdir = $config{EXTRALIBDIR};
 delete $config{EXTRALIBDIR};
@@ -106,7 +110,7 @@ unless ( $is_Win32 ) { # cannot get config in W32
                      [2,6,20,0], # broken schemas
                      [2,6,24,1], # all tests pass
                      [2,6,25,0], # broken XPath
-                     [2,6,26,1], # tested, works ok
+                     [2,6,27,1], # tested, works ok
                     );
     my $xml2cfg = "xml2-config";
     my $libprefix = $ENV{XMLPREFIX} || $config{XMLPREFIX};
@@ -333,14 +337,15 @@ sub MY::test {
    return $script;
 }
 
+#	echo perl -pi~ -e '$$_=q($(version))."\n" if /#\ VERSION TEMPLATE/ ' $(TO_INST_PM)
 sub MY::postamble {
   return <<'MAKE_FRAG';
 
 # used to update version numbers in all modules
-version:=$(shell grep '\# VERSION TEMPLATE' $(VERSION_FROM))
 version:
-	@echo "New version line: $(version)"
-	@perl -pi~ -e '$$_=q($(version))."\n" if /#\ VERSION TEMPLATE/ ' $(TO_INST_PM)
+	@version=`grep '\# VERSION TEMPLATE' $(VERSION_FROM)`; \
+	echo "New version line: $$version"; \
+	perl -pi~ -e '$$_=q('"$$version"')."\n" if /#\ VERSION TEMPLATE/ ' $(TO_INST_PM)
 
 MAKE_FRAG
 }

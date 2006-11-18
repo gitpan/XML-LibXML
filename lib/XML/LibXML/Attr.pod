@@ -6,11 +6,12 @@ XML::LibXML::Attr - XML::LibXML Attribute Class
 
   $attr = XML::LibXML::Attr->new($name [,$value]);
   $string = $attr->getValue();
-  $value = $attr->value;
+  $string = $attr->value;
   $attr->setValue( $string );
   $node = $attr->getOwnerElement();
   $attr->setNamespace($nsURI, $prefix);
   $bool = $attr->isId;
+  $string = $attr->serializeContent;
 
 
 =head1 DESCRIPTION
@@ -38,7 +39,7 @@ has no value, which is different of being not specified.
 
 =item B<value>
 
-  $value = $attr->value;
+  $string = $attr->value;
 
 Alias for getValue()
 
@@ -87,6 +88,18 @@ HTML documents parsed with the HTML parser ID detection is done automatically.
 In XML documents, all "xml:id" attributes are considered to be of type ID.
 
 
+=item B<serializeContent($docencoding)>
+
+  $string = $attr->serializeContent;
+
+This functin is not part of DOM API. It returns attribute content in the form
+in which it serializes into XML, that is with all meta-characters properly
+quoted and with raw entity references (except for entities expanded during
+parse time). Setting the optional $docencoding flag to 1 enforces document
+encoding for the output string (wich is then passed to Perl as a byte string).
+Otherwise the string is passed to Perl as (UTF-8 encododed) characters.
+
+
 
 =back
 
@@ -98,7 +111,7 @@ Petr Pajas,
 
 =head1 VERSION
 
-1.61
+1.62
 
 =head1 COPYRIGHT
 

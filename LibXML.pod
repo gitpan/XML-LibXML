@@ -6,6 +6,7 @@ XML::LibXML - Perl Binding for libxml2
 
   $Version_String = XML::LibXML::LIBXML_DOTTED_VERSION;
   $Version_ID = XML::LibXML::LIBXML_VERSION;
+  $DLL_Version = XML::LibXML::LIBXML_RUNTIME_VERSION;
   $libxmlnode = XML::LibXML->import_GDOME( $node, $deep );
   $gdomenode = XML::LibXML->export_GDOME( $node, $deep );
 
@@ -47,6 +48,11 @@ XML::LibXML DOM Implementation
 =item B<XML::LibXML::SAX>
 
 XML::LibXML direct SAX parser
+
+
+=item B<XML::LibXML::Reader>
+
+Reading XML with a pull-parser
 
 
 =item B<XML::LibXML::Document>
@@ -109,6 +115,16 @@ XML::LibXML DTD Support
 XML::LibXML frontend for RelaxNG schema validation
 
 
+=item B<XML::LibXML::Schema>
+
+XML::LibXML frontend for W3C Schema schema validation
+
+
+=item B<XML::LibXML::XPathContext>
+
+API for evaluating XPath expressions
+
+
 =item B<XML::LibXMLguts>
 
 Internal of the Perl Layer for libxml2 (not done yet)
@@ -125,7 +141,8 @@ compiled for. In most cases this is for debugging or to check if a given
 installation meets all functionality for the package. The functiones
 XML::LibXML::LIBXML_DOTTED_VERSION and XML::LibXML::LIBXML_VERSION provide this
 version information. Both functions simply pass through the values of the
-similar named macros of libxml2.
+similar named macros of libxml2. Similarly, XML::LibXML::LIBXML_RUNTIME_VERSION
+returns the version of the (usually dynamically) linked libxml2.
 
 =over 4
 
@@ -133,7 +150,7 @@ similar named macros of libxml2.
 
   $Version_String = XML::LibXML::LIBXML_DOTTED_VERSION;
 
-Returns the Versionstring of the libxml2 version XML::LibXML was compiled for.
+Returns the version string of the libxml2 version XML::LibXML was compiled for.
 This will be "2.6.2" for "libxml2 2.6.2".
 
 
@@ -145,6 +162,18 @@ Returns the version id of the libxml2 version XML::LibXML was compiled for.
 This will be "20602" for "libxml2 2.6.2". Don't mix this version id with
 $XML::LibXML::VERSION. The latter contains the version of XML::LibXML itself
 while the first contains the version of libxml2 XML::LibXML was compiled for.
+
+
+=item B<XML::LibXML::LIBXML_RUNTIME_VERSION>
+
+  $DLL_Version = XML::LibXML::LIBXML_RUNTIME_VERSION;
+
+Returns a version string of the libxml2 which is (usually dynamically) linked
+by XML::LibXML. This will be "20602" for libxml2 released as "2.6.2" and
+something like "20602-CVS2032" for a CVS build of libxml2.
+
+XML::LibXML issues a warning if the version of libxml2 dynamically linked to it
+is less than the version of libxml2 which it was compiled against.
 
 
 
@@ -229,7 +258,7 @@ Petr Pajas,
 
 =head1 VERSION
 
-1.61
+1.62
 
 =head1 COPYRIGHT
 

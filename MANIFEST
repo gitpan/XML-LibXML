@@ -34,8 +34,6 @@ example/complex/dtd/g.dtd
 example/dromeds.xml
 example/dtd.xml
 example/ext_ent.dtd
-example/libxml.dkb
-example/libxml.xml
 example/ns.xml
 example/test.dtd
 example/test.html
@@ -47,8 +45,9 @@ example/test4.xml
 example/xmllibxmldocs.pl
 example/xmlns/badguy.xml
 example/xmlns/goodguy.xml
-example/xml2pod.pl
 example/xpath.pl
+example/enc_latin2.html
+example/enc2_latin2.html
 test/relaxng/badschema.rng
 test/relaxng/invaliddemo.xml
 test/relaxng/demo.rng
@@ -119,5 +118,10 @@ lib/XML/LibXML/PI.pod
 lib/XML/LibXML/RelaxNG.pod
 lib/XML/LibXML/Schema.pod
 lib/XML/LibXML/XPathContext.pod
+lib/XML/LibXML/Reader.pod
 LibXML.pod
+lib/XML/LibXML/Reader.pm
+t/40reader.t
+test/textReader/countries.xml
+
 META.yml                                 Module meta-data (added by MakeMaker)

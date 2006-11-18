@@ -64,13 +64,13 @@ Namespaces and XML::LibXML's DOM implementation
 
 XML::LibXML's DOM implementation is limitted by the DOM implementation of
 libxml2 which treats namespaces slightly differently than required by the DOM
-Layer 2 specification.
+Level 2 specification.
 
-According to the DOM Layer 2 specification, namespaces of elements and
+According to the DOM Level 2 specification, namespaces of elements and
 attributes should be persistent, and nodes should be permanently bound to
 namespace URIs as they get created; it should be possible to manipulate the
 special attributes used for declaring XML namespaces just as other attributes
-without affecting the namespaces of other nodes. In DOM Layer 2, the
+without affecting the namespaces of other nodes. In DOM Level 2, the
 application is responsible for creating the special attributes consistently
 and/or for correct serialization of the document.
 
@@ -87,12 +87,12 @@ point to.
 
 Therefore current DOM implementation in XML::LibXML tries to treat namespace
 declarations in a compromise between reason, common sense, limitations of
-libxml2, and the DOM Layer 2 specification.
+libxml2, and the DOM Level 2 specification.
 
 In XML::LibXML, special attributes declaring XML namespaces are often created
 automatically, usually when a namespaced node is attached to a document and no
 existing declaration of the namespace and prefix is in the scope to be reused.
-In this respect, XML::LibXML DOM implementation differs from the DOM Layer 2
+In this respect, XML::LibXML DOM implementation differs from the DOM Level 2
 specification according to which special attributes for declaring the
 appropriate XML namespaces should not be added when a node with a namespace
 prefix and namespace URI is created.
@@ -141,7 +141,7 @@ Petr Pajas,
 
 =head1 VERSION
 
-1.61
+1.62
 
 =head1 COPYRIGHT
 

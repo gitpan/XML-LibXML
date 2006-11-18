@@ -1,6 +1,6 @@
 /**
  * perl-libxml-mm.c
- * $Id: perl-libxml-mm.c 565 2006-06-22 10:08:59Z pajas $
+ * $Id: perl-libxml-mm.c 629 2006-11-15 23:30:52Z pajas $
  *
  * Basic concept:
  * perl varies in the implementation of UTF8 handling. this header (together
@@ -400,31 +400,31 @@ PmmCloneNode( xmlNodePtr node, int recursive )
     if ( node != NULL ) {
         switch ( node->type ) {
         case XML_ELEMENT_NODE:
-		case XML_TEXT_NODE:
-		case XML_CDATA_SECTION_NODE:
-		case XML_ENTITY_REF_NODE:
-		case XML_PI_NODE:
-		case XML_COMMENT_NODE:
-		case XML_DOCUMENT_FRAG_NODE:
-		case XML_ENTITY_DECL: 
-            retval = xmlCopyNode( node, recursive );
-            break;
-		case XML_ATTRIBUTE_NODE:
-            retval = (xmlNodePtr) xmlCopyProp( NULL, (xmlAttrPtr) node );
-            break;
+	case XML_TEXT_NODE:
+	case XML_CDATA_SECTION_NODE:
+	case XML_ENTITY_REF_NODE:
+	case XML_PI_NODE:
+	case XML_COMMENT_NODE:
+	case XML_DOCUMENT_FRAG_NODE:
+	case XML_ENTITY_DECL: 
+	  retval = xmlCopyNode( node, recursive ? 1 : 2 );
+	  break;
+	case XML_ATTRIBUTE_NODE:
+	  retval = (xmlNodePtr) xmlCopyProp( NULL, (xmlAttrPtr) node );
+	  break;
         case XML_DOCUMENT_NODE:
-		case XML_HTML_DOCUMENT_NODE:
-            retval = (xmlNodePtr) xmlCopyDoc( (xmlDocPtr)node, recursive );
-            break;
+	case XML_HTML_DOCUMENT_NODE:
+	  retval = (xmlNodePtr) xmlCopyDoc( (xmlDocPtr)node, recursive );
+	  break;
         case XML_DOCUMENT_TYPE_NODE:
         case XML_DTD_NODE:
-            retval = (xmlNodePtr) xmlCopyDtd( (xmlDtdPtr)node );
-            break;
+	  retval = (xmlNodePtr) xmlCopyDtd( (xmlDtdPtr)node );
+	  break;
         case XML_NAMESPACE_DECL:
-            retval = ( xmlNodePtr ) xmlCopyNamespace( (xmlNsPtr) node );
-            break;
+	  retval = ( xmlNodePtr ) xmlCopyNamespace( (xmlNsPtr) node );
+	  break;
         default:
-            break;
+	  break;
         }
     }
 

@@ -1,4 +1,4 @@
-/* $Id: dom.c 597 2006-09-21 22:25:25Z pajas $ */
+/* $Id: dom.c 618 2006-11-10 18:18:24Z pajas $ */
 #include <libxml/tree.h>
 #include <libxml/encoding.h>
 #include <libxml/xmlerror.h>
@@ -393,9 +393,6 @@ domName(xmlNodePtr node) {
     }
 
     switch ( node->type ) {
-    case XML_TEXT_NODE :
-    case XML_COMMENT_NODE :
-    case XML_CDATA_SECTION_NODE :
     case XML_XINCLUDE_START :
     case XML_XINCLUDE_END :
     case XML_ENTITY_REF_NODE :
@@ -409,14 +406,27 @@ domName(xmlNodePtr node) {
         name = node->name;
         break;
 
+    case XML_COMMENT_NODE :
+        name = (const xmlChar *) "#comment";
+        break;
+
+    case XML_CDATA_SECTION_NODE :
+        name = (const xmlChar *) "#cdata-section";
+        break;
+
+    case XML_TEXT_NODE :
+        name = (const xmlChar *) "#text";
+        break;
+
+
     case XML_DOCUMENT_NODE :
     case XML_HTML_DOCUMENT_NODE :
     case XML_DOCB_DOCUMENT_NODE :
-        name = (const xmlChar *) "document";
+        name = (const xmlChar *) "#document";
         break;
 
     case XML_DOCUMENT_FRAG_NODE :
-        name = (const xmlChar *) "document_fragment";
+        name = (const xmlChar *) "#document-fragment";
         break;
 
     case XML_ELEMENT_NODE :
@@ -444,7 +454,7 @@ domName(xmlNodePtr node) {
         qname = xmlStrcat( qname , name );
     } 
     else {
-        qname = xmlStrdup( node->name );
+        qname = xmlStrdup( name );
     }
 
     return qname;
@@ -492,7 +502,6 @@ domAppendChild( xmlNodePtr self,
     }
     else if (newChild->type == XML_DOCUMENT_FRAG_NODE ) {
         xmlNodePtr c1 = NULL;
-        newChild->children->parent = self;
         self->children = newChild->children;
         c1 = newChild->children;
         while ( c1 ){
@@ -887,7 +896,12 @@ domGetAttrNode(xmlNodePtr node, const xmlChar *qname) {
 	xmlFree( localname );
       }
     }
-    return ret;
+    if (ret && ret->type != XML_ATTRIBUTE_NODE) {
+      return NULL;  /* we don't want fixed attribute decls */
+    }
+    else {
+      return ret;
+    }
 }
 
 xmlAttrPtr 
@@ -922,6 +936,33 @@ domSetAttributeNode( xmlNodePtr node, xmlAttrPtr attr ) {
 
     return attr;
 }
+
+void
+domAttrSerializeContent(xmlBufferPtr buffer, xmlAttrPtr attr)
+{
+    xmlNodePtr children;
+
+    children = attr->children;
+    while (children != NULL) {
+        switch (children->type) {
+            case XML_TEXT_NODE:
+	        xmlAttrSerializeTxtContent(buffer, attr->doc,
+		                           attr, children->content);
+		break;
+            case XML_ENTITY_REF_NODE:
+                xmlBufferAdd(buffer, BAD_CAST "&", 1);
+                xmlBufferAdd(buffer, children->name,
+                             xmlStrlen(children->name));
+                xmlBufferAdd(buffer, BAD_CAST ";", 1);
+                break;
+            default:
+                /* should not happen unless we have a badly built tree */
+                break;
+        }
+        children = children->next;
+    }
+}
+
 
 int
 domNodeNormalize( xmlNodePtr node );

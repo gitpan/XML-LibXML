@@ -1,5 +1,20 @@
 Revision history for Perl extension XML::LibXML
 
+1.62pre
+   - interface to libxml2's pull-parser XML::LibXML::Reader
+     (initiated by Heiko Klein)
+   - make error messages intended to the user report the line of the
+     application call rather than that of the internal XS call
+   - XML::LibXML::Attr->serializeContent added (convenience function)
+   - fix getAttributeNode etc. w.r.t. #FIXED attributes (as well as some
+     cases with old buggy libxml2 versions)
+   - warn if runtime libxml2 is older than the one used at the compile time
+   - if compiled against libxml2 >= 2.6.27, new parse_html_* implementation is used
+     allowing encoding and other options to be passed to the parser
+   - DOM-compliant nodeNames: #comment, #text, #cdata, #document, #document-fragment
+   - toString on empty text node returns empty string, not undef
+   - cloneNode copies attributes on an element as required by the DOM spec
+
 1.61
    - get{Elements,Children}By{TagName,TagNameNS,LocalName} now
      obey wildcards '*', getChildrenByLocalName was added.

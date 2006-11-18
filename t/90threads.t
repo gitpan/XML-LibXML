@@ -144,7 +144,7 @@ $_->join for(threads->list);
 ok(1);
 }
 
-my $bigfile = "example/libxml.dkb";
+my $bigfile = "docs/libxml.dbk";
 open my $fh, "<:utf8", $bigfile or die $!;
 $xml = join '', <$fh>;
 close $fh;
@@ -162,8 +162,7 @@ sub use_dom
 }
 
 {
-for(1..1) #MAX_THREADS)
-{
+for(1..MAX_THREADS) {
 	threads->new(sub { use_dom($p->parse_string($xml)) for 1..5; 1; });
 }
 $_->join for(threads->list);

@@ -1,4 +1,4 @@
-# $Id: LibXML.pm 608 2006-09-25 07:39:01Z pajas $
+# $Id: LibXML.pm 642 2006-11-17 18:47:25Z pajas $
 
 package XML::LibXML;
 
@@ -20,7 +20,7 @@ use IO::Handle; # for FH reads called as methods
 
 BEGIN {
 
-$VERSION = "1.61"; # VERSION TEMPLATE: DO NOT CHANGE
+$VERSION = "1.62"; # VERSION TEMPLATE: DO NOT CHANGE
 require Exporter;
 require DynaLoader;
 @ISA = qw(DynaLoader Exporter);
@@ -113,6 +113,17 @@ $CloseCB = undef;
 bootstrap XML::LibXML $VERSION;
 
 } # BEGIN
+
+#-------------------------------------------------------------------------#
+# test exact version (up to patch-level)                                  #
+#-------------------------------------------------------------------------#
+{
+  my ($runtime_version) = LIBXML_RUNTIME_VERSION() =~ /^(\d+)/;
+  if ( $runtime_version < LIBXML_VERSION ) {
+    warn "Warning: XML::LibXML compiled against libxml2 ".LIBXML_VERSION.
+      ", but runtime libxml2 is older $runtime_version\n";
+  }
+}
 
 #-------------------------------------------------------------------------#
 # parser constructor                                                      #
@@ -450,6 +461,7 @@ sub parse_string {
         my $err = $@;
         $self->{_State_} = 0;
         if ($err) {
+	    chomp $err;
             $self->_cleanup_callbacks();
             croak $err;
         }
@@ -460,6 +472,7 @@ sub parse_string {
         my $err = $@;
         $self->{_State_} = 0;
         if ($err) {
+	    chomp $err;
             $self->_cleanup_callbacks();
             croak $err;
         }
@@ -486,6 +499,7 @@ sub parse_fh {
         my $err = $@;
         $self->{_State_} = 0;
         if ($err) {
+	    chomp $err;
             $self->_cleanup_callbacks();
             croak $err;
         }
@@ -495,6 +509,7 @@ sub parse_fh {
         my $err = $@;
         $self->{_State_} = 0;
         if ($err) {
+	    chomp $err;
             $self->_cleanup_callbacks();
             croak $err;
         }
@@ -522,6 +537,7 @@ sub parse_file {
         my $err = $@;
         $self->{_State_} = 0;
         if ($err) {
+	    chomp $err;
             $self->_cleanup_callbacks();
             croak $err;
         }
@@ -531,6 +547,7 @@ sub parse_file {
         my $err = $@;
         $self->{_State_} = 0;
         if ($err) {
+	    chomp $err;
             $self->_cleanup_callbacks();
             croak $err;
         }
@@ -580,6 +597,7 @@ sub parse_xml_chunk {
     my $err = $@;
     $self->{_State_} = 0;
     if ($err) {
+        chomp $err;
         croak $err;
     }
 
@@ -593,9 +611,11 @@ sub parse_balanced_chunk {
     eval {
         $rv = $self->parse_xml_chunk( @_ );
     };
+    my $err = $@;
     $self->_cleanup_callbacks();
-    if ( $@ ) {
-        croak $@;
+    if ( $err ) {
+        chomp $err;
+        croak $err;
     }
     return $rv
 }
@@ -611,13 +631,14 @@ sub processXIncludes {
     eval {
         $rv = $self->_processXIncludes($doc || " ");
     };
-
+    my $err = $@;
     if ( $self->{_State_} != 1 ) {
         $self->_cleanup_callbacks();
     }
 
-    if ( $@ ) {
-        croak $@;
+    if ( $err ) {
+        chomp $err;
+        croak $err;
     }
     return $rv;
 }
@@ -631,8 +652,10 @@ sub process_xincludes {
     eval {
         $rv = $self->_processXIncludes($doc || " ");
     };
+    my $err = $@;
     $self->_cleanup_callbacks();
-    if ( $@ ) {
+    if ( $err ) {
+        chomp $err;
         croak $@;
     }
     return $rv;
@@ -642,47 +665,64 @@ sub process_xincludes {
 # HTML parsing functions                                                  #
 #-------------------------------------------------------------------------#
 
+sub _html_options {
+  my ($self,$opts)=@_;
+  return (undef,undef) unless ref $opts;
+  my $flags = 0;
+  $flags |=     1 if $opts->{recover} || $self->recover;
+  $flags |=    32 if $opts->{suppress_errors};
+  $flags |=    64 if $opts->{suppress_warnings};
+  $flags |=   128 if $opts->{pedantic_parser} || $self->pedantic_parser;
+  $flags |=   256 if $opts->{no_blanks} || !$self->keep_blanks();
+  $flags |=  2048 if $opts->{no_network};
+  return ($opts->{URI},$opts->{encoding},$flags);
+}
+
 sub parse_html_string {
-    my $self = shift;
+    my ($self,$str,$opts) = @_;
     croak("parse_html_string is not a class method! Create a parser object with XML::LibXML->new first!") unless ref $self;
     croak("parse already in progress") if $self->{_State_};
 
-    unless ( defined $_[0] and length $_[0] ) {
+    unless ( defined $str and length $str ) {
         croak("Empty String");
     }
-
     $self->{_State_} = 1;
     my $result;
 
     $self->_init_callbacks();
-
-    eval { $result = $self->_parse_html_string( @_ ); };
-    
+    eval { 
+      $result = $self->_parse_html_string( $str,
+					   $self->_html_options($opts)
+					  ); 
+    };
     my $err = $@;
     $self->{_State_} = 0;
     if ($err) {
+      chomp $err;
       $self->_cleanup_callbacks();
       croak $err;
     }
-        
+
     $self->_cleanup_callbacks();
 
     return $result;
 }
 
 sub parse_html_file {
-    my $self = shift;
+    my ($self,$file,$opts) = @_;
     croak("parse_html_file is not a class method! Create a parser object with XML::LibXML->new first!") unless ref $self;
     croak("parse already in progress") if $self->{_State_};
     $self->{_State_} = 1;
     my $result;
 
     $self->_init_callbacks();
-    
-    eval { $result = $self->_parse_html_file(@_); };
+    eval { $result = $self->_parse_html_file($file,
+					     $self->_html_options($opts)
+					    ); };
     my $err = $@;
     $self->{_State_} = 0;
     if ($err) {
+      chomp $err;
       $self->_cleanup_callbacks();
       croak $err;
     }
@@ -693,18 +733,20 @@ sub parse_html_file {
 }
 
 sub parse_html_fh {
-    my $self = shift;
+    my ($self,$fh,$opts) = @_;
     croak("parse_html_fh is not a class method! Create a parser object with XML::LibXML->new first!") unless ref $self;
     croak("parse already in progress") if $self->{_State_};
     $self->{_State_} = 1;
-    my $result;
 
+    my $result;
     $self->_init_callbacks();
-    
-    eval { $result = $self->_parse_html_fh( @_ ); };
+    eval { $result = $self->_parse_html_fh( $fh, 
+					    $self->_html_options($opts)
+					   ); };
     my $err = $@;
     $self->{_State_} = 0;
     if ($err) {
+      chomp $err;
       $self->_cleanup_callbacks();
       croak $err;
     }
@@ -745,10 +787,11 @@ sub push {
             $self->_push( $self->{CONTEXT}, $_ );
         }
     };
-
+    my $err = $@;
     $self->_cleanup_callbacks();
-    if ( $@ ) {
-        croak $@;
+    if ( $err ) {
+        chomp $err;
+        croak $err;
     }
 }
 
@@ -789,11 +832,11 @@ sub finish_push {
     else {
         eval { $retval = $self->_end_push( $self->{CONTEXT}, $restore ); };
     }
-
     delete $self->{CONTEXT};
-
-    if ( $@ ) {
-        croak( $@ );
+    my $err = $@;
+    if ( $err ) {
+        chomp $err;
+        croak( $err );
     }
     return $retval;
 }
@@ -983,11 +1026,7 @@ sub toString {
     return $retval;
 }
 
-
-sub serialize {
-    my $self = shift;
-    return $self->toString(@_);
-}
+*serialize = \&toString;
 
 1;
 
@@ -1241,10 +1280,6 @@ package XML::LibXML::CDATASection;
 
 use vars qw(@ISA);
 @ISA     = ('XML::LibXML::Text');
-
-sub nodeName {
-    return "cdata";
-}
 
 1;
 

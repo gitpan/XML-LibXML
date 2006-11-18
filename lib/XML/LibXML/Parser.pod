@@ -8,9 +8,9 @@ XML::LibXML::Parser - Parsing XML Data with XML::LibXML
   $doc = $parser->parse_file( $xmlfilename );
   $doc = $parser->parse_fh( $io_fh );
   $doc = $parser->parse_string( $xmlstring);
-  $doc = $parser->parse_html_file( $htmlfile );
-  $doc = $parser->parse_html_fh( $io_fh );
-  $doc = $parser->parse_html_string( $htmlstring );
+  $doc = $parser->parse_html_file( $htmlfile, \%opts );
+  $doc = $parser->parse_html_fh( $io_fh, \%opts );
+  $doc = $parser->parse_html_string( $htmlstring, \%opts );
   $fragment = $parser->parse_balanced_chunk( $wbxmlstring );
   $fragment = $parser->parse_xml_chunk( $wbxmlstring );
   $parser->process_xincludes( $doc );
@@ -120,7 +120,7 @@ accessed and transformed.
 
 XML::LibXML's DOM parser is not only capable to parse XML data, but also
 (strict) HTML files. There are three ways to parse documents - as a string, as
-a Perl filehandle, or as a filename. The return value from each is a
+a Perl filehandle, or as a filename/URL. The return value from each is a
 XML::LibXML::Document object, which is a DOM object.
 
 All of the functions listed below will throw an exception if the document is
@@ -133,11 +133,9 @@ eval{} block
 
   $doc = $parser->parse_file( $xmlfilename );
 
-This function reads an absolute filename into the memory. It causes XML::LibXML
-to use libxml2's file parser instead of letting perl reading the file such as
-with parse_fh(). If you need to parse files directly, this function would be
-the faster choice, since this function is about 6-8 times faster then
-parse_fh().
+This function parses an XML document from a file or network; $xmlfilename can
+be either a filename or an URL. Note that for parsing files, this function is
+the fastest choice, about 6-8 times faster then parse_fh().
 
 
 =item B<parse_fh>
@@ -166,23 +164,42 @@ URI to the function.
 
 =item B<parse_html_file>
 
-  $doc = $parser->parse_html_file( $htmlfile );
+  $doc = $parser->parse_html_file( $htmlfile, \%opts );
 
-Similar to parse_file() but parses HTML (strict) documents.
+Similar to parse_file() but parses HTML (strict) documents; $htmlfile can be
+filename or URL.
+
+An optional second argument can be used to pass some options to the HTML parser
+as a HASH reference. Possible options are: Possible options are: encoding and
+URI for libxml2 < 2.6.27, and for later versions of libxml2 additionally:
+recover, suppress_errors, suppress_warnings, pedantic_parser, no_blanks, and
+no_network.
 
 
 =item B<parse_html_fh>
 
-  $doc = $parser->parse_html_fh( $io_fh );
+  $doc = $parser->parse_html_fh( $io_fh, \%opts );
 
 Similar to parse_fh() but parses HTML (strict) streams.
+
+An optional second argument can be used to pass some options to the HTML parser
+as a HASH reference. Possible options are: encoding and URI for libxml2 <
+2.6.27, and for later versions of libxml2 additionally: recover,
+suppress_errors, suppress_warnings, pedantic_parser, no_blanks, and no_network.
+Note: encoding option may not work correctly with this function in libxml2 <
+2.6.27 if the HTML file declares charset using a META tag.
 
 
 =item B<parse_html_string>
 
-  $doc = $parser->parse_html_string( $htmlstring );
+  $doc = $parser->parse_html_string( $htmlstring, \%opts );
 
-Similar to parse_file() but parses HTML (strict) strings.
+Similar to parse_string() but parses HTML (strict) strings.
+
+An optional second argument can be used to pass some options to the HTML parser
+as a HASH reference. Possible options are: encoding and URI for libxml2 <
+2.6.27, and for later versions of libxml2 additionally: recover,
+suppress_errors, suppress_warnings, pedantic_parser, no_blanks, and no_network.
 
 
 
@@ -638,7 +655,7 @@ Petr Pajas,
 
 =head1 VERSION
 
-1.61
+1.62
 
 =head1 COPYRIGHT
 

@@ -36,7 +36,7 @@ XML::LibXML::Node - Abstract Base Class of XML::LibXML Nodes
   print $node->findvalue( $xpath );
   @childnodes = $node->childNodes;
   $xmlstring = $node->toString($format,$docencoding);
-  $c14nstring = $node->toString($with_comments, $xpath_expression);
+  $c14nstring = $node->toStringC14N($with_comments, $xpath_expression);
   $str = $doc->serialze($format); 
   $c14nstr = $doc->serialize_c14n($comment_flag,$xpath); 
   $localname = $node->localname;
@@ -69,8 +69,12 @@ parent. This may causes confusion with "unbound" nodes.
 
   $name = $node->nodeName;
 
-Returns the node's name. This Function is aware of namesaces and returns the
-full name of the current node (prefix:localname)
+Returns the node's name. This function is aware of namespaces and returns the
+full name of the current node (prefix:localname).
+
+Since 1.62 this function also returns the correct DOM names for node types with
+constant names, namely: #text, #cdata-section, #comment, #document,
+#document-fragment.
 
 
 =item B<setNodeName>
@@ -241,9 +245,11 @@ by the given node.
 
 cloneNode creates a copy of $node. When $deep is set to 1 (true) the function
 will copy all childnodes as well. If $deep is 0 only the current node will be
-copied.
+copied. Note that in case of element, attributes are copied iven if $deep is 0.
 
-cloneNode will not copy any namespace information if it is not run recursivly.
+Note that the behavior of this function for $deep=0 has changed in 1.62 in
+order to be consistent with the DOM spec (in older versions attributes and
+namespace information was not copied for elements).
 
 
 =item B<parentNode>
@@ -458,7 +464,7 @@ UTF-8.
 
 =item B<toStringC14N>
 
-  $c14nstring = $node->toString($with_comments, $xpath_expression);
+  $c14nstring = $node->toStringC14N($with_comments, $xpath_expression);
 
 The function is similar to toString(). Instead of simply serializing the
 document tree, it transforms it as it is specified in the XML-C14N
@@ -636,7 +642,7 @@ Petr Pajas,
 
 =head1 VERSION
 
-1.61
+1.62
 
 =head1 COPYRIGHT
 
