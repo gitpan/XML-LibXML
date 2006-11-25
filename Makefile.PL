@@ -1,5 +1,5 @@
 # -------------------------------------------------------------------------- #
-# $Id: Makefile.PL 643 2006-11-17 20:23:34Z pajas $
+# $Id: Makefile.PL 645 2006-11-22 11:39:10Z pajas $
 # -------------------------------------------------------------------------- #
 # Makefile.PL for XML::LibXML.
 # This file is required to generate a localized Makefile
@@ -622,7 +622,7 @@ sub try_libconfig {
             die "UNTESTED $ver\n";
         }
 
-        print "ok\n";
+        print "ok ($ver)\n";
     }
     else {
         print "failed\n";

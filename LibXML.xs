@@ -1,4 +1,4 @@
-/* $Id: LibXML.xs 634 2006-11-17 12:35:36Z pajas $ */
+/* $Id: LibXML.xs 646 2006-11-22 11:39:52Z pajas $ */
 
 #ifdef __cplusplus
 extern "C" {
@@ -8164,7 +8164,7 @@ _preservePattern(reader,pattern,ns_map=NULL)
     CODE:
         if (ns_map) {
           last = av_len(ns_map);
-          Newx(namespaces, last+2, xmlChar*);
+          New(0,namespaces, last+2, xmlChar*);
           for( i = 0; i <= last ; i++ ) {
               aux = av_fetch(ns_map,i,0);
 	      namespaces[i]=(xmlChar*) SvPV_nolen(*aux);
