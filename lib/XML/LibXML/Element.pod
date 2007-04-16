@@ -57,7 +57,7 @@ $aname is a qualified name, and $avalue is the value. The namespace URI may be
 null (empty or undefined) in order to create an attribute which has no
 namespace.
 
-The current implementation differs from DOM in the following aspectse
+The current implementation differs from DOM in the following aspects
 
 If an attribute with the same local name and namespace URI already exists on
 the element, but its prefix differs from the prefix of $aname, then this
@@ -130,9 +130,9 @@ Namespace version of removeAttribute
 
   $boolean = $node->hasAttribute( $aname );
 
-This funcion tests if the named attribute is set for the node. If the attribute
-is specified, TRUE (1) will be returned, otherwise the returnvalue is FALSE
-(0).
+This function tests if the named attribute is set for the node. If the
+attribute is specified, TRUE (1) will be returned, otherwise the return value
+is FALSE (0).
 
 
 =item B<hasAttributeNS>
@@ -149,7 +149,7 @@ namespace version of hasAttribute
 The function gives direct access to all child elements of the current node with
 a given tagname, where tagname is a qualified name, that is, in case of
 namespace usage it may consist of a prefix and local name. This function makes
-things a lot easier if one needs to handle big datasets. A special tagname '*'
+things a lot easier if one needs to handle big data sets. A special tagname '*'
 can be used to match any name.
 
 If this function is called in SCALAR context, it returns the number of elements
@@ -174,7 +174,7 @@ found.
 
 The function gives direct access to all child elements of the current node with
 a given local name. It makes things a lot easier if one needs to handle big
-datasets. A special localname '*' can be used to match any local name.
+data sets. A special localname '*' can be used to match any local name.
 
 If this function is called in SCALAR context, it returns the number of elements
 found.
@@ -209,7 +209,7 @@ In SCALAR context this function returns a XML::LibXML::NodeList object.
 
 This function is not found in the DOM specification. It is a mix of
 getElementsByTagName and getElementsByTagNameNS. It will fetch all tags
-matching the given local-name. This alows one to select tags with the same
+matching the given local-name. This allows one to select tags with the same
 local name across namespace borders.
 
 In SCALAR context this function returns a XML::LibXML::NodeList object.
@@ -219,7 +219,7 @@ In SCALAR context this function returns a XML::LibXML::NodeList object.
 
   $node->appendWellBalancedChunk( $chunk );
 
-Sometimes it is nessecary to append a string coded XML Tree to a node.
+Sometimes it is necessary to append a string coded XML Tree to a node.
 appendWellBalancedChunk will do the trick for you. But this is only done if the
 String is well-balanced.
 
@@ -294,8 +294,8 @@ results only
 
    <bar xmlns:foo="http://foobar.org"/>
 
-By using $activate == 0 it is possible to create multiple namepace declarations
-on a single element.
+By using $activate == 0 it is possible to create multiple namespace
+declarations on a single element.
 
 The function fails if it is required to create a declaration associating the
 prefix with the namespace URI but the element already carries a declaration
@@ -349,7 +349,7 @@ prefix to the new value.
 If the new prefix is undef or empty, the namespace declaration becomes a
 declaration of a default namespace. The corresponding nodes drop their
 namespace prefix (but remain in the, now default, namespace). In this case the
-function fails, if the containig element is in the scope of another default
+function fails, if the containing element is in the scope of another default
 namespace declaration.
 
 This function is NOT part of any DOM API.
@@ -366,10 +366,10 @@ Petr Pajas,
 
 =head1 VERSION
 
-1.62
+1.63
 
 =head1 COPYRIGHT
 
-2001-2006, AxKit.com Ltd; 2002-2006 Christian Glahn; 2006 Petr Pajas, All rights reserved.
+2001-2007, AxKit.com Ltd; 2002-2006 Christian Glahn; 2006-2007 Petr Pajas, All rights reserved.
 
 =cut

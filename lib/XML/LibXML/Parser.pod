@@ -33,6 +33,7 @@ XML::LibXML::Parser - Parsing XML Data with XML::LibXML
   $parser->base_uri( $your_base_uri );
   $parser->gdome_dom(1);
   $parser->clean_namespaces( 1 );
+  $parser->no_network(1);
 
 
 =head1 DESCRIPTION
@@ -55,8 +56,8 @@ XML::LibXML::Parser - Parsing XML Data with XML::LibXML
 
 =head1 PARSING
 
-A XML document is read into a datastructure such as a DOM tree by a piece of
-software, called a parser. XML::LibXML currently provides four diffrent parser
+A XML document is read into a data structure such as a DOM tree by a piece of
+software, called a parser. XML::LibXML currently provides four different parser
 interfaces:
 
 
@@ -115,7 +116,7 @@ interfere with other instances.
 =head2 DOM Parser
 
 One of the common parser interfaces of XML::LibXML is the DOM parser. This
-parser reads XML data into a DOM like datastructure, so each tag can get
+parser reads XML data into a DOM like data structure, so each tag can get
 accessed and transformed.
 
 XML::LibXML's DOM parser is not only capable to parse XML data, but also
@@ -285,13 +286,13 @@ XML::LibXML provides a push parser interface. Rather than pulling the data from
 a given source the push parser waits for the data to be pushed into it.
 
 This allows one to parse large documents without waiting for the parser to
-finish. The interface is especially useful if a program needs to preprocess the
-incoming pieces of XML (e.g. to detect document boundaries).
+finish. The interface is especially useful if a program needs to pre-process
+the incoming pieces of XML (e.g. to detect document boundaries).
 
-While XML::LibXML parse_*() functions force the data to be a wellformed XML,
+While XML::LibXML parse_*() functions force the data to be a well-formed XML,
 the push parser will take any arbitrary string that contains some XML data. The
 only requirement is that all the pushed strings are together a well formed
-document. With the push parser interface a programm can interrupt the parsing
+document. With the push parser interface a program can interrupt the parsing
 process as required, where the parse_*() functions give not enough flexibility.
 
 Different to the pull parser implemented in parse_fh() or parse_file(), the
@@ -306,14 +307,14 @@ In XML::LibXML this is done by a single function:
 
   $parser->parse_chunk($string, $terminate);
 
-parse_chunk() tries to parse a given chunk of data, which isn't nessecarily
+parse_chunk() tries to parse a given chunk of data, which isn't necessarily
 well balanced data. The function takes two parameters: The chunk of data as a
 string and optional a termination flag. If the termination flag is set to a
 true value (e.g. 1), the parsing will be stopped and the resulting document
-will be returned as the following exable describes:
+will be returned as the following example describes:
 
   my $parser = XML::LibXML->new;
-  for my $string ( "<", "foo", ' bar="hello worls"', "/>") {
+  for my $string ( "<", "foo", ' bar="hello world"', "/>") {
        $parser->parse_chunk( $string );
   }
   my $doc = $parser->parse_chunk("", 1); # terminate the parsing
@@ -347,7 +348,7 @@ entry in @data must be a normal scalar!
   $doc = $parser->finish_push( $recover );
 
 This function returns the result of the parsing process. If this function is
-called without a parameter it will complain about non wellformed documents. If
+called without a parameter it will complain about non well-formed documents. If
 $restore is 1, the push parser can be used to restore broken or non well formed
 (XML) documents as the following example shows:
 
@@ -453,7 +454,7 @@ If skipDTD is defined and not '0', an existing DTD would not be serialized with
 the document.
 
 If setTagCompression is defined and not '0' empty tags are displayed as open
-and closing tags ranther than the shortcut. For example the empty tag foo will
+and closing tags rather than the shortcut. For example the empty tag foo will
 be rendered as <foo></foo> rather than <foo/>.
 
 
@@ -485,14 +486,14 @@ Turn the parsers recover mode on (or off). Defaults to off.
 
 This allows one to parse broken XML data into memory. This switch will only
 work with XML data rather than HTML data. Also the validation will be switched
-off automaticly.
+off automatically.
 
-The recover mode helps to recover documents that are almost wellformed very
+The recover mode helps to recover documents that are almost well-formed very
 efficiently. That is for example a document that forgets to close the document
 tag (or any other tag inside the document). The recover mode of XML::LibXML has
-problems restoring documents that are more like well ballanced chunks.
+problems restoring documents that are more like well balanced chunks.
 
-XML::LibXML will only parse until the first fatal error occours, reporting
+XML::LibXML will only parse until the first fatal error occurs, reporting
 recoverable parsing errors as warnings. To suppress these warnings use
 $parser->recover_silently(1); or, equivalently, $parser->recover(2).
 
@@ -525,7 +526,7 @@ Probably not very useful for most purposes.
   $parser->keep_blanks(0);
 
 Allows you to turn off XML::LibXML's default behaviour of maintaining
-whitespace in the document.
+white-space in the document.
 
 
 =item B<pedantic_parser>
@@ -540,7 +541,7 @@ You can make XML::LibXML more pedantic if you want to.
   $parser->line_numbers(1);
 
 If this option is activated XML::LibXML will store the line number of a node.
-This gives more information where a validation error occoured. It could be also
+This gives more information where a validation error occurred. It could be also
 used to find out about the position of a node after parsing (see also
 XML::LibXML::Node::line_number())
 
@@ -558,7 +559,7 @@ and to expand entities, regardless if the document has an internal subset. Thus
 switching off external DTD loading, will disable entity expansion, validation,
 and complete attributes on internal subsets as well.
 
-If you leave this parser flag untouched, everythig will work, because the
+If you leave this parser flag untouched, everything will work, because the
 default is 1 (activated)
 
 
@@ -625,6 +626,17 @@ the DOM tree. To do this, one has to set clean_namespaces() to 1 (TRUE). By
 default no namespace cleanup is done.
 
 
+=item B<no_network>
+
+  $parser->no_network(1);
+
+Turn networking support on or off, enabled by default. If networking is off,
+all attempts to fetch non-local resources (such as DTD or external entities)
+will fail (unless custom callbacks are defined). It may be necessary to use
+$parser->recover(1) for processing documents requiring such resources while
+networking is off.
+
+
 
 =back
 
@@ -632,16 +644,16 @@ default no namespace cleanup is done.
 =head1 ERROR REPORTING
 
 XML::LibXML throws exceptions during parsing, validation or XPath processing
-(and some other occations). These errors can be caught by using eval blocks.
+(and some other occasions). These errors can be caught by using eval blocks.
 The error then will be stored in $@.
 
-XML::LibXML throws errors as they occour and does not wait if a user test for
+XML::LibXML throws errors as they occurs and does not wait if a user test for
 them. This is a very common misunderstanding in the use of XML::LibXML. If the
-eval is ommited, XML::LibXML will allways halt your script by "croaking" (see
+eval is omitted, XML::LibXML will always halt your script by "croaking" (see
 Carp man page for details).
 
 Also note that an increasing number of functions throw errors if bad data is
-passed. If you cannot asure valid data passed to XML::LibXML you should eval
+passed. If you cannot assure valid data passed to XML::LibXML you should eval
 these functions.
 
 Note: since version 1.59, get_last_error() is no longer available in
@@ -655,10 +667,10 @@ Petr Pajas,
 
 =head1 VERSION
 
-1.62
+1.63
 
 =head1 COPYRIGHT
 
-2001-2006, AxKit.com Ltd; 2002-2006 Christian Glahn; 2006 Petr Pajas, All rights reserved.
+2001-2007, AxKit.com Ltd; 2002-2006 Christian Glahn; 2006-2007 Petr Pajas, All rights reserved.
 
 =cut

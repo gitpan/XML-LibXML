@@ -1,4 +1,4 @@
-# $Id: Boolean.pm 642 2006-11-17 18:47:25Z pajas $
+# $Id: Boolean.pm 663 2007-04-16 11:38:42Z pajas $
 # Copyright 2001-2002, AxKit.com Ltd. All rights reserved.
 
 package XML::LibXML::Boolean;
@@ -8,7 +8,7 @@ use strict;
 
 use vars qw ($VERSION);
 
-$VERSION = "1.62"; # VERSION TEMPLATE: DO NOT CHANGE
+$VERSION = "1.63"; # VERSION TEMPLATE: DO NOT CHANGE
 
 use overload
         '""' => \&value,

@@ -33,7 +33,7 @@ The location parameter allows to parse a schema from the filesystem or a URL.
 
 The string parameter will parse the schema from the given XML string.
 
-The DOM parameter allows to parse the schema from a preparsed
+The DOM parameter allows to parse the schema from a pre-parsed
 XML::LibXML::Document.
 
 Note that the constructor will die() if the schema does not meed the
@@ -44,7 +44,8 @@ constraints of the RelaxNG specification.
 
   eval { $rngschema->validate( $doc ); };
 
-This function allows to validate a document against the given RelaxNG schema.
+This function allows to validate a (parsed) document against the given RelaxNG
+schema. The argument of this function should be a XML::LibXML::Document object.
 If this function succeeds, it will return 0, otherwise it will die() and report
 the errors found. Because of this validate() should be always evaluated.
 
@@ -60,10 +61,10 @@ Petr Pajas,
 
 =head1 VERSION
 
-1.62
+1.63
 
 =head1 COPYRIGHT
 
-2001-2006, AxKit.com Ltd; 2002-2006 Christian Glahn; 2006 Petr Pajas, All rights reserved.
+2001-2007, AxKit.com Ltd; 2002-2006 Christian Glahn; 2006-2007 Petr Pajas, All rights reserved.
 
 =cut

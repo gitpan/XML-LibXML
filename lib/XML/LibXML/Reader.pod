@@ -37,10 +37,11 @@ or
 =head1 DESCRIPTION
 
 This is a perl interface to libxml2's pull-parser implementation xmlTextReader
-http://xmlsoft.org/html/libxml-xmlreader.html. Pull-parser (StAX in Java,
-XmlReader in C#) use an iterator approach to parse a xml-file. They are easier
-to program than event-based parser (SAX) and much more lightweight than
-tree-based parser (DOM), which load the complete tree into memory.
+http://xmlsoft.org/html/libxml-xmlreader.html. This feature requires at least
+libxml2-2.6.21. Pull-parser (StAX in Java, XmlReader in C#) use an iterator
+approach to parse a xml-file. They are easier to program than event-based
+parser (SAX) and much more lightweight than tree-based parser (DOM), which load
+the complete tree into memory.
 
 The Reader acts as a cursor going forward on the document stream and stopping
 at each node in the way. At every point DOM-like methods of the Reader object
@@ -48,13 +49,13 @@ allow to examine the current node (name, namespace, attributes, etc.)
 
 The user's code keeps control of the progress and simply calls the read()
 function repeatedly to progress to the next node in the document order. Other
-functions provide means for skipping complete subtrees, or nodes until a
+functions provide means for skipping complete sub-trees, or nodes until a
 specific element, etc.
 
-At every time, only a very limitted portion of the document is kept in the
+At every time, only a very limited portion of the document is kept in the
 memory, which makes the API more memory-efficient than using DOM. However, it
 is also possible to mix Reader with DOM. At every point the user may copy the
-current node (optionally expanded into a complete subtree) from the processed
+current node (optionally expanded into a complete sub-tree) from the processed
 document to another DOM tree, or to instruct the Reader to collect sub-document
 in form of a DOM tree consisting of selected nodes.
 
@@ -109,7 +110,7 @@ filehandles for regular files or pipes). Possibly faster than IO.
 
 =item B<DOM>
 
-Use reader API to walk through a preparsed XML::LibXML::Document.
+Use reader API to walk through a pre-parsed XML::LibXML::Document.
 
 
 
@@ -191,7 +192,7 @@ remove blank nodes (0 or 1)
 
 =item B<expand_xinclude>
 
-Implement XInclude substitition (0 or 1)
+Implement XInclude substitution (0 or 1)
 
 
 =item B<no_network>
@@ -234,7 +235,7 @@ read, or -1 in case of error
 
 Parses an attribute value into one or more Text and EntityReference nodes.
 
-Returns 1 in case of success, 0 if the reader was not positionned on an
+Returns 1 in case of success, 0 if the reader was not positioned on an
 attribute node or all the attribute values have been read, or -1 in case of
 error.
 
@@ -253,7 +254,7 @@ The depth of the node in the tree, starts at 0 for the root node.
 =item B<next ()>
 
 Skip to the node following the current one in the document order while avoiding
-the subtree if any. Returns 1 if the node was read successfully, 0 if there is
+the sub-tree if any. Returns 1 if the node was read successfully, 0 if there is
 no more nodes to read, or -1 in case of error.
 
 
@@ -282,7 +283,7 @@ error.
 =item B<nextSibling ()>
 
 It skips to the node following the current one in the document order while
-avoiding the subtree if any.
+avoiding the sub-tree if any.
 
 Returns 1 if the node was read successfully, 0 if there is no more nodes to
 read, or -1 in case of error
@@ -397,7 +398,7 @@ document is completed!
 
 This function is similar a DOM function copyNode(). It returns a copy of the
 currently processed node as a corresponding DOM object. Use deep = 1 to obtain
-the full subtree.
+the full sub-tree.
 
 
 =item B<preserveNode ()>
@@ -588,14 +589,12 @@ The xml:lang scope within which the node resides.
 
 =item B<lineNumber ()>
 
-Provide the line number of the current parsing point. Available if libxml2 >=
-2.6.17.
+Provide the line number of the current parsing point.
 
 
 =item B<columnNumber ()>
 
-Provide the column number of the current parsing point. Available if libxml2 >=
-2.6.17.
+Provide the column number of the current parsing point.
 
 
 =item B<byteConsumed ()>
@@ -604,7 +603,7 @@ This function provides the current index of the parser relative to the start of
 the current entity. This function is computed in bytes from the beginning
 starting at zero and finishing at the size in bytes of the file if parsing a
 file. The function is of constant cost if the input is UTF-8 but can be costly
-if run on non-UTF-8 input. Available if libxml2 >= 2.6.18.
+if run on non-UTF-8 input.
 
 
 =item B<setParserProp (prop => value, ...)>
@@ -708,10 +707,10 @@ Petr Pajas,
 
 =head1 VERSION
 
-1.62
+1.63
 
 =head1 COPYRIGHT
 
-2001-2006, AxKit.com Ltd; 2002-2006 Christian Glahn; 2006 Petr Pajas, All rights reserved.
+2001-2007, AxKit.com Ltd; 2002-2006 Christian Glahn; 2006-2007 Petr Pajas, All rights reserved.
 
 =cut

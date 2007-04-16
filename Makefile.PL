@@ -1,5 +1,5 @@
 # -------------------------------------------------------------------------- #
-# $Id: Makefile.PL 645 2006-11-22 11:39:10Z pajas $
+# $Id: Makefile.PL 662 2007-04-16 11:37:05Z pajas $
 # -------------------------------------------------------------------------- #
 # Makefile.PL for XML::LibXML.
 # This file is required to generate a localized Makefile
@@ -24,7 +24,7 @@ my %INFOS = (
     'ABSTRACT'  => 'Interface to Gnome libxml2 xml parsing and DOM library',
     'PREREQ_PM' => { 'XML::SAX' => '0.11',
                      'XML::NamespaceSupport' => '1.07',
-                     'XML::LibXML::Common' => 0,
+                     'XML::LibXML::Common' => '0.13',
                    },
     'OBJECT'    => '$(O_FILES)', # add the DOM extensions to libxml2
             );
@@ -106,7 +106,8 @@ unless ( $is_Win32 ) { # cannot get config in W32
                      [2,6,5,0], # broken xincludes
 		     [2,6,15,0],
                    # [2,6,16,1], # first version to pass all tests
-                     [2,6,19,1], # up to 2.6.19 all ok
+                     [2,6,18,1], # up to 2.6.18 all ok
+                     [2,6,19,0], # broken c14n
                      [2,6,20,0], # broken schemas
                      [2,6,24,1], # all tests pass
                      [2,6,25,0], # broken XPath

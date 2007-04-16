@@ -94,7 +94,7 @@ recycle results of previous evaluations:
     B => $areas->find('/areas/area[district='Brooklyn']/street'), 
   );
           
-  # get names of employees from $A woring in an area listed in $B
+  # get names of employees from $A working in an area listed in $B
   $xc->registerVarLookupFunc(\&var_lookup, \%variables);
   my @nodes = $xc->findnodes('$A[work_area/street = $B]/name');
   
@@ -340,7 +340,7 @@ Matt Sergeant and Christian Glahn.
 =head1 HISTORICAL REMARK
 
 Prior to XML::LibXML 1.61 this module was distributed separately for
-maintanance reasons.
+maintenance reasons.
 
 =head1 AUTHORS
 
@@ -350,10 +350,10 @@ Petr Pajas,
 
 =head1 VERSION
 
-1.62
+1.63
 
 =head1 COPYRIGHT
 
-2001-2006, AxKit.com Ltd; 2002-2006 Christian Glahn; 2006 Petr Pajas, All rights reserved.
+2001-2007, AxKit.com Ltd; 2002-2006 Christian Glahn; 2006-2007 Petr Pajas, All rights reserved.
 
 =cut
