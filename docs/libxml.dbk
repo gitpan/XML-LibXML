@@ -20,7 +20,7 @@
             </author>
         </authorgroup>
 
-        <edition>1.63</edition>
+        <edition>1.64</edition>
 
         <copyright>
             <year>2001-2007</year>
@@ -127,12 +127,10 @@
                  XML::LibXML::Common and run its tests after an upgrade of libxml2.
 	        </para>
 
-                <para>If your libxml2 installation is not within your
-                  $PATH. you can set the environment variable
-                  XMLPREFIX=$YOURLIBXMLPREFIX to make XML::LibXML
-                  recognize the correct libxml2 version in use.</para>
-
-                <para>e.g.</para>
+	<para>If your libxml2 installation is not within your $PATH,
+	  you can pass the XMLPREFIX=$YOURLIBXMLPREFIX parameter to Makefile.PL
+	  determining the correct libxml2 version in use. e.g.
+	</para>
 
                 <programlisting> perl Makefile.PL XMLPREFIX=/usr/brand-new </programlisting>
 
@@ -242,17 +240,19 @@ perl Makefile.PL LIBS='-L/path/to/lib' INC='-I/path/to/include'</programlisting>
         <sect1>
             <title>Contact</title>
 
-            <para>For suggestions etc. you may contact the maintainer directly at "pajas at ufal.mff.cuni.cz".</para>
-
             <para>For bug reports, please use the CPAN request tracker on http://rt.cpan.org/NoAuth/Bugs.html?Dist=XML-LibXML</para>
 
-            <para>Also XML::LibXML issues are discussed among other
-            things on the perl XML mailing list
-            (<email>perl-xml@listserv.ActiveState.com</email>). In
-            case of problems you should check the archives of that
+            <para>For suggestions etc. you may contact the maintainer directly at "pajas at ufal dot mff dot cuni dot cz", but in general, it is recommended to use the mailing list given below.
+            </para>
+
+            <para>For suggestions etc., and other issues
+	    related to XML::LibXML you may use the perl XML mailing list
+            (<email>perl-xml@listserv.ActiveState.com</email>),
+	    where most XML-related Perl modules are discussed.
+	    In case of problems you should check the archives of that
             list first. Many problems are already discussed there. You
-            can find the list's archives at
-            http://mailarchive.activestate.com/browse/perl-xml/</para>
+            can find the list's archives and subscription options at
+	    http://aspn.activestate.com/ASPN/Mail/Browse/Threaded/perl-xml</para>
         </sect1>
 
         <sect1>
@@ -647,6 +647,20 @@ EOT</programlisting>
                 </varlistentry>
             </variablelist>
         </sect1>
+        <sect1>
+            <title>CONTACTS</title>
+
+            <para>For bug reports, please use the CPAN request tracker on http://rt.cpan.org/NoAuth/Bugs.html?Dist=XML-LibXML</para>
+            <para>For suggestions etc., and other issues
+	    related to XML::LibXML you may use the perl XML mailing list
+            (<email>perl-xml@listserv.ActiveState.com</email>),
+	    where most XML-related Perl modules are discussed.
+	    In case of problems you should check the archives of that
+            list first. Many problems are already discussed there. You
+            can find the list's archives and subscription options at
+  	    <ulink url="http://aspn.activestate.com/ASPN/Mail/Browse/Threaded/perl-xml">http://aspn.activestate.com/ASPN/Mail/Browse/Threaded/perl-xml</ulink>.
+            </para>
+        </sect1>
     </chapter>
 
     <chapter>
@@ -889,7 +903,7 @@ my $fragment = $parser-&gt;parse_xml_chunk( $xml_wb_chunk );</programlisting>
                             </funcsynopsis>
 
                             <para>This is the old name of parse_balanced_chunk(). Because it may causes confusion with the push parser interface, this function
-                            should be used anymore.</para>
+                            should not be used anymore.</para>
                         </listitem>
                     </varlistentry>
                 </variablelist>
@@ -1389,7 +1403,8 @@ local $XML::LibXML::setTagCompression = 1;</programlisting>
         <sect1>
             <title>Synopsis</title>
 
-            <programlisting>my $builder = XML::LibXML::SAX::Builder-&gt;new();
+            <programlisting>use XML::LibXML::SAX::Builder;
+my $builder = XML::LibXML::SAX::Builder-&gt;new();
 
 my $gen = XML::Generator::DBI-&gt;new(Handler =&gt; $builder, dbh =&gt; $dbh);
 $gen-&gt;execute("SELECT * FROM Users");
@@ -1590,6 +1605,12 @@ my $doc = $builder-&gt;result();</programlisting>
         <title>XML::LibXML DOM Document Class</title>
 
         <titleabbrev>XML::LibXML::Document</titleabbrev>
+        <sect1>
+            <title>Synopsis</title>
+            <programlisting>use XML::LibXML;
+# Only methods specific to Document nodes listed here,
+# see XML::LibXML::Node manpage for other methods</programlisting>
+        </sect1>
 
         <para>The Document Class is in most cases the result of a parsing process. But sometimes it is necessary to create a Document from scratch. The DOM
         Document Class provides functions that conform to the DOM Core naming style.</para>
@@ -2367,7 +2388,10 @@ my $dtd      = $document-&gt;createInternalSubset( "foo", "-//FOO//DTD FOO 0.1//
         <title>Abstract Base Class of XML::LibXML Nodes</title>
 
         <titleabbrev>XML::LibXML::Node</titleabbrev>
-
+        <sect1>
+            <title>Synopsis</title>
+            <programlisting>use XML::LibXML;</programlisting>
+        </sect1>
         <para>XML::LibXML::Node defines functions that are common to
         all Node Types. A LibXML::Node should never be created
         standalone, but as an instance of a high level class such as
@@ -3153,24 +3177,6 @@ $xpc-&gt;find('/x:html',$node);</programlisting>
                 </listitem>
             </varlistentry>
         
-
-        
-            <varlistentry>
-                <term>iterator</term>
-
-                <listitem>
-                    <funcsynopsis>
-                        <funcsynopsisinfo>$iter = $node-&gt;iterator;</funcsynopsisinfo>
-                    </funcsynopsis>
-
-                    <para>This function is deprecated since XML::LibXML 1.54. It is only a dummy function that will get removed entirely in one of the next
-                    versions.</para>
-
-                    <para>To make use of iterator functions use XML::LibXML::Iterator Module available on CPAN.</para>
-                </listitem>
-            </varlistentry>
-        
-
         
             <varlistentry>
                 <term>normalize</term>
@@ -3258,7 +3264,12 @@ $xpc-&gt;find('/x:html',$node);</programlisting>
         <title>XML::LibXML Class for Element Nodes</title>
 
         <titleabbrev>XML::LibXML::Element</titleabbrev>
-
+        <sect1>
+            <title>Synopsis</title>
+            <programlisting>use XML::LibXML;
+# Only methods specific to Element nodes listed here,
+# see XML::LibXML::Node manpage for other methods</programlisting>
+        </sect1>
         <variablelist>
             <varlistentry>
                 <term>new</term>
@@ -3763,6 +3774,12 @@ $xpc-&gt;find('/x:html',$node);</programlisting>
         <title>XML::LibXML Class for Text Nodes</title>
 
         <titleabbrev>XML::LibXML::Text</titleabbrev>
+        <sect1>
+            <title>Synopsis</title>
+            <programlisting>use XML::LibXML;
+# Only methods specific to Text nodes listed here,
+# see XML::LibXML::Node manpage for other methods</programlisting>
+        </sect1>
 
         <para>Different to the DOM specification XML::LibXML implements the text node as the base class of all character data node. Therefor there exists no
         CharacterData class. This allow one to use all methods that are available for text nodes as well for Comments or CDATA-sections.</para>
@@ -3966,6 +3983,12 @@ $xpc-&gt;find('/x:html',$node);</programlisting>
         <title>XML::LibXML Comment Class</title>
 
         <titleabbrev>XML::LibXML::Comment</titleabbrev>
+        <sect1>
+            <title>Synopsis</title>
+            <programlisting>use XML::LibXML;
+# Only methods specific to Comment nodes listed here,
+# see XML::LibXML::Node manpage for other methods</programlisting>
+        </sect1>
 
         <para>This class provides all functions of <emphasis>XML::LibXML::Text</emphasis>, but for comment nodes. This can be done, since only the output of the
         node types is different, but not the data structure. :-)</para>
@@ -3990,6 +4013,12 @@ $xpc-&gt;find('/x:html',$node);</programlisting>
         <title>XML::LibXML Class for CDATA Sections</title>
 
         <titleabbrev>XML::LibXML::CDATASection</titleabbrev>
+        <sect1>
+            <title>Synopsis</title>
+            <programlisting>use XML::LibXML;
+# Only methods specific to CDATA nodes listed here,
+# see XML::LibXML::Node manpage for other methods</programlisting>
+        </sect1>
 
         <para>This class provides all functions of <emphasis>XML::LibXML::Text</emphasis>, but for CDATA nodes.</para>
 
@@ -4013,6 +4042,12 @@ $xpc-&gt;find('/x:html',$node);</programlisting>
         <title>XML::LibXML Attribute Class</title>
 
         <titleabbrev>XML::LibXML::Attr</titleabbrev>
+        <sect1>
+            <title>Synopsis</title>
+            <programlisting>use XML::LibXML;
+# Only methods specific to Attribute nodes listed here,
+# see XML::LibXML::Node manpage for other methods</programlisting>
+        </sect1>
 
         <para>This is the interface to handle Attributes like ordinary nodes. The naming of the class relies on the W3C DOM documentation.</para>
 
@@ -4160,6 +4195,10 @@ $xpc-&gt;find('/x:html',$node);</programlisting>
         <title>XML::LibXML's DOM L2 Document Fragment Implementation</title>
 
         <titleabbrev>XML::LibXML::DocumentFragment</titleabbrev>
+        <sect1>
+            <title>Synopsis</title>
+            <programlisting>use XML::LibXML;</programlisting>
+        </sect1>
 
         <para>This class is a helper class as described in the DOM Level 2 Specification. It is implemented as a node without name. All adding, inserting or
         replacing functions are aware of document fragments now.</para>
@@ -4171,12 +4210,18 @@ $xpc-&gt;find('/x:html',$node);</programlisting>
         <title>XML::LibXML Namespace Implementation</title>
 
         <titleabbrev>XML::LibXML::Namespace</titleabbrev>
+        <sect1>
+            <title>Synopsis</title>
+            <programlisting>use XML::LibXML;
+# Only methods specific to Namespace nodes listed here,
+# see XML::LibXML::Node manpage for other methods</programlisting>
+        </sect1>
 
         <para>Namespace nodes are returned by both $element-&gt;findnodes('namespace::foo') or by $node-&gt;getNamespaces().</para>
 
         <para>The namespace node API is not part of any current DOM API, and so it is quite minimal. It should be noted that namespace nodes are
         <emphasis>not</emphasis> a sub class of XML::LibXML::Node, however Namespace nodes act a lot like attribute nodes, and similarly named methods will
-        return what you would expect if you treated the namespace node as an attribute.</para>
+        return what you would expect if you treated the namespace node as an attribute. Note that in order to fix several inconsistencies between the API and the documentation, the behavior of some functions have been changed in 1.64.</para>
 
         <variablelist>
             <varlistentry>
@@ -4197,17 +4242,29 @@ $xpc-&gt;find('/x:html',$node);</programlisting>
             </varlistentry>
 
             <varlistentry>
-                <term>getName</term>
+                <term>declaredURI</term>
+                <listitem>
+                   <para>Returns the URI for this namespace.</para>
+		</listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>declaredPrefix</term>
+                <listitem>
+                   <para>Returns the prefix for this namespace.</para>
+		</listitem>
+            </varlistentry>
+
+            <varlistentry>
+                <term>nodeName</term>
 
                 <listitem>
                     <funcsynopsis>
-                        <funcsynopsisinfo>print $ns-&gt;getName();</funcsynopsisinfo>
+                        <funcsynopsisinfo>print $ns-&gt;nodeName();</funcsynopsisinfo>
                     </funcsynopsis>
 
                     <para>Returns "xmlns:prefix", where prefix is the prefix for this namespace.</para>
                 </listitem>
             </varlistentry>
-
             <varlistentry>
                 <term>name</term>
 
@@ -4216,19 +4273,7 @@ $xpc-&gt;find('/x:html',$node);</programlisting>
                         <funcsynopsisinfo>print $ns-&gt;name();</funcsynopsisinfo>
                     </funcsynopsis>
 
-                    <para>Alias for getName()</para>
-                </listitem>
-            </varlistentry>
-
-            <varlistentry>
-                <term>prefix</term>
-
-                <listitem>
-                    <funcsynopsis>
-                        <funcsynopsisinfo>print $ns-&gt;prefix();</funcsynopsisinfo>
-                    </funcsynopsis>
-
-                    <para>Returns the prefix bound to this namespace declaration.</para>
+                    <para>Alias for nodeName()</para>
                 </listitem>
             </varlistentry>
 
@@ -4240,7 +4285,7 @@ $xpc-&gt;find('/x:html',$node);</programlisting>
                         <funcsynopsisinfo>$localname = $ns-&gt;getLocalName();</funcsynopsisinfo>
                     </funcsynopsis>
 
-                    <para>Alias for prefix()</para>
+                    <para>Returns the local name of this node as if it were an attribute, that is, the prefix associated with the namespace.</para>
                 </listitem>
             </varlistentry>
 
@@ -4252,7 +4297,7 @@ $xpc-&gt;find('/x:html',$node);</programlisting>
                         <funcsynopsisinfo>print $ns-&gt;getData();</funcsynopsisinfo>
                     </funcsynopsis>
 
-                    <para>Returns the URI of the namespace.</para>
+                    <para>Returns the URI of the namespace, i.e. the value of this node as if it were an attribute.</para>
                 </listitem>
             </varlistentry>
 
@@ -4274,18 +4319,6 @@ $xpc-&gt;find('/x:html',$node);</programlisting>
                 <listitem>
                     <funcsynopsis>
                         <funcsynopsisinfo>print $ns-&gt;value();</funcsynopsisinfo>
-                    </funcsynopsis>
-
-                    <para>Alias for getData()</para>
-                </listitem>
-            </varlistentry>
-
-            <varlistentry>
-                <term>uri</term>
-
-                <listitem>
-                    <funcsynopsis>
-                        <funcsynopsisinfo>print $ns-&gt;uri();</funcsynopsisinfo>
                     </funcsynopsis>
 
                     <para>Alias for getData()</para>
@@ -4322,6 +4355,12 @@ $xpc-&gt;find('/x:html',$node);</programlisting>
         <title>XML::LibXML Processing Instructions</title>
 
         <titleabbrev>XML::LibXML::PI</titleabbrev>
+        <sect1>
+            <title>Synopsis</title>
+            <programlisting>use XML::LibXML;
+# Only methods specific to Processing Instruction nodes listed here,
+# see XML::LibXML::Node manpage for other methods</programlisting>
+        </sect1>
 
         <para>Processing instructions are implemented with XML::LibXML with read and write access. The PI data is the PI without the PI target (as specified in
         XML 1.0 [17]) as a string. This string can be accessed with getData as implemented in XML::LibXML::Node.</para>
@@ -4367,6 +4406,10 @@ $pinode-&gt;setData( name=&gt;string_value [...] );</funcsynopsisinfo>
         <title>XML::LibXML DTD Handling</title>
 
         <titleabbrev>XML::LibXML::Dtd</titleabbrev>
+        <sect1>
+            <title>Synopsis</title>
+            <programlisting>use XML::LibXML;</programlisting>
+        </sect1>
 
         <para>This class holds a DTD. You may parse a DTD from either a string, or from an external SYSTEM identifier.</para>
 
@@ -4445,6 +4488,10 @@ $pinode-&gt;setData( name=&gt;string_value [...] );</funcsynopsisinfo>
         <title>XML::LibXML Class for Input Callbacks</title>
 
         <titleabbrev>XML::LibXML::InputCallback</titleabbrev>
+        <sect1>
+            <title>Synopsis</title>
+            <programlisting>use XML::LibXML;</programlisting>
+        </sect1>
 
         <sect1>
             <title>Synopsis</title>
@@ -4750,6 +4797,11 @@ $parser-&gt;parse_file( $some_xml_file );
         <title>RelaxNG Schema Validation</title>
 
         <titleabbrev>XML::LibXML::RelaxNG</titleabbrev>
+        <sect1>
+            <title>Synopsis</title>
+            <programlisting>use XML::LibXML;
+$doc = XML::LibXML->new->parse_file($url);</programlisting>
+        </sect1>
 
         <para>The XML::LibXML::RelaxNG class is a tiny frontend to libxml2's RelaxNG implementation. Currently it supports only schema parsing and document
         validation.</para>
@@ -4799,6 +4851,11 @@ $rngschema = XML::LibXML::RelaxNG-&gt;new( DOM =&gt; $doc );</funcsynopsisinfo>
         <title>XML Schema Validation</title>
 
         <titleabbrev>XML::LibXML::Schema</titleabbrev>
+        <sect1>
+            <title>Synopsis</title>
+            <programlisting>use XML::LibXML;
+$doc = XML::LibXML->new->parse_file($url);</programlisting>
+        </sect1>
 
         <para>The XML::LibXML::Schema class is a tiny frontend to libxml2's XML Schema implementation. Currently it supports only schema parsing and
         document validation.</para>
@@ -5175,7 +5232,7 @@ my @nodes = $xc-&gt;findnodes('$A[work_area/street = $B]/name');
     <sect1>
       <title>Synopsis</title>
       <programlisting>use XML::LibXML::Reader;</programlisting>
-      <programlisting>$reader = new XML::LibXML::Reader("file.xml")
+      <programlisting>$reader = new XML::LibXML::Reader(location => "file.xml")
        or die "cannot read file.xml\n";
 while ($reader-&gt;read) {
   processNode($reader);
@@ -5191,7 +5248,7 @@ sub processNode {
 </programlisting>
       <para>or</para>
       <programlisting>
-  $reader = new XML::LibXML::Reader("file.xml")
+  $reader = new XML::LibXML::Reader(location => "file.xml")
        or die "cannot read file.xml\n";
   $reader-&gt;preservePattern('//table/tr');
   $reader-&gt;finish;

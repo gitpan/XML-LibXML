@@ -1,4 +1,4 @@
-# $Id: LibXML.pm 663 2007-04-16 11:38:42Z pajas $
+# $Id: LibXML.pm 677 2007-09-09 20:54:24Z pajas $
 
 package XML::LibXML;
 
@@ -20,7 +20,7 @@ use IO::Handle; # for FH reads called as methods
 
 BEGIN {
 
-$VERSION = "1.63"; # VERSION TEMPLATE: DO NOT CHANGE
+$VERSION = "1.64"; # VERSION TEMPLATE: DO NOT CHANGE
 require Exporter;
 require DynaLoader;
 @ISA = qw(DynaLoader Exporter);
@@ -907,11 +907,6 @@ sub attributes {
     return wantarray ? @attr : XML::LibXML::NamedNodeMap->new( @attr );
 }
 
-sub iterator {
-    warn "this function is obsolete!\nIt was disabled in version 1.54\n";
-    return undef;
-}
-
 
 sub findnodes {
     my ($node, $xpath) = @_;
@@ -1408,16 +1403,18 @@ package XML::LibXML::Namespace;
 
 # this is infact not a node!
 sub prefix { return "xmlns"; }
+sub getPrefix { return "xmlns"; }
+sub getNamespaceURI { return "http://www.w3.org/2000/xmlns/" };
 
 sub getNamespaces { return (); }
 
 sub nodeName {
-    my $self = shift;
-    my $nsP  = $self->name;
-    return ( defined($nsP) && length($nsP) ) ? "xmlns:$nsP" : "xmlns";
+  my $self = shift;
+  my $nsP  = $self->localname;
+  return ( defined($nsP) && length($nsP) ) ? "xmlns:$nsP" : "xmlns";
 }
-
-sub getNodeName { my $self = shift; return $self->nodeName; }
+sub name    { goto &nodeName }
+sub getName { goto &nodeName }
 
 sub isEqualNode {
     my ( $self, $ref ) = @_;

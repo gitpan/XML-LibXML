@@ -4,6 +4,9 @@ XML::LibXML::RelaxNG - RelaxNG Schema Validation
 
 =head1 SYNOPSIS
 
+  use XML::LibXML;
+  $doc = XML::LibXML->new->parse_file($url);
+
   $rngschema = XML::LibXML::RelaxNG->new( location => $filename_or_url );
   $rngschema = XML::LibXML::RelaxNG->new( string => $xmlschemastring );
   $rngschema = XML::LibXML::RelaxNG->new( DOM => $doc );
@@ -61,7 +64,7 @@ Petr Pajas,
 
 =head1 VERSION
 
-1.63
+1.64
 
 =head1 COPYRIGHT
 

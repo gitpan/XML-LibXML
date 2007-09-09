@@ -4,6 +4,9 @@ XML::LibXML::Schema - XML Schema Validation
 
 =head1 SYNOPSIS
 
+  use XML::LibXML;
+  $doc = XML::LibXML->new->parse_file($url);
+
   $xmlschema = XML::LibXML::Schema->new( location => $filename_or_url );
   $xmlschema = XML::LibXML::Schema->new( string => $xmlschemastring );
   eval { $xmlschema->validate( $doc ); };
@@ -56,7 +59,7 @@ Petr Pajas,
 
 =head1 VERSION
 
-1.63
+1.64
 
 =head1 COPYRIGHT
 

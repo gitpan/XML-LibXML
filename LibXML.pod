@@ -4,6 +4,13 @@ XML::LibXML - Perl Binding for libxml2
 
 =head1 SYNOPSIS
 
+  use XML::LibXML;
+  my $parser = XML::LibXML->new();
+  
+  my $doc = $parser->parse_string(<<'EOT');
+  <some-xml/>
+  EOT
+
   $Version_String = XML::LibXML::LIBXML_DOTTED_VERSION;
   $Version_ID = XML::LibXML::LIBXML_VERSION;
   $DLL_Version = XML::LibXML::LIBXML_RUNTIME_VERSION;
@@ -12,16 +19,6 @@ XML::LibXML - Perl Binding for libxml2
 
 
 =head1 DESCRIPTION
-
-
-=head1 SYNOPSIS
-
-  use XML::LibXML;
-  my $parser = XML::LibXML->new();
-  
-  my $doc = $parser->parse_string(<<'EOT');
-  <some-xml/>
-  EOT
 
 
 =head1 DESCRIPTION
@@ -250,6 +247,19 @@ Allows to clone an XML::LibXML node into a XML::GDOME node.
 
 =back
 
+
+=head1 CONTACTS
+
+For bug reports, please use the CPAN request tracker on
+http://rt.cpan.org/NoAuth/Bugs.html?Dist=XML-LibXML
+
+For suggestions etc., and other issues related to XML::LibXML you may use the
+perl XML mailing list (perl-xml@listserv.ActiveState.com), where most
+XML-related Perl modules are discussed. In case of problems you should check
+the archives of that list first. Many problems are already discussed there. You
+can find the list's archives and subscription options at
+http://aspn.activestate.com/ASPN/Mail/Browse/Threaded/perl-xml.
+
 =head1 AUTHORS
 
 Matt Sergeant, 
@@ -258,7 +268,7 @@ Petr Pajas,
 
 =head1 VERSION
 
-1.63
+1.64
 
 =head1 COPYRIGHT
 

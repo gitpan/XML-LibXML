@@ -4,6 +4,18 @@ XML::LibXML::Parser - Parsing XML Data with XML::LibXML
 
 =head1 SYNOPSIS
 
+  use XML::LibXML;
+  my $parser = XML::LibXML->new();
+  
+  my $doc = $parser->parse_string(<<'EOT');
+  <some-xml/>
+  EOT
+  my $fdoc = $parser->parse_file( $xmlfile );
+  
+  my $fhdoc = $parser->parse_fh( $xmlstream );
+  
+  my $fragment = $parser->parse_xml_chunk( $xml_wb_chunk );
+
   $parser = XML::LibXML->new();
   $doc = $parser->parse_file( $xmlfilename );
   $doc = $parser->parse_fh( $io_fh );
@@ -37,21 +49,6 @@ XML::LibXML::Parser - Parsing XML Data with XML::LibXML
 
 
 =head1 DESCRIPTION
-
-
-=head1 SYNOPSIS
-
-  use XML::LibXML;
-  my $parser = XML::LibXML->new();
-  
-  my $doc = $parser->parse_string(<<'EOT');
-  <some-xml/>
-  EOT
-  my $fdoc = $parser->parse_file( $xmlfile );
-  
-  my $fhdoc = $parser->parse_fh( $xmlstream );
-  
-  my $fragment = $parser->parse_xml_chunk( $xml_wb_chunk );
 
 
 =head1 PARSING
@@ -235,7 +232,7 @@ XML::LibXML::DocumentFragment.
   $fragment = $parser->parse_xml_chunk( $wbxmlstring );
 
 This is the old name of parse_balanced_chunk(). Because it may causes confusion
-with the push parser interface, this function should be used anymore.
+with the push parser interface, this function should not be used anymore.
 
 
 
@@ -667,7 +664,7 @@ Petr Pajas,
 
 =head1 VERSION
 
-1.63
+1.64
 
 =head1 COPYRIGHT
 

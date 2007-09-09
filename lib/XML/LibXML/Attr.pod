@@ -4,6 +4,10 @@ XML::LibXML::Attr - XML::LibXML Attribute Class
 
 =head1 SYNOPSIS
 
+  use XML::LibXML;
+  # Only methods specific to Attribute nodes listed here,
+  # see XML::LibXML::Node manpage for other methods
+
   $attr = XML::LibXML::Attr->new($name [,$value]);
   $string = $attr->getValue();
   $string = $attr->value;
@@ -111,7 +115,7 @@ Petr Pajas,
 
 =head1 VERSION
 
-1.63
+1.64
 
 =head1 COPYRIGHT
 

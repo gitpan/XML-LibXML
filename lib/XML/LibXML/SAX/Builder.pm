@@ -1,4 +1,4 @@
-# $Id: Builder.pm 663 2007-04-16 11:38:42Z pajas $
+# $Id: Builder.pm 671 2007-09-08 17:23:36Z pajas $
 
 package XML::LibXML::SAX::Builder;
 
@@ -7,7 +7,7 @@ use XML::NamespaceSupport;
 
 use vars qw ($VERSION);
 
-$VERSION = "1.63"; # VERSION TEMPLATE: DO NOT CHANGE
+$VERSION = "1.64"; # VERSION TEMPLATE: DO NOT CHANGE
 
 sub new {
     my $class = shift;

@@ -1,4 +1,4 @@
-/* $Id: LibXML.xs 663 2007-04-16 11:38:42Z pajas $ */
+/* $Id: LibXML.xs 677 2007-09-09 20:54:24Z pajas $ */
 
 #ifdef __cplusplus
 extern "C" {
@@ -4711,6 +4711,7 @@ toString( self, format=0, useDomEncoding = &PL_sv_undef )
         if ( ret != NULL ) {
             if ( useDomEncoding != &PL_sv_undef && SvTRUE(useDomEncoding) ) {
                 RETVAL = nodeC2Sv((xmlChar*)ret, PmmNODE(PmmPROXYNODE(self))) ;
+                SvUTF8_off(RETVAL);
             }
             else {
                 RETVAL = C2Sv((xmlChar*)ret, NULL) ;
@@ -6485,13 +6486,15 @@ nodeType(self)
         RETVAL
 
 SV*
-href(self)
+declaredURI(self)
         SV * self
     ALIAS:
         value = 1
         nodeValue = 2
         getData = 3
-        getNamespaceURI = 4
+        getValue = 4
+        value = 5
+	href = 6
     PREINIT:
         xmlNsPtr ns = (xmlNsPtr)SvIV(SvRV(self));
         xmlChar * href;
@@ -6503,13 +6506,11 @@ href(self)
         RETVAL
 
 SV*
-localname(self)
+declaredPrefix(self)
         SV * self
     ALIAS:
-        name = 1
+	localname = 1
         getLocalName = 2
-        getName = 3
-        getPrefix = 4
     PREINIT:
         xmlNsPtr ns = (xmlNsPtr)SvIV(SvRV(self));
         xmlChar * prefix;
@@ -7941,7 +7942,8 @@ next(reader)
 
 #define LIBXML_READER_NEXT_SIBLING(ret,reader)	\
 	ret = xmlTextReaderNextSibling(reader); \
-        if (ret == -1) {			\
+        if (ret == -1)                          \
+        {			                \
 	  int depth;				\
           depth = xmlTextReaderDepth(reader);	\
 	  ret = xmlTextReaderRead(reader);			   \
@@ -7949,7 +7951,7 @@ next(reader)
 	    ret = xmlTextReaderNext(reader);			   \
 	  }							   \
 	  if (ret == 1) {					   \
-	    if (xmlTextReaderDepth(reader) > depth) {		   \
+	    if (xmlTextReaderDepth(reader) != depth) {		   \
 	      ret = 0;							\
 	    } else if (xmlTextReaderNodeType(reader) == XML_READER_TYPE_END_ELEMENT) { \
 	      ret = xmlTextReaderRead(reader);				\
