@@ -3,13 +3,19 @@ use strict;
 use warnings;
 use Test::More;
 
-if (XML::LibXML::LIBXML_VERSION() >= 20621) {
-   plan tests => 92;
-} else {
-   plan skip_all => "Reader not supported for libxml2 <= 2.6.20";
-}
+use XML::LibXML;
 
 BEGIN{
+  if (1000*$] < 5008) {
+     plan skip_all => "Reader interface only supported in Perl >= 5.8";
+     exit;
+  } elsif (XML::LibXML::LIBXML_VERSION() <= 20620) {
+     plan skip_all => "Reader not supported for libxml2 <= 2.6.20";
+     exit;
+  } else {
+     plan tests => 93;
+  }
+
   use_ok('XML::LibXML::Reader');
 };
 

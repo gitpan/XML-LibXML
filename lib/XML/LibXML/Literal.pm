@@ -1,4 +1,4 @@
-# $Id: Literal.pm 671 2007-09-08 17:23:36Z pajas $
+# $Id: Literal.pm 685 2007-09-25 16:28:01Z pajas $
 
 package XML::LibXML::Literal;
 use XML::LibXML::Boolean;
@@ -6,7 +6,7 @@ use XML::LibXML::Number;
 use strict;
 
 use vars qw ($VERSION);
-$VERSION = "1.64"; # VERSION TEMPLATE: DO NOT CHANGE
+$VERSION = "1.65"; # VERSION TEMPLATE: DO NOT CHANGE
 
 use overload 
 		'""' => \&value,

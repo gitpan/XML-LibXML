@@ -1,4 +1,4 @@
-# $Id: LibXML.pm 677 2007-09-09 20:54:24Z pajas $
+# $Id: LibXML.pm 685 2007-09-25 16:28:01Z pajas $
 
 package XML::LibXML;
 
@@ -20,7 +20,7 @@ use IO::Handle; # for FH reads called as methods
 
 BEGIN {
 
-$VERSION = "1.64"; # VERSION TEMPLATE: DO NOT CHANGE
+$VERSION = "1.65"; # VERSION TEMPLATE: DO NOT CHANGE
 require Exporter;
 require DynaLoader;
 @ISA = qw(DynaLoader Exporter);

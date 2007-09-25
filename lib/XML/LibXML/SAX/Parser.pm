@@ -1,4 +1,4 @@
-# $Id: Parser.pm 672 2007-09-08 17:29:00Z pajas $
+# $Id: Parser.pm 685 2007-09-25 16:28:01Z pajas $
 
 package XML::LibXML::SAX::Parser;
 
@@ -10,7 +10,7 @@ use XML::LibXML::Common qw(:libxml);
 use XML::SAX::Base;
 use XML::SAX::DocumentLocator;
 
-$VERSION = "1.64"; # VERSION TEMPLATE: DO NOT CHANGE
+$VERSION = "1.65"; # VERSION TEMPLATE: DO NOT CHANGE
 @ISA = ('XML::SAX::Base');
 
 sub _parse_characterstream {
