@@ -1,5 +1,5 @@
 # -------------------------------------------------------------------------- #
-# $Id: Makefile.PL 686 2007-09-25 16:30:55Z pajas $
+# $Id: Makefile.PL 710 2008-01-29 21:04:51Z pajas $
 # -------------------------------------------------------------------------- #
 # Makefile.PL for XML::LibXML.
 # This file is required to generate a localized Makefile
@@ -9,6 +9,8 @@ use ExtUtils::MakeMaker;
 use Config;
 use Symbol;
 use File::Spec;
+
+use v5.6.1; # refuse to compile on earlier
 
 $|=0;
 my %config;
@@ -22,9 +24,10 @@ my %INFOS = (
     'VERSION_FROM' => 'LibXML.pm', # finds $VERSION
     'AUTHOR'    => 'Christian Glahn',
     'ABSTRACT'  => 'Interface to Gnome libxml2 xml parsing and DOM library',
-    'PREREQ_PM' => { 'XML::SAX' => '0.11',
-                     'XML::NamespaceSupport' => '1.07',
-                     'XML::LibXML::Common' => '0.13',
+    'PREREQ_PM' => {
+		    'XML::SAX' => '0.11',
+		    'XML::NamespaceSupport' => '1.07',
+		    'XML::LibXML::Common' => '0.13',
                    },
     'OBJECT'    => '$(O_FILES)', # add the DOM extensions to libxml2
             );
@@ -111,7 +114,7 @@ unless ( $is_Win32 ) { # cannot get config in W32
                      [2,6,20,0], # broken schemas
                      [2,6,24,1], # all tests pass
                      [2,6,25,0], # broken XPath
-                     [2,6,30,1], # tested, works ok
+                     [2,6,31,1], # tested, works ok
                     );
     my $xml2cfg = "xml2-config";
     my $libprefix = $ENV{XMLPREFIX} || $config{XMLPREFIX};
@@ -132,13 +135,14 @@ unless ( $is_Win32 ) { # cannot get config in W32
 
         if ( $@ ) {
             if ( $@ =~ /^VERSION/ ) {
-                die "The installed version of libxml2 not compatible with XML::LibXML.\n\n".
+                print STDERR "The installed version of libxml2 not compatible with XML::LibXML.\n\n".
                     "You may continue at your own risk, but:\n\n".
                     "  - don't expect XML::LibXML to build or work correctly!\n".
                     "  - don't report errors!\n".
                     "  - don't send patches!\n\n".
                     "Check the README file for more information on versions\n".
                     "that are tested with XML::LibXML\n\n"; 
+		exit 0; # 0 recommended by http://cpantest.grango.org (Notes for CPAN Authors)
             }
             if ( $@ =~ /^UNTESTED (\S*)/ ) {
 	      warn "Note: libxml2 $1 was not tested with this XML::LibXML version.\n"
@@ -256,7 +260,7 @@ if ($config{LIBS} !~ /\-lm\b/) {
 # -------------------------------------------------------------------------- #
 # test if the libraries are really installed!
 unless (have_library("xml2") or have_library("libxml2")) {
-    die <<DEATH;
+    print STDERR <<DEATH;
 libxml2 not found
 Try setting LIBS and INC values on the command line
 Or get libxml2 from 
@@ -264,6 +268,7 @@ Or get libxml2 from
 If you install via RPMs, make sure you also install the -devel
 RPMs, as this is where the headers (.h files) are.
 DEATH
+exit 0; # 0 recommended by http://cpantest.grango.org (Notes for CPAN Authors)
 }
 # -------------------------------------------------------------------------- #
 
@@ -300,6 +305,9 @@ sub MY::manifypods {
 #    warn $str;
 #    $str =~ s/^manifypods : pure_all (.*)$/manifypods : pure_all docs $1/m;
     $str .= <<EOF;
+
+docs-fast :
+\t\@$^X -Iblib/arch -Iblib/lib example/xmllibxmldocs.pl docs/libxml.dbk lib/XML/LibXML/
 
 docs : pure_all
 \t\@$^X -Iblib/arch -Iblib/lib example/xmllibxmldocs.pl docs/libxml.dbk lib/XML/LibXML/

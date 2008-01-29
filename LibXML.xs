@@ -1,4 +1,4 @@
-/* $Id: LibXML.xs 684 2007-09-18 20:27:03Z pajas $ */
+/* $Id: LibXML.xs 709 2008-01-29 21:01:32Z pajas $ */
 
 #ifdef __cplusplus
 extern "C" {
@@ -97,7 +97,7 @@ extern "C" {
 
 /* this should keep the default */
 static xmlExternalEntityLoader LibXML_old_ext_ent_loader = NULL;
-
+ProxyNodePtr PROXY_NODE_REGISTRY = NULL;
 
 /* ****************************************************************
  * Error handler
@@ -855,7 +855,7 @@ LibXML_XPathContext_pool ( xmlXPathContextPtr ctxt, void * hashkey, SV * pnode )
         }
     }
 
-    key = newSViv((IV) hashkey);
+    key = newSViv(PTR2IV(hashkey));
     strkey = SvPV(key, len);
     if (pnode != NULL && !hv_exists(XPathContextDATA(ctxt)->pool,strkey,len)) {        
         value = hv_store(XPathContextDATA(ctxt)->pool,strkey,len, SvREFCNT_inc(pnode),0);
@@ -1229,8 +1229,26 @@ LibXML_configure_namespaces( xmlXPathContextPtr ctxt ) {
         }
         ctxt->nsNr = 0;
         if (ctxt->namespaces != NULL) {
-            while (ctxt->namespaces[ctxt->nsNr] != NULL)
-                ctxt->nsNr++;
+	  int cur=0;
+	  xmlNsPtr ns;
+	  /* we now walk through the list and
+	     drop every ns that was declared via registration */
+	  while (ctxt->namespaces[cur] != NULL) {
+	    ns = ctxt->namespaces[cur];
+	    if (ns->prefix==NULL ||
+		xmlHashLookup(ctxt->nsHash, ns->prefix) != NULL) {
+	      /* drop it */
+	      ctxt->namespaces[cur]=NULL;
+	    } else {
+	      if (cur != ctxt->nsNr) {
+		/* move the item to the new tail */
+		ctxt->namespaces[ctxt->nsNr]=ns;
+		ctxt->namespaces[cur]=NULL;
+	      }
+	      ctxt->nsNr++;
+	    }
+	    cur++;
+	  }
         }
     }
 }
@@ -1272,7 +1290,32 @@ BOOT:
     xmlInitializeCatalog(); /* use catalog data */
 #endif
 
-char *
+void
+_CLONE( class )
+        char * class
+    CODE:
+        PmmCloneProxyNodes();
+
+int
+_leaked_nodes()
+    CODE:
+        RETVAL = PmmProxyNodeRegistrySize();
+    OUTPUT:
+        RETVAL
+
+#### The following function is called by XML::LibXSLT 
+#### It passes the other library the pointer to our internal proxy_node registry
+#### so that nodes created there get properly registered before they are disposed
+#### by our DESTROY
+SV*
+__proxy_registry()
+    CODE:
+        RETVAL = NEWSV(0,0);
+	sv_setref_pv( RETVAL, NULL, (void*) &PROXY_NODE_REGISTRY );	       
+    OUTPUT:
+        RETVAL
+
+const char *
 LIBXML_DOTTED_VERSION()
     CODE:
         RETVAL = LIBXML_DOTTED_VERSION;
@@ -1763,7 +1806,7 @@ _parse_html_string(self, string, svURL, svEncoding, options = 0)
         STRLEN len;
         char * ptr;
         char* URL = NULL;
-        char * encoding = NULL;
+        const char * encoding = NULL;
         SV * saved_error = sv_2mortal(newSVpv("",0));
         HV * real_obj;
         htmlDocPtr real_doc;
@@ -1968,7 +2011,7 @@ _parse_xml_chunk(self, svchunk, enc = &PL_sv_undef)
         SV * enc
     PREINIT:
         STRLEN len;
-        char * encoding = "UTF-8";
+        const char * encoding = "UTF-8";
         SV * saved_error = sv_2mortal(newSVpv("",0));
         HV * real_obj;
         int recover = 0;
@@ -2039,7 +2082,7 @@ _parse_sax_xml_chunk(self, svchunk, enc = &PL_sv_undef)
     PREINIT:
         STRLEN len;
         char * ptr;
-        char * encoding = "UTF-8";
+        const char * encoding = "UTF-8";
         SV * saved_error = sv_2mortal(newSVpv("",0));
         HV * real_obj;
         int recover = 0;
@@ -2399,7 +2442,7 @@ _default_catalog( self, catalog )
         SV * catalog
     PREINIT:
 #ifdef LIBXML_CATALOG_ENABLED
-        xmlCatalogPtr catal = (xmlCatalogPtr)SvIV(SvRV(catalog));
+        xmlCatalogPtr catal = INT2PTR(xmlCatalogPtr,SvIV(SvRV(catalog)));
 #endif
     INIT:
         if ( catal == NULL ) {
@@ -2694,7 +2737,7 @@ createInternalSubset( self, Pname, extID, sysID )
         xmlFree(systemID);
         xmlFree(name);
         if ( dtd ) {
-            RETVAL = PmmNodeToSv( (xmlNodePtr)dtd, PmmPROXYNODE(self) );
+            RETVAL = PmmNodeToSv( INT2PTR(xmlNodePtr,dtd), PmmPROXYNODE(self) );
         }
         else {
             XSRETURN_UNDEF;
@@ -3310,7 +3353,7 @@ internalSubset( self )
         }
 
         dtd = self->intSubset;
-        RETVAL = PmmNodeToSv((xmlNodePtr)dtd, PmmPROXYNODE(self));
+RETVAL = PmmNodeToSv(INT2PTR(xmlNodePtr,dtd), PmmPROXYNODE(self));
     OUTPUT:
         RETVAL
 
@@ -3483,7 +3526,7 @@ encoding( self )
         RETVAL
 
 void
-setEncoding( self, encoding )
+setEncoding( self, encoding = NULL )
         xmlDocPtr self
         char *encoding
     PREINIT:
@@ -3492,15 +3535,19 @@ setEncoding( self, encoding )
         if ( self->encoding != NULL ) {
             xmlFree( (xmlChar*) self->encoding );
         }
-        self->encoding = xmlStrdup( (const xmlChar *)encoding );
-        charset = (int)xmlParseCharEncoding( (const char*)self->encoding );
-        if ( charset > 0 ) {
+        if (encoding!=NULL && strlen(encoding)) {
+	  self->encoding = xmlStrdup( (const xmlChar *)encoding );
+	  charset = (int)xmlParseCharEncoding( (const char*)self->encoding );
+	  if ( charset > 0 ) {
             ((ProxyNodePtr)self->_private)->encoding = charset;
-        }
-        else {
+	  }
+	  else {
             ((ProxyNodePtr)self->_private)->encoding = XML_CHAR_ENCODING_ERROR;
-        }
-
+	  }
+	} else {
+	  self->encoding=NULL;
+	  ((ProxyNodePtr)self->_private)->encoding = XML_CHAR_ENCODING_UTF8;
+	}
 
 int
 standalone( self )
@@ -6470,7 +6517,7 @@ void
 DESTROY(self)
         SV * self
     PREINIT:
-        xmlNsPtr ns = (xmlNsPtr)SvIV(SvRV(self));
+        xmlNsPtr ns = INT2PTR(xmlNsPtr,SvIV(SvRV(self)));
     CODE:
         xs_warn( "DESTROY NS" );
         if (ns) {
@@ -6483,7 +6530,7 @@ nodeType(self)
     ALIAS:
         getType = 1
     PREINIT:
-        xmlNsPtr ns = (xmlNsPtr)SvIV(SvRV(self));
+        xmlNsPtr ns = INT2PTR(xmlNsPtr,SvIV(SvRV(self)));
     CODE:
         RETVAL = ns->type;
     OUTPUT:
@@ -6497,10 +6544,10 @@ declaredURI(self)
         nodeValue = 2
         getData = 3
         getValue = 4
-        value = 5
+        value2 = 5
 	href = 6
     PREINIT:
-        xmlNsPtr ns = (xmlNsPtr)SvIV(SvRV(self));
+        xmlNsPtr ns = INT2PTR(xmlNsPtr,SvIV(SvRV(self)));
         xmlChar * href;
     CODE:
         href = xmlStrdup(ns->href);
@@ -6516,7 +6563,7 @@ declaredPrefix(self)
 	localname = 1
         getLocalName = 2
     PREINIT:
-        xmlNsPtr ns = (xmlNsPtr)SvIV(SvRV(self));
+        xmlNsPtr ns = INT2PTR(xmlNsPtr,SvIV(SvRV(self)));
         xmlChar * prefix;
     CODE:
         prefix = xmlStrdup(ns->prefix);
@@ -6530,8 +6577,8 @@ _isEqual(self, ref)
        SV * self
        SV * ref
     PREINIT:
-       xmlNsPtr ns  = (xmlNsPtr)SvIV(SvRV(self));
-       xmlNsPtr ons = (xmlNsPtr)SvIV(SvRV(ref));
+       xmlNsPtr ns = INT2PTR(xmlNsPtr,SvIV(SvRV(self)));
+       xmlNsPtr ons = INT2PTR(xmlNsPtr,SvIV(SvRV(ref)));
     CODE:
        RETVAL = 0;
        if ( ns == ons ) {
@@ -6963,7 +7010,7 @@ void
 DESTROY( self )
         SV * self
     INIT:
-        xmlXPathContextPtr ctxt = (xmlXPathContextPtr)SvIV(SvRV(self)); 
+        xmlXPathContextPtr ctxt = INT2PTR(xmlXPathContextPtr,SvIV(SvRV(self))); 
     CODE:
         xs_warn( "DESTROY XPATH CONTEXT" );
         if (ctxt) {
@@ -7002,7 +7049,7 @@ SV*
 getContextNode( self )
         SV * self
     INIT:
-        xmlXPathContextPtr ctxt = (xmlXPathContextPtr)SvIV(SvRV(self)); 
+        xmlXPathContextPtr ctxt = INT2PTR(xmlXPathContextPtr,SvIV(SvRV(self))); 
         if ( ctxt == NULL ) {
             croak("XPathContext: missing xpath context\n");
         }
@@ -7019,7 +7066,7 @@ int
 getContextPosition( self )
         SV * self
     INIT:
-        xmlXPathContextPtr ctxt = (xmlXPathContextPtr)SvIV(SvRV(self)); 
+        xmlXPathContextPtr ctxt = INT2PTR(xmlXPathContextPtr,SvIV(SvRV(self))); 
         if ( ctxt == NULL ) {
             croak("XPathContext: missing xpath context\n");
         }
@@ -7032,7 +7079,7 @@ int
 getContextSize( self )
         SV * self
     INIT:
-        xmlXPathContextPtr ctxt = (xmlXPathContextPtr)SvIV(SvRV(self)); 
+        xmlXPathContextPtr ctxt = INT2PTR(xmlXPathContextPtr,SvIV(SvRV(self))); 
         if ( ctxt == NULL ) {
             croak("XPathContext: missing xpath context\n");
         }
@@ -7046,7 +7093,7 @@ setContextNode( self , pnode )
         SV * self
         SV * pnode
     INIT:
-        xmlXPathContextPtr ctxt = (xmlXPathContextPtr)SvIV(SvRV(self)); 
+        xmlXPathContextPtr ctxt = INT2PTR(xmlXPathContextPtr,SvIV(SvRV(self))); 
         if ( ctxt == NULL ) {
             croak("XPathContext: missing xpath context\n");
         }
@@ -7065,7 +7112,7 @@ setContextPosition( self , position )
         SV * self
         int position
     INIT:
-        xmlXPathContextPtr ctxt = (xmlXPathContextPtr)SvIV(SvRV(self)); 
+        xmlXPathContextPtr ctxt = INT2PTR(xmlXPathContextPtr,SvIV(SvRV(self))); 
         if ( ctxt == NULL )
             croak("XPathContext: missing xpath context\n");
         if ( position < -1 || position > ctxt->contextSize )
@@ -7078,7 +7125,7 @@ setContextSize( self , size )
         SV * self
         int size
     INIT:
-        xmlXPathContextPtr ctxt = (xmlXPathContextPtr)SvIV(SvRV(self)); 
+        xmlXPathContextPtr ctxt = INT2PTR(xmlXPathContextPtr,SvIV(SvRV(self))); 
         if ( ctxt == NULL )
             croak("XPathContext: missing xpath context\n");
         if ( size < -1 )
@@ -7100,7 +7147,7 @@ registerNs( pxpath_context, prefix, ns_uri )
     PREINIT:
         xmlXPathContextPtr ctxt = NULL;
     INIT:
-        ctxt = (xmlXPathContextPtr)SvIV(SvRV(pxpath_context));
+        ctxt = INT2PTR(xmlXPathContextPtr,SvIV(SvRV(pxpath_context)));
         if ( ctxt == NULL ) {
             croak("XPathContext: missing xpath context\n");
         }
@@ -7124,7 +7171,7 @@ lookupNs( pxpath_context, prefix )
     PREINIT:
         xmlXPathContextPtr ctxt = NULL;
     INIT:
-        ctxt = (xmlXPathContextPtr)SvIV(SvRV(pxpath_context));
+        ctxt = INT2PTR(xmlXPathContextPtr,SvIV(SvRV(pxpath_context)));
         if ( ctxt == NULL ) {
             croak("XPathContext: missing xpath context\n");
         }
@@ -7138,7 +7185,7 @@ SV*
 getVarLookupData( self )
         SV * self
     INIT:
-        xmlXPathContextPtr ctxt = (xmlXPathContextPtr)SvIV(SvRV(self)); 
+        xmlXPathContextPtr ctxt = INT2PTR(xmlXPathContextPtr,SvIV(SvRV(self))); 
         if ( ctxt == NULL ) {
             croak("XPathContext: missing xpath context\n");
         }
@@ -7155,7 +7202,7 @@ SV*
 getVarLookupFunc( self )
         SV * self
     INIT:
-        xmlXPathContextPtr ctxt = (xmlXPathContextPtr)SvIV(SvRV(self)); 
+        xmlXPathContextPtr ctxt = INT2PTR(xmlXPathContextPtr,SvIV(SvRV(self))); 
         if ( ctxt == NULL ) {
             croak("XPathContext: missing xpath context\n");
         }
@@ -7177,7 +7224,7 @@ registerVarLookupFunc( pxpath_context, lookup_func, lookup_data )
         xmlXPathContextPtr ctxt = NULL;
         XPathContextDataPtr data = NULL;
     INIT:
-        ctxt = (xmlXPathContextPtr)SvIV(SvRV(pxpath_context));
+        ctxt = INT2PTR(xmlXPathContextPtr,SvIV(SvRV(pxpath_context)));
         if ( ctxt == NULL )
             croak("XPathContext: missing xpath context\n");
         data = XPathContextDATA(ctxt);
@@ -7224,7 +7271,7 @@ registerFunctionNS( pxpath_context, name, uri, func)
         char *strkey;
 
     INIT:
-        ctxt = (xmlXPathContextPtr)SvIV(SvRV(pxpath_context));
+        ctxt = INT2PTR(xmlXPathContextPtr,SvIV(SvRV(pxpath_context)));
         if ( ctxt == NULL ) {
             croak("XPathContext: missing xpath context\n");
         }
@@ -7287,7 +7334,7 @@ _free_node_pool( pxpath_context )
     PREINIT:
         xmlXPathContextPtr ctxt = NULL;
     INIT:
-        ctxt = (xmlXPathContextPtr)SvIV(SvRV(pxpath_context));
+        ctxt = INT2PTR(xmlXPathContextPtr,SvIV(SvRV(pxpath_context)));
         if ( ctxt == NULL ) {
             croak("XPathContext: missing xpath context\n");
         }
@@ -7311,7 +7358,7 @@ _findnodes( pxpath_context, perl_xpath )
         STRLEN len = 0 ;
         xmlChar * xpath = NULL;
     INIT:
-        ctxt = (xmlXPathContextPtr)SvIV(SvRV(pxpath_context));
+        ctxt = INT2PTR(xmlXPathContextPtr,SvIV(SvRV(pxpath_context)));
         if ( ctxt == NULL ) {
             croak("XPathContext: missing xpath context\n");
         }
@@ -7408,7 +7455,7 @@ _find( pxpath_context, pxpath )
         xmlChar * xpath = NULL;
         SV * saved_error = sv_2mortal(newSVpv("",0));
     INIT:
-        ctxt = (xmlXPathContextPtr)SvIV(SvRV(pxpath_context));
+        ctxt = INT2PTR(xmlXPathContextPtr,SvIV(SvRV(pxpath_context)));
         if ( ctxt == NULL ) {
             croak("XPathContext: missing xpath context\n");
         }

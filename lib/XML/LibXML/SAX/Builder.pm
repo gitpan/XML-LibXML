@@ -1,4 +1,4 @@
-# $Id: Builder.pm 685 2007-09-25 16:28:01Z pajas $
+# $Id: Builder.pm 709 2008-01-29 21:01:32Z pajas $
 
 package XML::LibXML::SAX::Builder;
 
@@ -7,7 +7,7 @@ use XML::NamespaceSupport;
 
 use vars qw ($VERSION);
 
-$VERSION = "1.65"; # VERSION TEMPLATE: DO NOT CHANGE
+$VERSION = "1.66"; # VERSION TEMPLATE: DO NOT CHANGE
 
 sub new {
     my $class = shift;
@@ -31,6 +31,17 @@ sub done {
 }
 
 sub set_document_locator {
+}
+
+sub start_dtd {
+  my ($self, $dtd) = @_;
+  if (defined $dtd->{Name} and
+      (defined $dtd->{SystemID} or defined $dtd->{PublicID})) {
+    $self->{DOM}->createExternalSubset($dtd->{Name},$dtd->{PublicID},$dtd->{SystemID});
+  }
+}
+
+sub end_dtd {
 }
 
 sub start_document {

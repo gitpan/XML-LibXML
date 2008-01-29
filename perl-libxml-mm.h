@@ -1,6 +1,6 @@
 /**
  * perl-libxml-mm.h
- * $Id: perl-libxml-mm.h 664 2007-04-17 17:41:55Z pajas $
+ * $Id: perl-libxml-mm.h 703 2008-01-28 12:21:29Z pajas $
  *
  * Basic concept:
  * perl varies in the implementation of UTF8 handling. this header (together
@@ -45,11 +45,25 @@ extern "C" {
 #define xs_warn(string)
 #endif
 
+/*
+ * @node: Reference to the node the structure proxies
+ * @owner: libxml defines only the document, but not the node owner
+ *         (in case of document fragments, they are not the same!)
+ * @count: this is the internal reference count!
+ * @encoding: this value is missing in libxml2's doc structure
+ *
+ * Since XML::LibXML will not know, is a certain node is already
+ * defined in the perl layer, it can't shurely tell when a node can be
+ * safely be removed from the memory. This structure helps to keep
+ * track how intense the nodes of a document are used and will not
+ * delete the nodes unless they are not refered from somewhere else.
+ */
 struct _ProxyNode {
     xmlNodePtr node;
     xmlNodePtr owner;
     int count;
     int encoding;
+    struct _ProxyNode * _registry;
 };
 
 /* helper type for the proxy structure */
@@ -61,6 +75,7 @@ typedef ProxyNode* ProxyNodePtr;
 /* this my go only into the header used by the xs */
 #define SvPROXYNODE(x) ((ProxyNodePtr)SvIV(SvRV(x)))
 #define PmmPROXYNODE(x) ((ProxyNodePtr)x->_private)
+#define SvNAMESPACE(x) ((xmlNsPtr)SvIV(SvRV(x)))
 
 #define PmmREFCNT(node)      node->count
 #define PmmREFCNT_inc(node)  node->count++
@@ -68,6 +83,8 @@ typedef ProxyNode* ProxyNodePtr;
 #define PmmOWNER(node)       node->owner
 #define PmmOWNERPO(node)     ((node && PmmOWNER(node)) ? (ProxyNodePtr)PmmOWNER(node)->_private : node)
 #define PmmENCODING(node)    node->encoding
+#define PmmNodeEncoding(node) ((ProxyNodePtr)(node->_private))->encoding
+#define PmmDocEncoding(node) (node->charset)
 
 ProxyNodePtr
 PmmNewNode(xmlNodePtr node);
@@ -139,7 +156,7 @@ PmmSvOwner( SV * perlnode );
 SV*
 PmmSetSvOwner(SV * perlnode, SV * owner );
 
-void
+int
 PmmFixOwner(ProxyNodePtr node, ProxyNodePtr newOwner );
 
 void
@@ -199,7 +216,7 @@ const char*
 PmmNodeTypeName( xmlNodePtr elem );
 
 xmlChar*
-PmmEncodeString( const char *encoding, const char *string );
+PmmEncodeString( const char *encoding, const xmlChar *string );
 
 char*
 PmmDecodeString( const char *encoding, const xmlChar *string);

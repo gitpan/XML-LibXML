@@ -1,4 +1,4 @@
-/* $Id: dom.c 664 2007-04-17 17:41:55Z pajas $ */
+/* $Id: dom.c 694 2007-11-12 09:06:59Z pajas $ */
 #include <libxml/tree.h>
 #include <libxml/encoding.h>
 #include <libxml/xmlerror.h>
@@ -539,7 +539,7 @@ domImportNode( xmlDocPtr doc, xmlNodePtr node, int move, int reconcileNS ) {
 
 
     /* tell all children about the new boss */ 
-    if ( node && doc && node->doc != doc ) {
+    if ( node && node->doc != doc ) {
         xmlSetTreeDoc(return_node, doc);
     }
 

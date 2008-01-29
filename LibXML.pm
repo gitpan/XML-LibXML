@@ -1,4 +1,4 @@
-# $Id: LibXML.pm 685 2007-09-25 16:28:01Z pajas $
+# $Id: LibXML.pm 709 2008-01-29 21:01:32Z pajas $
 
 package XML::LibXML;
 
@@ -20,7 +20,7 @@ use IO::Handle; # for FH reads called as methods
 
 BEGIN {
 
-$VERSION = "1.65"; # VERSION TEMPLATE: DO NOT CHANGE
+$VERSION = "1.66"; # VERSION TEMPLATE: DO NOT CHANGE
 require Exporter;
 require DynaLoader;
 @ISA = qw(DynaLoader Exporter);
@@ -150,6 +150,14 @@ sub new {
     $self->{_State_} = 0;
     return $self;
 }
+
+#-------------------------------------------------------------------------#
+# Threads support methods                                                 #
+#-------------------------------------------------------------------------#
+
+# threads doc says CLONE's API may change in future, which would break
+# an XS method prototype
+sub CLONE { XML::LibXML::_CLONE( $_[0] ) }
 
 #-------------------------------------------------------------------------#
 # DOM Level 2 document constructor                                        #

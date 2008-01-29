@@ -1,4 +1,4 @@
-# $Id: Generator.pm 685 2007-09-25 16:28:01Z pajas $
+# $Id: Generator.pm 709 2008-01-29 21:01:32Z pajas $
 
 package XML::LibXML::SAX::Generator;
 
@@ -7,7 +7,7 @@ use strict;
 use XML::LibXML;
 use vars qw ($VERSION);
 
-$VERSION = "1.65"; # VERSION TEMPLATE: DO NOT CHANGE
+$VERSION = "1.66"; # VERSION TEMPLATE: DO NOT CHANGE
 
 warn("This class (", __PACKAGE__, ") is deprecated!");
 

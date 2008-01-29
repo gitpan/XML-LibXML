@@ -4,7 +4,11 @@ XML::LibXML::Reader - XML::LibXML::Reader - interface to libxml2 pull parser
 
 =head1 SYNOPSIS
 
+
+
   use XML::LibXML::Reader;
+
+
 
   $reader = new XML::LibXML::Reader(location => "file.xml")
          or die "cannot read file.xml\n";
@@ -12,7 +16,8 @@ XML::LibXML::Reader - XML::LibXML::Reader - interface to libxml2 pull parser
     processNode($reader);
   }
 
-  
+
+
   sub processNode {
       $reader = shift;
       printf "%d %d %s %d\n", ($reader->depth,
@@ -20,34 +25,30 @@ XML::LibXML::Reader - XML::LibXML::Reader - interface to libxml2 pull parser
                                $reader->name,
                                $reader->isEmptyElement);
   }
-  
 
 or
 
-  
-    $reader = new XML::LibXML::Reader(location => "file.xml")
+
+
+  $reader = new XML::LibXML::Reader(location => "file.xml")
          or die "cannot read file.xml\n";
     $reader->preservePattern('//table/tr');
     $reader->finish;
     print $reader->document->toString(1);
-  
 
 
 =head1 DESCRIPTION
 
-This is a perl interface to libxml2's pull-parser implementation xmlTextReader
-http://xmlsoft.org/html/libxml-xmlreader.html. This feature requires at least
-libxml2-2.6.21. Pull-parser (StAX in Java, XmlReader in C#) use an iterator
-approach to parse a xml-file. They are easier to program than event-based
-parser (SAX) and much more lightweight than tree-based parser (DOM), which load
-the complete tree into memory.
+This is a perl interface to libxml2's pull-parser implementation xmlTextReader I<<<<<< http://xmlsoft.org/html/libxml-xmlreader.html >>>>>>. This feature requires at least libxml2-2.6.21. Pull-parser (StAX in Java,
+XmlReader in C#) use an iterator approach to parse a xml-file. They are easier
+to program than event-based parser (SAX) and much more lightweight than
+tree-based parser (DOM), which load the complete tree into memory.
 
 The Reader acts as a cursor going forward on the document stream and stopping
 at each node in the way. At every point DOM-like methods of the Reader object
 allow to examine the current node (name, namespace, attributes, etc.)
 
-The user's code keeps control of the progress and simply calls the read()
-function repeatedly to progress to the next node in the document order. Other
+The user's code keeps control of the progress and simply calls the C<<<<<< read() >>>>>> function repeatedly to progress to the next node in the document order. Other
 functions provide means for skipping complete sub-trees, or nodes until a
 specific element, etc.
 
@@ -71,12 +72,12 @@ changed or added with respect to the C interface.
 
 Depending on the XML source, the Reader object can be created with either of:
 
-  
-    my $reader = XML::LibXML::Reader->new( location => "file.xml", ... );
+
+
+  my $reader = XML::LibXML::Reader->new( location => "file.xml", ... );
     my $reader = XML::LibXML::Reader->new( string => $xml_string, ... );
     my $reader = XML::LibXML::Reader->new( IO => $file_handle, ... );
     my $reader = XML::LibXML::Reader->new( DOM => $dom, ... );
-  
 
 where ... are (optional) reader options described below in Parser options. The
 constructor recognizes the following XML sources:
@@ -109,7 +110,7 @@ filehandles for regular files or pipes). Possibly faster than IO.
 
 =item B<DOM>
 
-Use reader API to walk through a pre-parsed XML::LibXML::Document.
+Use reader API to walk through a pre-parsed L<<<<<< XML::LibXML DOM Document Class|XML::LibXML DOM Document Class >>>>>>.
 
 
 
@@ -132,16 +133,14 @@ override document encoding.
 
 =item B<RelaxNG>
 
-can be used to pass either a XML::LibXML::RelaxNG object or a filename or URL
-of a RelaxNG schema to the constructor. The schema is then used to validate the
-document as it is processed.
+can be used to pass either a L<<<<<< RelaxNG Schema Validation|RelaxNG Schema Validation >>>>>> object or a filename or URL of a RelaxNG schema to the constructor. The schema
+is then used to validate the document as it is processed.
 
 
 =item B<Schema>
 
-can be used to pass either a XML::LibXML::Schema object or a filename or URL of
-a W3C XSD schema to the constructor. The schema is then used to validate the
-document as it is processed.
+can be used to pass either a L<<<<<< XML Schema Validation|XML Schema Validation >>>>>> object or a filename or URL of a W3C XSD schema to the constructor. The schema
+is then used to validate the document as it is processed.
 
 
 =item B<recover>
@@ -291,7 +290,7 @@ read, or -1 in case of error
 =item B<nextSiblingElement (name?,nsURI?)>
 
 Like nextElement but only processes sibling elements of the current node
-(moving forward using nextSibling () rather than read (), internally).
+(moving forward using C<<<<<< nextSibling () >>>>>> rather than C<<<<<< read () >>>>>>, internally).
 
 Returns 1 if the element was found, 0 if there is no more sibling nodes, or -1
 in case of error.
@@ -387,7 +386,7 @@ if the current node is neither an element nor attribute.
 =item B<document ()>
 
 Provides access to the document tree built by the reader. This function can be
-used to collect the preserved nodes (see preserveNode() and preservePattern).
+used to collect the preserved nodes (see C<<<<<< preserveNode() >>>>>> and preservePattern).
 
 CAUTION: Never use this function to modify the tree unless reading of the whole
 document is completed!
@@ -395,16 +394,15 @@ document is completed!
 
 =item B<copyCurrentNode (deep)>
 
-This function is similar a DOM function copyNode(). It returns a copy of the
-currently processed node as a corresponding DOM object. Use deep = 1 to obtain
-the full sub-tree.
+This function is similar a DOM function C<<<<<< copyNode() >>>>>>. It returns a copy of the currently processed node as a corresponding DOM
+object. Use deep = 1 to obtain the full sub-tree.
 
 
 =item B<preserveNode ()>
 
 This tells the XML Reader to preserve the current node in the document tree. A
 document tree consisting of the preserved nodes and their content can be
-obtained using the method document() once parsing is finished.
+obtained using the method C<<<<<< document() >>>>>> once parsing is finished.
 
 Returns the node or NULL in case of error.
 
@@ -413,17 +411,20 @@ Returns the node or NULL in case of error.
 
 This tells the XML Reader to preserve all nodes matched by the pattern (which
 is a streaming XPath subset). A document tree consisting of the preserved nodes
-and their content can be obtained using the method document() once parsing is
-finished.
+and their content can be obtained using the method C<<<<<< document() >>>>>> once parsing is finished.
 
 An optional second argument can be used to provide a HASH reference mapping
 prefixes used by the XPath to namespace URIs.
 
 The XPath subset available with this function is described at
 
+
+
   http://www.w3.org/TR/xmlschema-1/#Selector
 
 and matches the production
+
+
 
   Path ::= ('.//')? ( Step '/' )* ( Step | '@' NameTest )
 
@@ -641,10 +642,11 @@ to the document tree exist.
 =head1 NODE TYPES
 
 The reader interface provides the following constants for node types (the
-constant symbols are exported by default or if tag :types is used).
+constant symbols are exported by default or if tag C<<<<<< :types >>>>>> is used).
 
-  
-    XML_READER_TYPE_NONE                    => 0
+
+
+  XML_READER_TYPE_NONE                    => 0
     XML_READER_TYPE_ELEMENT                 => 1
     XML_READER_TYPE_ATTRIBUTE               => 2
     XML_READER_TYPE_TEXT                    => 3
@@ -662,16 +664,15 @@ constant symbols are exported by default or if tag :types is used).
     XML_READER_TYPE_END_ELEMENT             => 15
     XML_READER_TYPE_END_ENTITY              => 16
     XML_READER_TYPE_XML_DECLARATION         => 17
-  
 
 
 =head1 STATES
 
-The following constants represent the values returned by readState(). They are
-exported by default, or if tag :states is used:
+The following constants represent the values returned by C<<<<<< readState() >>>>>>. They are exported by default, or if tag C<<<<<< :states >>>>>> is used:
 
-  
-    XML_READER_NONE      => -1
+
+
+  XML_READER_NONE      => -1
     XML_READER_START     =>  0
     XML_READER_ELEMENT   =>  1
     XML_READER_END       =>  2
@@ -679,7 +680,6 @@ exported by default, or if tag :states is used:
     XML_READER_BACKTRACK =>  4
     XML_READER_DONE      =>  5
     XML_READER_ERROR     =>  6
-  
 
 
 =head1 VERSION
@@ -702,14 +702,15 @@ http://dotgnu.org/pnetlib-doc/System/Xml/XmlTextReader.html
 
 Matt Sergeant, 
 Christian Glahn, 
-Petr Pajas, 
+Petr Pajas
+
 
 =head1 VERSION
 
-1.64
+1.66
 
 =head1 COPYRIGHT
 
-2001-2007, AxKit.com Ltd; 2002-2006 Christian Glahn; 2006-2007 Petr Pajas, All rights reserved.
+2001-2007, AxKit.com Ltd; 2002-2006 Christian Glahn; 2006-2008 Petr Pajas, All rights reserved.
 
 =cut

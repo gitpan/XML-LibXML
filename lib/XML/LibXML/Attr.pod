@@ -4,8 +4,10 @@ XML::LibXML::Attr - XML::LibXML Attribute Class
 
 =head1 SYNOPSIS
 
+
+
   use XML::LibXML;
-  # Only methods specific to Attribute nodes listed here,
+  # Only methods specific to Attribute nodes are listed here,
   # see XML::LibXML::Node manpage for other methods
 
   $attr = XML::LibXML::Attr->new($name [,$value]);
@@ -17,11 +19,17 @@ XML::LibXML::Attr - XML::LibXML Attribute Class
   $bool = $attr->isId;
   $string = $attr->serializeContent;
 
-
 =head1 DESCRIPTION
 
 This is the interface to handle Attributes like ordinary nodes. The naming of
 the class relies on the W3C DOM documentation.
+
+
+=head1 METHODS
+
+The class inherits from L<<<<<< Abstract Base Class of XML::LibXML Nodes|Abstract Base Class of XML::LibXML Nodes >>>>>>. The documentation for Inherited methods is not listed here. 
+
+Many functions listed here are extensively documented in the L<<<<<< DOM Level 3 specification|http://www.w3.org/TR/DOM-Level-3-Core/ >>>>>>. Please refer to the specification for extensive documentation. 
 
 =over 4
 
@@ -29,8 +37,7 @@ the class relies on the W3C DOM documentation.
 
   $attr = XML::LibXML::Attr->new($name [,$value]);
 
-Class constructor. If you need to work with ISO encoded strings, you should
-always use the createAttrbute of XML::LibXML::Document.
+Class constructor. If you need to work with ISO encoded strings, you should I<<<<<< always >>>>>> use the C<<<<<< createAttrbute >>>>>> of L<<<<<< XML::LibXML DOM Document Class|XML::LibXML DOM Document Class >>>>>>.
 
 
 =item B<getValue>
@@ -38,14 +45,14 @@ always use the createAttrbute of XML::LibXML::Document.
   $string = $attr->getValue();
 
 Returns the value stored for the attribute. If undef is returned, the attribute
-has no value, which is different of being not specified.
+has no value, which is different of being C<<<<<< not specified >>>>>>.
 
 
 =item B<value>
 
   $string = $attr->value;
 
-Alias for getValue()
+Alias for I<<<<<< getValue() >>>>>>
 
 
 =item B<setValue>
@@ -62,24 +69,22 @@ might be done incorrectly.
   $node = $attr->getOwnerElement();
 
 returns the node the attribute belongs to. If the attribute is not bound to a
-node, undef will be returned. Overwriting the underlying implementation, the
-parentNode function will return undef, instead of the owner element.
+node, undef will be returned. Overwriting the underlying implementation, the I<<<<<< parentNode >>>>>> function will return undef, instead of the owner element.
 
 
 =item B<setNamespace>
 
   $attr->setNamespace($nsURI, $prefix);
 
-This function tries to bound the attribute to a given namespace. If $nsURI is
-undefined or empty, the function discards any previous association of the
+This function tries to bound the attribute to a given namespace. If C<<<<<< $nsURI >>>>>> is undefined or empty, the function discards any previous association of the
 attribute with a namespace. If the namespace was not previously declared in the
 context of the attribute, this function will fail. In this case you may wish to
 call setNamespace() on the ownerElement. If the namespace URI is non-empty and
 declared in the context of the attribute, but only with a different (non-empty)
 prefix, then the attribute is still bound to the namespace but gets a different
-prefix than $prefix. The function also fails if the prefix is empty but the
-namespace URI is not (because unprefixed attributes should by definition belong
-to no namespace). This function returns 1 on success, 0 otherwise.
+prefix than C<<<<<< $prefix >>>>>>. The function also fails if the prefix is empty but the namespace URI is not
+(because unprefixed attributes should by definition belong to no namespace).
+This function returns 1 on success, 0 otherwise. 
 
 
 =item B<isId>
@@ -89,7 +94,7 @@ to no namespace). This function returns 1 on success, 0 otherwise.
 Determine whether an attribute is of type ID. For documents with a DTD, this
 information is only available if DTD loading/validation has been requested. For
 HTML documents parsed with the HTML parser ID detection is done automatically.
-In XML documents, all "xml:id" attributes are considered to be of type ID.
+In XML documents, all "xml:id" attributes are considered to be of type ID. 
 
 
 =item B<serializeContent($docencoding)>
@@ -101,7 +106,7 @@ in which it serializes into XML, that is with all meta-characters properly
 quoted and with raw entity references (except for entities expanded during
 parse time). Setting the optional $docencoding flag to 1 enforces document
 encoding for the output string (which is then passed to Perl as a byte string).
-Otherwise the string is passed to Perl as (UTF-8 encoded) characters.
+Otherwise the string is passed to Perl as (UTF-8 encoded) characters. 
 
 
 
@@ -111,14 +116,15 @@ Otherwise the string is passed to Perl as (UTF-8 encoded) characters.
 
 Matt Sergeant, 
 Christian Glahn, 
-Petr Pajas, 
+Petr Pajas
+
 
 =head1 VERSION
 
-1.64
+1.66
 
 =head1 COPYRIGHT
 
-2001-2007, AxKit.com Ltd; 2002-2006 Christian Glahn; 2006-2007 Petr Pajas, All rights reserved.
+2001-2007, AxKit.com Ltd; 2002-2006 Christian Glahn; 2006-2008 Petr Pajas, All rights reserved.
 
 =cut
