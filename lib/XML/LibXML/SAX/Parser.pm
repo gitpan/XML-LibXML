@@ -1,4 +1,4 @@
-# $Id: Parser.pm 709 2008-01-29 21:01:32Z pajas $
+# $Id: Parser.pm 727 2008-10-29 15:24:49Z pajas $
 
 package XML::LibXML::SAX::Parser;
 
@@ -12,6 +12,10 @@ use XML::SAX::DocumentLocator;
 
 $VERSION = "1.66"; # VERSION TEMPLATE: DO NOT CHANGE
 @ISA = ('XML::SAX::Base');
+
+sub CLONE_SKIP {
+  return $XML::LibXML::__threads_shared ? 0 : 1;
+}
 
 sub _parse_characterstream {
     my ($self, $fh, $options) = @_;

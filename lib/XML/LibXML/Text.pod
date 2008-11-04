@@ -32,20 +32,20 @@ CDATA-sections.
 
 =head1 METHODS
 
-The class inherits from L<<<<<< Abstract Base Class of XML::LibXML Nodes|Abstract Base Class of XML::LibXML Nodes >>>>>>. The documentation for Inherited methods is not listed here. 
+The class inherits from L<<<<<< XML::LibXML::Node >>>>>>. The documentation for Inherited methods is not listed here. 
 
-Many functions listed here are extensively documented in the L<<<<<< DOM Level 3 specification|http://www.w3.org/TR/DOM-Level-3-Core/ >>>>>>. Please refer to the specification for extensive documentation. 
+Many functions listed here are extensively documented in the DOM Level 3 specification (L<<<<<< http://www.w3.org/TR/DOM-Level-3-Core/ >>>>>>). Please refer to the specification for extensive documentation. 
 
 =over 4
 
-=item B<new>
+=item new
 
   $text = XML::LibXML::Text->new( $content ); 
 
 The constructor of the class. It creates an unbound text node.
 
 
-=item B<data>
+=item data
 
   $nodedata = $text->data;
 
@@ -66,7 +66,7 @@ and
 will have the same result and are not different entities.
 
 
-=item B<setData($string)>
+=item setData($string)
 
   $text->setData( $text_content );
 
@@ -74,7 +74,7 @@ This function sets or replaces text content to a node. The node has to be of
 the type "text", "cdata" or "comment".
 
 
-=item B<substringData($offset,$length)>
+=item substringData($offset,$length)
 
   $text->substringData($offset, $length);
 
@@ -85,7 +85,7 @@ If the node contains no data or $offset refers to an non-existing string index,
 this function will return I<<<<<< undef >>>>>>. If $length is out of range C<<<<<< substringData >>>>>> will return the data starting at $offset instead of causing an error.
 
 
-=item B<appendData($string)>
+=item appendData($string)
 
   $text->appendData( $somedata );
 
@@ -93,7 +93,7 @@ Appends a string to the end of the existing data. If the current text node
 contains no data, this function has the same effect as C<<<<<< setData >>>>>>.
 
 
-=item B<insertData($offset,$string)>
+=item insertData($offset,$string)
 
   $text->insertData($offset, $string);
 
@@ -104,7 +104,7 @@ existing data.
 The $offset has to be a positive value. If $offset is out of range, C<<<<<< insertData >>>>>> will have the same behaviour as C<<<<<< appendData >>>>>>.
 
 
-=item B<deleteData($offset, $length)>
+=item deleteData($offset, $length)
 
   $text->deleteData($offset, $length);
 
@@ -113,7 +113,7 @@ The $length parameter tells, how many characters should be removed from the
 string.
 
 
-=item B<deleteDataString($string, [$all])>
+=item deleteDataString($string, [$all])
 
   $text->deleteDataString($remstring, $all);
 
@@ -123,14 +123,14 @@ quite unhandy if you already know C<<<<<< which >>>>>> string to remove from a t
 The functions takes two parameters: I<<<<<< $string >>>>>> and optional the I<<<<<< $all >>>>>> flag. If $all is not set, I<<<<<< undef >>>>>> or I<<<<<< 0 >>>>>>, C<<<<<< deleteDataString >>>>>> will remove only the first occurrence of $string. If $all is I<<<<<< TRUE >>>>>>C<<<<<< deleteDataString >>>>>> will remove all occurrences of I<<<<<< $string >>>>>> from the node data.
 
 
-=item B<replaceData($offset, $length, $string)>
+=item replaceData($offset, $length, $string)
 
   $text->replaceData($offset, $length, $string);
 
 The DOM style version to replace node data.
 
 
-=item B<replaceDataString($oldstring, $newstring, [$all])>
+=item replaceDataString($oldstring, $newstring, [$all])
 
   $text->replaceDataString($old, $new, $flag);
 
@@ -139,7 +139,7 @@ The more programmer friendly version of replaceData() :)
 Instead of giving offsets and length one can specify the exact string (I<<<<<< $oldstring >>>>>>) to be replaced. Additionally the I<<<<<< $all >>>>>> flag allows to replace all occurrences of I<<<<<< $oldstring >>>>>>.
 
 
-=item B<replaceDataRegEx( $search_cond, $replace_cond, $reflags )>
+=item replaceDataRegEx( $search_cond, $replace_cond, $reflags )
 
   $text->replaceDataRegEx( $search_cond, $replace_cond, $reflags );
 

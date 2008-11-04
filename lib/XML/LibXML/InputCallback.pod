@@ -91,7 +91,7 @@ register callback groups.
                                          $read_cb2, $close_cb2 ] );
   $input_callbacks->register_callbacks( [ $match_cb3, $open_cb3, 
                                           $read_cb3, $close_cb3 ] );
-  
+
   $parser->input_callbacks( $input_callbacks );
   $parser->parse_file( $some_xml_file );
 
@@ -125,18 +125,18 @@ system can only deal with the I<<<<<< open >>>>>> callback returning a reference
 
 =over 4
 
-=item B<$_CUR_CB>
+=item $_CUR_CB
 
 Stores the current callback and can be used as shortcut to access the callback
 stack.
 
 
-=item B<@_GLOBAL_CALLBACKS>
+=item @_GLOBAL_CALLBACKS
 
 Stores all callback groups for the current parser process.
 
 
-=item B<@_CB_STACK>
+=item @_CB_STACK
 
 Stores the currently used callback group. Used to prevent parser errors when
 dealing with nested XML data.
@@ -150,24 +150,24 @@ dealing with nested XML data.
 
 =over 4
 
-=item B<_callback_match>
+=item _callback_match
 
 Implements the interface for the I<<<<<< match >>>>>> callback at C-level and for the selection of the callback group from the
 callbacks defined at the Perl-level.
 
 
-=item B<_callback_open>
+=item _callback_open
 
 Forwards the I<<<<<< open >>>>>> callback from libxml2 to the corresponding callback function at the Perl-level.
 
 
-=item B<_callback_read>
+=item _callback_read
 
 Forwards the read request to the corresponding callback function at the
 Perl-level and returns the result to libxml2.
 
 
-=item B<_callback_close>
+=item _callback_close
 
 Forwards the I<<<<<< close >>>>>> callback from libxml2 to the corresponding callback function at the
 Perl-level..
@@ -181,17 +181,17 @@ Perl-level..
 
 =over 4
 
-=item B<new()>
+=item new()
 
 A simple constructor.
 
 
-=item B<register_callbacks( [ $match_cb, $open_cb, $read_cb, $close_cb ])>
+=item register_callbacks( [ $match_cb, $open_cb, $read_cb, $close_cb ])
 
 The four callbacks I<<<<<< have >>>>>> to be given as array reference in the above order I<<<<<< match >>>>>>, I<<<<<< open >>>>>>, I<<<<<< read >>>>>>, I<<<<<< close >>>>>>!
 
 
-=item B<unregister_callbacks( [ $match_cb, $open_cb, $read_cb, $close_cb ])>
+=item unregister_callbacks( [ $match_cb, $open_cb, $read_cb, $close_cb ])
 
 With no arguments given, C<<<<<< unregister_callbacks() >>>>>> will delete the last registered callback group from the stack. If four
 callbacks are passed as array reference, the callback group to unregister will
@@ -199,22 +199,22 @@ be identified by the I<<<<<< match >>>>>> callback and deleted from the callback
 from the stack.
 
 
-=item B<init_callbacks()>
+=item init_callbacks()
 
 Initializes the callback system before a parsing process.
 
 
-=item B<cleanup_callbacks()>
+=item cleanup_callbacks()
 
 Resets global variables and the libxml2 callback stack.
 
 
-=item B<lib_init_callbacks()>
+=item lib_init_callbacks()
 
 Used internally for callback registration at C-level.
 
 
-=item B<lib_cleanup_callbacks()>
+=item lib_cleanup_callbacks()
 
 Used internally for callback resetting at the C-level.
 
@@ -237,13 +237,13 @@ MyScheme::Handler object that responds to methods similar to an IO::Handle.
       my $uri = shift;
       return $uri =~ /^myscheme:/; # trigger our callback group at a 'myscheme' URIs
   }
-    
+
   sub open_uri {
       my $uri = shift;
       my $handler = MyScheme::Handler->new($uri);
       return $handler;
   }
-  
+
   # The returned $buffer will be parsed by the libxml2 parser
   sub read_uri {
       my $handler = shift;
@@ -252,21 +252,21 @@ MyScheme::Handler object that responds to methods similar to an IO::Handle.
       read($handler, $buffer, $length);
       return $buffer; # $buffer will be an empty string '' if read() is done
   }
-  
+
   # Close the handle associated with the resource.  
   sub close_uri {
       my $handler = shift;
       close($handler);
   }
-  
+
   # Register them with a instance of XML::LibXML::InputCallback
   my $input_callbacks = XML::LibXML::InputCallback->new();
   $input_callbacks->register_callbacks([ \&match_uri, \&open_uri, 
                                          \&read_uri, \&close_uri ] );
-  
+
   # Register the callback group at a parser instance
   $parser->input_callbacks( $input_callbacks );
-  
+
   # $some_xml_file will be parsed using our callbacks 
   $parser->parse_file( $some_xml_file );
 

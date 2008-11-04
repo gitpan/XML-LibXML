@@ -12,6 +12,8 @@ XML::LibXML::Document - XML::LibXML DOM Document Class
 
   $dom = XML::LibXML::Document->new( $version, $encoding );
   $dom = XML::LibXML::Document->createDocument( $version, $encoding );
+  $strURI = $doc->URI();
+  $doc->setURI($strURI);
   $strEncoding = $doc->encoding();
   $strEncoding = $doc->actualEncoding();
   $doc->setEncoding($new_encoding);
@@ -66,7 +68,7 @@ The Document Class is in most cases the result of a parsing process. But
 sometimes it is necessary to create a Document from scratch. The DOM Document
 Class provides functions that conform to the DOM Core naming style.
 
-It inherits all functions from L<<<<<< Abstract Base Class of XML::LibXML Nodes|Abstract Base Class of XML::LibXML Nodes >>>>>> as specified in the DOM specification. This enables access to the nodes besides
+It inherits all functions from L<<<<<< XML::LibXML::Node >>>>>> as specified in the DOM specification. This enables access to the nodes besides
 the root element on document level - a C<<<<<< DTD >>>>>> for example. The support for these nodes is limited at the moment.
 
 While generally nodes are bound to a document in the DOM concept it is
@@ -82,18 +84,18 @@ methods as character strings (i.e. UTF-8 encoded, with the UTF8 flag on).
 
 =head1 METHODS
 
-Many functions listed here are extensively documented in the L<<<<<< DOM Level 3 specification|http://www.w3.org/TR/DOM-Level-3-Core/ >>>>>>. Please refer to the specification for extensive documentation. 
+Many functions listed here are extensively documented in the DOM Level 3 specification (L<<<<<< http://www.w3.org/TR/DOM-Level-3-Core/ >>>>>>). Please refer to the specification for extensive documentation. 
 
 =over 4
 
-=item B<new>
+=item new
 
   $dom = XML::LibXML::Document->new( $version, $encoding );
 
 alias for createDocument()
 
 
-=item B<createDocument>
+=item createDocument
 
   $dom = XML::LibXML::Document->createDocument( $version, $encoding );
 
@@ -128,7 +130,27 @@ is therefore a shortcut for
   my $document = XML::LibXML::Document->createDocument( "1.0", "UTF-8" );
 
 
-=item B<encoding>
+=item URI
+
+  $strURI = $doc->URI();
+
+Returns the URI (or filename) of the original document. For documents obtained
+by parsing a string of a FH without using the URI parsing argument of the
+corresponding C<<<<<< parse_* >>>>>> function, the result is a generated string unknown-XYZ where XYZ is some
+number; for documents created with the constructor C<<<<<< new >>>>>>, the URI is undefined. 
+
+The value can be modified by calling C<<<<<< setURI >>>>>> method on the document node.
+
+
+=item setURI
+
+  $doc->setURI($strURI);
+
+Sets the URI of the document reported by the method URI (see also the URI
+argument to the various C<<<<<< parse_* >>>>>> functions). 
+
+
+=item encoding
 
   $strEncoding = $doc->encoding();
 
@@ -140,7 +162,7 @@ returns the encoding string of the document.
   print $doc->encoding; # prints ISO-8859-15
 
 
-=item B<actualEncoding>
+=item actualEncoding
 
   $strEncoding = $doc->actualEncoding();
 
@@ -156,7 +178,7 @@ encoding), 'UTF-8' is returned.
   print $doc->encoding; # prints ISO-8859-15
 
 
-=item B<setEncoding>
+=item setEncoding
 
   $doc->setEncoding($new_encoding);
 
@@ -166,7 +188,7 @@ serialized to XML by $doc->toString(). Use setEncoding() to remove the encoding
 declaration. 
 
 
-=item B<version>
+=item version
 
   $strVersion = $doc->version();
 
@@ -175,7 +197,7 @@ returns the version string of the document
 I<<<<<< getVersion() >>>>>> is an alternative form of this function.
 
 
-=item B<standalone>
+=item standalone
 
   $doc->standalone
 
@@ -183,7 +205,7 @@ This function returns the Numerical value of a documents XML declarations
 standalone attribute. It returns I<<<<<< 1 >>>>>> if standalone="yes" was found, I<<<<<< 0 >>>>>> if standalone="no" was found and I<<<<<< -1 >>>>>> if standalone was not specified (default on creation).
 
 
-=item B<setStandalone>
+=item setStandalone
 
   $doc->setStandalone($numvalue);
 
@@ -191,7 +213,7 @@ Through this method it is possible to alter the value of a documents standalone
 attribute. Set it to I<<<<<< 1 >>>>>> to set standalone="yes", to I<<<<<< 0 >>>>>> to set standalone="no" or set it to I<<<<<< -1 >>>>>> to remove the standalone attribute from the XML declaration.
 
 
-=item B<compression>
+=item compression
 
   my $compression = $doc->compression;
 
@@ -201,7 +223,7 @@ XML::LibXML parsed a different source or the file wasn't compressed, the
 returned value will be I<<<<<< -1 >>>>>>.
 
 
-=item B<setCompression>
+=item setCompression
 
   $doc->setCompression($ziplevel);
 
@@ -212,7 +234,7 @@ the compression level for a given document. This level can be in the range from
 Note that this feature will I<<<<<< only >>>>>> work if libxml2 is compiled with zlib support and toFile() is used for output.
 
 
-=item B<toString>
+=item toString
 
   $docstring = $dom->toString($format);
 
@@ -229,7 +251,7 @@ the actualEncoding() method)! This means you can simply do:
   print OUT $doc->toString;
 
 regardless of the actual encoding of the document. See the section on encodings
-in L<<<<<< Perl Binding for libxml2|Perl Binding for libxml2 >>>>>> for more details.
+in L<<<<<< XML::LibXML >>>>>> for more details.
 
 The optional I<<<<<< $format >>>>>> parameter sets the indenting of the output. This parameter is expected to be an C<<<<<< integer >>>>>> value, that specifies that indentation should be used. The format parameter can
 have three different values if it is used:
@@ -246,21 +268,21 @@ libxml2 uses a hard-coded indentation of 2 space characters per indentation
 level. This value can not be altered on run-time.
 
 
-=item B<toStringC14N>
+=item toStringC14N
 
   $c14nstr = $doc->toStringC14N($comment_flag,$xpath); 
 
-See the documentation in L<<<<<< Abstract Base Class of XML::LibXML Nodes|Abstract Base Class of XML::LibXML Nodes >>>>>>. 
+See the documentation in L<<<<<< XML::LibXML::Node >>>>>>. 
 
 
-=item B<toStringEC14N>
+=item toStringEC14N
 
   $ec14nstr = $doc->toStringEC14N($inclusive_prefix_list, $comment_flag,$xpath); 
 
-See the documentation in L<<<<<< Abstract Base Class of XML::LibXML Nodes|Abstract Base Class of XML::LibXML Nodes >>>>>>. 
+See the documentation in L<<<<<< XML::LibXML::Node >>>>>>. 
 
 
-=item B<serialize>
+=item serialize
 
   $str = $doc->serialize($format); 
 
@@ -268,21 +290,21 @@ An alias for toString(). This function was name added to be more consistent
 with libxml2.
 
 
-=item B<serialize_c14n>
+=item serialize_c14n
 
   $c14nstr = $doc->serialize_c14n($comment_flag,$xpath); 
 
 An alias for toStringC14N().
 
 
-=item B<serialize_exc_c14n>
+=item serialize_exc_c14n
 
   $ec14nstr = $doc->serialize_exc_c14n($comment_flag,$xpath,$inclusive_prefix_list); 
 
 An alias for toStringEC14N().
 
 
-=item B<toFile>
+=item toFile
 
   $state = $doc->toFile($filename, $format);
 
@@ -293,18 +315,18 @@ documents.
 The format parameter has the same behaviour as in toString().
 
 
-=item B<toFH>
+=item toFH
 
   $state = $doc->toFH($fh, $format);
 
 This function is similar to toString(), but it writes the document directly to
 a filehandle or a stream. A byte stream in the document encoding is passed to
-the file handle. Do NOT apply any C<<<<<< :encoding(...) >>>>>> or C<<<<<< :utf8 >>>>>> PerlIO layer to the filehandle! See the section on encodings in L<<<<<< Perl Binding for libxml2|Perl Binding for libxml2 >>>>>> for more details.
+the file handle. Do NOT apply any C<<<<<< :encoding(...) >>>>>> or C<<<<<< :utf8 >>>>>> PerlIO layer to the filehandle! See the section on encodings in L<<<<<< XML::LibXML >>>>>> for more details.
 
 The format parameter has the same behaviour as in toString().
 
 
-=item B<toStringHTML>
+=item toStringHTML
 
   $str = $document->toStringHTML();
 
@@ -312,21 +334,21 @@ I<<<<<< toStringHTML >>>>>> serialize the tree to a byte string in the document 
 method indenting is automatic and managed by libxml2 internally.
 
 
-=item B<serialize_html>
+=item serialize_html
 
   $str = $document->serialize_html();
 
 An alias for toStringHTML().
 
 
-=item B<is_valid>
+=item is_valid
 
   $bool = $dom->is_valid();
 
 Returns either TRUE or FALSE depending on whether the DOM Tree is a valid
 Document or not.
 
-You may also pass in a L<<<<<< XML::LibXML DTD Handling|XML::LibXML DTD Handling >>>>>> object, to validate against an external DTD:
+You may also pass in a L<<<<<< XML::LibXML::Dtd >>>>>> object, to validate against an external DTD:
 
 
 
@@ -335,7 +357,7 @@ You may also pass in a L<<<<<< XML::LibXML DTD Handling|XML::LibXML DTD Handling
    }
 
 
-=item B<validate>
+=item validate
 
   $dom->validate();
 
@@ -346,7 +368,7 @@ better error reporting than simply is_valid or not.
 Again, you may pass in a DTD object
 
 
-=item B<documentElement>
+=item documentElement
 
   $root = $dom->documentElement();
 
@@ -356,64 +378,65 @@ element to contain the documents data.
 Optionally one can use I<<<<<< getDocumentElement >>>>>>.
 
 
-=item B<setDocumentElement>
+=item setDocumentElement
 
   $dom->setDocumentElement( $root );
 
 This function enables you to set the root element for a document. The function
-supports the import of a node from a different document tree.
+supports the import of a node from a different document tree, but does not
+support a document fragment as $root.
 
 
-=item B<createElement>
+=item createElement
 
   $element = $dom->createElement( $nodename );
 
 This function creates a new Element Node bound to the DOM with the name C<<<<<< $nodename >>>>>>.
 
 
-=item B<createElementNS>
+=item createElementNS
 
   $element = $dom->createElementNS( $namespaceURI, $qname );
 
 This function creates a new Element Node bound to the DOM with the name C<<<<<< $nodename >>>>>> and placed in the given namespace.
 
 
-=item B<createTextNode>
+=item createTextNode
 
   $text = $dom->createTextNode( $content_text );
 
 As an equivalent of I<<<<<< createElement >>>>>>, but it creates a I<<<<<< Text Node >>>>>> bound to the DOM.
 
 
-=item B<createComment>
+=item createComment
 
   $comment = $dom->createComment( $comment_text );
 
 As an equivalent of I<<<<<< createElement >>>>>>, but it creates a I<<<<<< Comment Node >>>>>> bound to the DOM.
 
 
-=item B<createAttribute>
+=item createAttribute
 
   $attrnode = $doc->createAttribute($name [,$value]);
 
 Creates a new Attribute node.
 
 
-=item B<createAttributeNS>
+=item createAttributeNS
 
   $attrnode = $doc->createAttributeNS( namespaceURI, $name [,$value] );
 
 Creates an Attribute bound to a namespace.
 
 
-=item B<createDocumentFragment>
+=item createDocumentFragment
 
   $fragment = $doc->createDocumentFragment();
 
 This function creates a DocumentFragment.
 
 
-=item B<createCDATASection>
+=item createCDATASection
 
   $cdata = $dom->create( $cdata_content );
 
@@ -421,7 +444,7 @@ Similar to createTextNode and createComment, this function creates a
 CDataSection bound to the current DOM.
 
 
-=item B<createProcessingInstruction>
+=item createProcessingInstruction
 
   my $pi = $doc->createProcessingInstruction( $target, $data );
 
@@ -430,7 +453,7 @@ create a processing instruction node.
 Since this method is quite long one may use its short form I<<<<<< createPI() >>>>>>.
 
 
-=item B<createEntityReference>
+=item createEntityReference
 
   my $entref = $doc->createEntityReference($refname);
 
@@ -451,7 +474,7 @@ not be expanded to a real entity reference unless it is a predefined entity
    print $some_element->textContent; # prints "&amp;foo;"
 
 
-=item B<createInternalSubset>
+=item createInternalSubset
 
   $dtd = $document->createInternalSubset( $rootnode, $public, $system);
 
@@ -487,7 +510,7 @@ will cause the following declaration to be created on the document:
   <!DOCTYPE foo PUBLIC "-//FOO//DTD FOO 0.1//EN">
 
 
-=item B<createExternalSubset>
+=item createExternalSubset
 
   $dtd = $document->createExternalSubset( $rootnode_name, $publicId, $systemId);
 
@@ -495,7 +518,7 @@ This function is similar to C<<<<<< createInternalSubset() >>>>>> but this DTD i
 document itself. Nevertheless it can be used for validation purposes.
 
 
-=item B<importNode>
+=item importNode
 
   $document->importNode( $node );
 
@@ -509,7 +532,7 @@ will cause serious problems to your program. This is a limitation of libxml2
 and not of XML::LibXML itself.
 
 
-=item B<adoptNode>
+=item adoptNode
 
   $document->adoptNode( $node );
 
@@ -527,7 +550,7 @@ serious problems to your program. This is a limitation of libxml2 and not of
 XML::LibXML itself.
 
 
-=item B<externalSubset>
+=item externalSubset
 
   my $dtd = $doc->externalSubset;
 
@@ -539,7 +562,7 @@ XML::LibXML is still limited. In particular one may not want use common node
 function on doctype declaration nodes!
 
 
-=item B<internalSubset>
+=item internalSubset
 
   my $dtd = $doc->internalSubset;
 
@@ -551,7 +574,7 @@ XML::LibXML is still limited. In particular one may not want use common node
 function on doctype declaration nodes!
 
 
-=item B<setExternalSubset>
+=item setExternalSubset
 
   $doc->setExternalSubset($dtd);
 
@@ -560,7 +583,7 @@ I<<<<<< EXPERIMENTAL! >>>>>>
 This method sets a DTD node as an external subset of the given document.
 
 
-=item B<setInternalSubset>
+=item setInternalSubset
 
   $doc->setInternalSubset($dtd);
 
@@ -569,7 +592,7 @@ I<<<<<< EXPERIMENTAL! >>>>>>
 This method sets a DTD node as an internal subset of the given document.
 
 
-=item B<removeExternalSubset>
+=item removeExternalSubset
 
   my $dtd = $doc->removeExternalSubset();
 
@@ -579,7 +602,7 @@ If a document has an external subset defined it can be removed from the
 document by using this function. The removed dtd node will be returned.
 
 
-=item B<removeInternalSubset>
+=item removeInternalSubset
 
   my $dtd = $doc->removeInternalSubset();
 
@@ -589,35 +612,35 @@ If a document has an internal subset defined it can be removed from the
 document by using this function. The removed dtd node will be returned.
 
 
-=item B<getElementsByTagName>
+=item getElementsByTagName
 
   my @nodelist = $doc->getElementsByTagName($tagname);
 
 Implements the DOM Level 2 function
 
-In SCALAR context this function returns a L<<<<<< XML::LibXML::NodeList|XML::LibXML::NodeList >>>>>> object.
+In SCALAR context this function returns a L<<<<<< XML::LibXML::NodeList >>>>>> object.
 
 
-=item B<getElementsByTagNameNS>
+=item getElementsByTagNameNS
 
   my @nodelist = $doc->getElementsByTagNameNS($nsURI,$tagname);
 
 Implements the DOM Level 2 function
 
-In SCALAR context this function returns a L<<<<<< XML::LibXML::NodeList|XML::LibXML::NodeList >>>>>> object.
+In SCALAR context this function returns a L<<<<<< XML::LibXML::NodeList >>>>>> object.
 
 
-=item B<getElementsByLocalName>
+=item getElementsByLocalName
 
   my @nodelist = $doc->getElementsByLocalName($localname);
 
 This allows the fetching of all nodes from a given document with the given
 Localname.
 
-In SCALAR context this function returns a L<<<<<< XML::LibXML::NodeList|XML::LibXML::NodeList >>>>>> object.
+In SCALAR context this function returns a L<<<<<< XML::LibXML::NodeList >>>>>> object.
 
 
-=item B<getElementById>
+=item getElementById
 
   my $node = $doc->getElementById($id);
 
@@ -636,7 +659,7 @@ by mistake. Starting from 1.60 this name is maintained as an alias only for
 backward compatibility. 
 
 
-=item B<indexElements>
+=item indexElements
 
   $dom->indexElements();
 

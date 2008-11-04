@@ -1,14 +1,21 @@
 package XML::LibXML::Reader;
-use XML::LibXML;
 
+use XML::LibXML;
+use Carp;
 use strict;
 use warnings;
 
 use vars qw ($VERSION);
 $VERSION = "1.66"; # VERSION TEMPLATE: DO NOT CHANGE
 
-use Carp;
 use 5.008_000;
+
+BEGIN {
+  UNIVERSAL::can('XML::LibXML::Reader','_newForFile') or
+      croak("Cannot use XML::LibXML::Reader module - ".
+	    "your libxml2 is compiled without reader support!");
+}
+
 use base qw(Exporter);
 use constant {
     XML_READER_TYPE_NONE => 0,
@@ -40,6 +47,8 @@ use constant {
     XML_READER_ERROR     =>  6
 };
 use vars qw( @EXPORT @EXPORT_OK %EXPORT_TAGS );
+
+sub CLONE_SKIP { 1 }
 
 BEGIN {
 
@@ -216,6 +225,15 @@ sub preservePattern {
   } else {
     $reader->_preservePattern(@_);
   }
+}
+
+sub nodePath {
+  my $reader=shift;
+  my $path = $reader->_nodePath;
+  $path=~s/\[\d+\]//g; # make /foo[1]/bar[1] just /foo/bar, since
+                       # sibling count in the buffered fragment is
+                       # basically random and generally misleading
+  return $path;
 }
 
 1;

@@ -25,7 +25,7 @@ validation.
 
 =over 4
 
-=item B<new>
+=item new
 
   $rngschema = XML::LibXML::RelaxNG->new( location => $filename_or_url );
   $rngschema = XML::LibXML::RelaxNG->new( string => $xmlschemastring );
@@ -40,13 +40,13 @@ The location parameter allows to parse a schema from the filesystem or a URL.
 
 The string parameter will parse the schema from the given XML string.
 
-The DOM parameter allows to parse the schema from a pre-parsed L<<<<<< XML::LibXML DOM Document Class|XML::LibXML DOM Document Class >>>>>>.
+The DOM parameter allows to parse the schema from a pre-parsed L<<<<<< XML::LibXML::Document >>>>>>.
 
 Note that the constructor will die() if the schema does not meed the
 constraints of the RelaxNG specification.
 
 
-=item B<validate>
+=item validate
 
   eval { $rngschema->validate( $doc ); };
 

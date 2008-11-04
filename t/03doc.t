@@ -1,4 +1,4 @@
-# $Id: 03doc.t 694 2007-11-12 09:06:59Z pajas $
+# $Id: 03doc.t 747 2008-11-03 14:29:15Z pajas $
 
 ##
 # this test checks the DOM Document interface of XML::LibXML
@@ -12,7 +12,7 @@
 use Test;
 use strict;
 
-BEGIN { plan tests => 139 };
+BEGIN { plan tests => 166 };
 use XML::LibXML;
 use XML::LibXML::Common qw(:libxml);
 
@@ -229,13 +229,21 @@ use XML::LibXML::Common qw(:libxml);
     ok($node->isSameNode($tn));
 
     my $node2 = $doc->createElement( "bar" );
-    
-    $doc->appendChild($node2);
+    { my $warn;
+      eval {
+	local $SIG{__WARN__} = sub { $warn = 1 };
+	ok( !defined($doc->appendChild($node2)) );
+      };
+      ok($@ or $warn);
+    }
     my @cn = $doc->childNodes;
     ok( scalar(@cn) , 1);
     ok($cn[0]->isSameNode($node));
 
-    $doc->insertBefore($node2, $node);
+    eval {
+      $doc->insertBefore($node2, $node);
+    };
+    ok ($@);
     @cn = $doc->childNodes;
     ok( scalar(@cn) , 1);
     ok($cn[0]->isSameNode($node));
@@ -361,7 +369,9 @@ use XML::LibXML::Common qw(:libxml);
         }
         {
 	    $parser2->recover(1);
-	    local $SIG{'__WARN__'} = sub { }; 
+	    local $SIG{'__WARN__'} = sub { 
+   	       print "warning caught: @_\n";
+	    }; 
             my $doc2 = $parser2->parse_string($string4);
 #            my @as   = $doc2->getElementsByTagName( "C:A" );
 #            ok( scalar( @as ), 3);
@@ -457,3 +467,27 @@ use XML::LibXML::Common qw(:libxml);
   ok($dom->getEncoding,undef);
   ok($dom->toString,$out);
 }
+
+# the following tests were added for #33810
+if (eval { require Encode; }) {
+  for my $enc (qw(UTF-16 UTF-16LE UTF-16BE)) {
+    print "------------------\n";
+    print $enc,"\n";
+    my $xml = Encode::encode('UTF-16LE',qq{<?xml version="1.0" encoding="$enc"?>
+<test foo="bar"/>
+});
+    my $dom = XML::LibXML->new->parse_string($xml);
+    ok($dom->getEncoding,$enc);
+    ok($dom->actualEncoding,$enc);
+    ok($dom->getDocumentElement->getAttribute('foo'),'bar');
+    ok($dom->getDocumentElement->getAttribute(Encode::encode('UTF-16','foo')), 'bar');
+    ok($dom->getDocumentElement->getAttribute(Encode::encode($enc,'foo')), 'bar');
+    my $exp_enc = $enc eq 'UTF-16' ? 'UTF-16LE' : $enc;
+    ok($dom->getDocumentElement->getAttribute('foo',1), Encode::encode($exp_enc,'bar'));
+    ok($dom->getDocumentElement->getAttribute(Encode::encode('UTF-16','foo'),1), Encode::encode($exp_enc,'bar'));
+    ok($dom->getDocumentElement->getAttribute(Encode::encode($enc,'foo'),1), Encode::encode($exp_enc,'bar'));
+  }
+} else {
+  skip("Encoding related tests require Encode") for 1..24;
+}
+

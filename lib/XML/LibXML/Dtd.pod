@@ -21,7 +21,7 @@ external SYSTEM identifier.
 
 No support is available as yet for parsing from a filehandle.
 
-XML::LibXML::Dtd is a sub-class of L<<<<<< Abstract Base Class of XML::LibXML Nodes|Abstract Base Class of XML::LibXML Nodes >>>>>>, so all the methods available to nodes (particularly toString()) are available
+XML::LibXML::Dtd is a sub-class of L<<<<<< XML::LibXML::Node >>>>>>, so all the methods available to nodes (particularly toString()) are available
 to Dtd objects.
 
 
@@ -29,7 +29,7 @@ to Dtd objects.
 
 =over 4
 
-=item B<new>
+=item new
 
   $dtd = XML::LibXML::Dtd->new($public_id, $system_id);
 
@@ -46,7 +46,7 @@ pass to $doc->is_valid() or $doc->validate().
    $doc->validate($dtd);
 
 
-=item B<parse_string>
+=item parse_string
 
   $dtd = XML::LibXML::Dtd->parse_string($dtd_str);
 
@@ -55,7 +55,7 @@ parsing from string may fail if the DTD contains external parametric-entity
 references with relative URLs.
 
 
-=item B<getName>
+=item getName
 
   $publicId = $dtd->getName();
 
@@ -63,14 +63,14 @@ Returns the name of DTD; i.e., the name immediately following the DOCTYPE
 keyword.
 
 
-=item B<publicId>
+=item publicId
 
   $publicId = $dtd->publicId();
 
 Returns the public identifier of the external subset.
 
 
-=item B<systemId>
+=item systemId
 
   $systemId = $dtd->systemId();
 

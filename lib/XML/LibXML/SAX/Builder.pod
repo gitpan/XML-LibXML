@@ -8,10 +8,10 @@ XML::LibXML::SAX::Builder - Building DOM trees from SAX events.
 
   use XML::LibXML::SAX::Builder;
   my $builder = XML::LibXML::SAX::Builder->new();
-  
+
   my $gen = XML::Generator::DBI->new(Handler => $builder, dbh => $dbh);
   $gen->execute("SELECT * FROM Users");
-  
+
   my $doc = $builder->result();
 
 

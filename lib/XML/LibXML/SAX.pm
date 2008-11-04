@@ -1,4 +1,4 @@
-# $Id: SAX.pm 709 2008-01-29 21:01:32Z pajas $
+# $Id: SAX.pm 729 2008-10-30 13:16:23Z pajas $
 # Copyright (c) 2001-2002, AxKit.com Ltd. All rights reserved.
 package XML::LibXML::SAX;
 
@@ -15,6 +15,10 @@ use base qw(XML::SAX::Base);
 use Carp;
 use IO::File;
 
+sub CLONE_SKIP {
+  return $XML::LibXML::__threads_shared ? 0 : 1;
+}
+
 sub _parse_characterstream {
     my ( $self, $fh ) = @_;
     # this my catch the xml decl, so the parser won't get confused about
@@ -27,7 +31,8 @@ sub _parse_bytestream {
     $self->{ParserOptions}{LibParser}      = XML::LibXML->new;
     $self->{ParserOptions}{ParseFunc}      = \&XML::LibXML::parse_fh;
     $self->{ParserOptions}{ParseFuncParam} = $fh;
-    return $self->_parse;
+    $self->_parse;
+    return $self->end_document({});
 }
 
 sub _parse_string {
@@ -36,7 +41,8 @@ sub _parse_string {
     $self->{ParserOptions}{LibParser}      = XML::LibXML->new()     unless defined $self->{ParserOptions}{LibParser};
     $self->{ParserOptions}{ParseFunc}      = \&XML::LibXML::parse_string;
     $self->{ParserOptions}{ParseFuncParam} = $string;
-    return $self->_parse;
+    $self->_parse;
+    return $self->end_document({});
 }
 
 sub _parse_systemid {
@@ -44,15 +50,18 @@ sub _parse_systemid {
     $self->{ParserOptions}{LibParser}      = XML::LibXML->new;
     $self->{ParserOptions}{ParseFunc}      = \&XML::LibXML::parse_file;
     $self->{ParserOptions}{ParseFuncParam} = shift;
-    return $self->_parse;
+    $self->_parse;
+    return $self->end_document({});
 }
 
 sub parse_chunk {
     my ( $self, $chunk ) = @_;
     $self->{ParserOptions}{LibParser}      = XML::LibXML->new;
     $self->{ParserOptions}{ParseFunc}      = \&XML::LibXML::parse_xml_chunk;
+    $self->{ParserOptions}{LibParser}->{IS_FILTER}=1; # a hack to prevent parse_xml_chunk from issuing end_document
     $self->{ParserOptions}{ParseFuncParam} = $chunk;
-    return $self->_parse;
+    $self->_parse;
+    return;
 }
 
 sub _parse {
@@ -68,12 +77,12 @@ sub _parse {
         croak( "SAX Exception not implemented, yet; Data ended before document ended\n" );
     }
 
-    # break a possible circular reference    
+    # break a possible circular reference
     $args->{LibParser}->set_handler( undef );
     if ( $@ ) {
         croak $@;
     }
-    return $self->end_document({});
+    return;
 }
 
 

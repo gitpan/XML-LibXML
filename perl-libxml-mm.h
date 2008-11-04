@@ -1,6 +1,6 @@
 /**
  * perl-libxml-mm.h
- * $Id: perl-libxml-mm.h 703 2008-01-28 12:21:29Z pajas $
+ * $Id: perl-libxml-mm.h 754 2008-11-04 14:16:54Z pajas $
  *
  * Basic concept:
  * perl varies in the implementation of UTF8 handling. this header (together
@@ -63,7 +63,6 @@ struct _ProxyNode {
     xmlNodePtr owner;
     int count;
     int encoding;
-    struct _ProxyNode * _registry;
 };
 
 /* helper type for the proxy structure */
@@ -73,9 +72,9 @@ typedef struct _ProxyNode ProxyNode;
 typedef ProxyNode* ProxyNodePtr;
 
 /* this my go only into the header used by the xs */
-#define SvPROXYNODE(x) ((ProxyNodePtr)SvIV(SvRV(x)))
-#define PmmPROXYNODE(x) ((ProxyNodePtr)x->_private)
-#define SvNAMESPACE(x) ((xmlNsPtr)SvIV(SvRV(x)))
+#define SvPROXYNODE(x) (INT2PTR(ProxyNodePtr,SvIV(SvRV(x))))
+#define PmmPROXYNODE(x) (INT2PTR(ProxyNodePtr,x->_private))
+#define SvNAMESPACE(x) (INT2PTR(xmlNsPtr,SvIV(SvRV(x))))
 
 #define PmmREFCNT(node)      node->count
 #define PmmREFCNT_inc(node)  node->count++
@@ -85,6 +84,40 @@ typedef ProxyNode* ProxyNodePtr;
 #define PmmENCODING(node)    node->encoding
 #define PmmNodeEncoding(node) ((ProxyNodePtr)(node->_private))->encoding
 #define PmmDocEncoding(node) (node->charset)
+
+#ifndef NO_XML_LIBXML_THREADS
+#ifdef USE_ITHREADS
+#define XML_LIBXML_THREADS
+#endif
+#endif
+
+#ifdef XML_LIBXML_THREADS
+
+/* structure for storing thread-local refcount */
+struct _LocalProxyNode {
+	ProxyNodePtr proxy;
+	int count;
+};
+typedef struct _LocalProxyNode LocalProxyNode;
+typedef LocalProxyNode* LocalProxyNodePtr;
+
+#define PmmUSEREGISTRY		(PROXY_NODE_REGISTRY_MUTEX != NULL)
+#define PmmREGISTRY		(INT2PTR(xmlHashTablePtr,SvIV(SvRV(get_sv("XML::LibXML::__PROXY_NODE_REGISTRY",0)))))
+// #define PmmREGISTRY			(INT2PTR(xmlHashTablePtr,SvIV(SvRV(PROXY_NODE_REGISTRY))))
+
+void
+PmmCloneProxyNodes();
+int
+PmmProxyNodeRegistrySize();
+void
+PmmDumpRegistry(xmlHashTablePtr r);
+void
+PmmRegistryREFCNT_dec(ProxyNodePtr proxy);
+
+#endif
+
+void
+PmmFreeHashTable(xmlHashTablePtr table);
 
 ProxyNodePtr
 PmmNewNode(xmlNodePtr node);
@@ -216,10 +249,10 @@ const char*
 PmmNodeTypeName( xmlNodePtr elem );
 
 xmlChar*
-PmmEncodeString( const char *encoding, const xmlChar *string );
+PmmEncodeString( const char *encoding, const xmlChar *string, STRLEN len );
 
 char*
-PmmDecodeString( const char *encoding, const xmlChar *string);
+PmmDecodeString( const char *encoding, const xmlChar *string, STRLEN* len);
 
 /* string manipulation will go elsewhere! */
 

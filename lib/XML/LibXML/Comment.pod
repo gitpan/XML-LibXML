@@ -14,19 +14,19 @@ XML::LibXML::Comment - XML::LibXML Comment Class
 
 =head1 DESCRIPTION
 
-This class provides all functions of L<<<<<< XML::LibXML Class for Text Nodes|XML::LibXML Class for Text Nodes >>>>>>, but for comment nodes. This can be done, since only the output of the node
+This class provides all functions of L<<<<<< XML::LibXML::Text >>>>>>, but for comment nodes. This can be done, since only the output of the node
 types is different, but not the data structure. :-)
 
 
 =head1 METHODS
 
-The class inherits from L<<<<<< Abstract Base Class of XML::LibXML Nodes|Abstract Base Class of XML::LibXML Nodes >>>>>>. The documentation for Inherited methods is not listed here. 
+The class inherits from L<<<<<< XML::LibXML::Node >>>>>>. The documentation for Inherited methods is not listed here. 
 
-Many functions listed here are extensively documented in the L<<<<<< DOM Level 3 specification|http://www.w3.org/TR/DOM-Level-3-Core/ >>>>>>. Please refer to the specification for extensive documentation. 
+Many functions listed here are extensively documented in the DOM Level 3 specification (L<<<<<< http://www.w3.org/TR/DOM-Level-3-Core/ >>>>>>). Please refer to the specification for extensive documentation. 
 
 =over 4
 
-=item B<new>
+=item new
 
   $node = XML::LibXML::Comment( $content );
 

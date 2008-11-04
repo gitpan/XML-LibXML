@@ -1,4 +1,4 @@
-# $Id: LibXML.pm 709 2008-01-29 21:01:32Z pajas $
+# $Id: LibXML.pm 754 2008-11-04 14:16:54Z pajas $
 
 package XML::LibXML;
 
@@ -14,16 +14,19 @@ use XML::LibXML::Common qw(:encoding :libxml);
 use constant XML_XMLNS_NS => 'http://www.w3.org/2000/xmlns/';
 use constant XML_XML_NS => 'http://www.w3.org/XML/1998/namespace';
 
+use XML::LibXML::Error;
 use XML::LibXML::NodeList;
 use XML::LibXML::XPathContext;
 use IO::Handle; # for FH reads called as methods
 
 BEGIN {
 
-$VERSION = "1.66"; # VERSION TEMPLATE: DO NOT CHANGE
+$VERSION = "1.67"; # VERSION TEMPLATE: DO NOT CHANGE
 require Exporter;
 require DynaLoader;
 @ISA = qw(DynaLoader Exporter);
+
+use vars qw($__PROXY_NODE_REGISTRY $__threads_shared $__PROXY_NODE_REGISTRY_MUTEX $__loaded);
 
 #-------------------------------------------------------------------------#
 # export information                                                      #
@@ -107,6 +110,14 @@ $ReadCB  = undef;
 $OpenCB  = undef;
 $CloseCB = undef;
 
+# if ($threads::threads) {
+#   our $__THREADS_TID = 0;
+#   eval q{
+#     use threads::shared;
+#     our $__PROXY_NODE_REGISTRY_MUTEX :shared = 0;
+#   };
+#   die $@ if $@;
+# }
 #-------------------------------------------------------------------------#
 # bootstrapping                                                           #
 #-------------------------------------------------------------------------#
@@ -114,6 +125,42 @@ bootstrap XML::LibXML $VERSION;
 undef &AUTOLOAD;
 
 } # BEGIN
+
+sub import {
+  my $package=shift;
+  if (grep /^:threads_shared$/, @_) {
+    require threads;
+    if (!defined($__threads_shared)) {
+      if (INIT_THREAD_SUPPORT()) {
+	eval q{
+          use threads::shared;
+          share($__PROXY_NODE_REGISTRY_MUTEX);
+        };
+	if ($@) { # something went wrong
+	  DISABLE_THREAD_SUPPORT(); # leave the library in a usable state
+	  die $@; # and die
+	}
+	$__PROXY_NODE_REGISTRY = XML::LibXML::HashTable->new();
+	$__threads_shared=1;
+      } else {
+	croak("XML::LibXML or Perl compiled without ithread support!");
+      }
+    } elsif (!$__threads_shared) {
+      croak("XML::LibXML already loaded without thread support. Too late to enable thread support!");
+    }
+  } elsif (defined $XML::LibXML::__loaded) {
+    $__threads_shared=0 if not defined $__threads_shared;
+  }
+  __PACKAGE__->export_to_level(1,$package,grep !/^:threads(_shared)?$/,@_);
+}
+
+sub threads_shared_enabled {
+  return $__threads_shared ? 1 : 0;
+}
+
+# if ($threads::threads) {
+#   our $__PROXY_NODE_REGISTRY = XML::LibXML::HashTable->new();
+# }
 
 #-------------------------------------------------------------------------#
 # test exact version (up to patch-level)                                  #
@@ -157,7 +204,20 @@ sub new {
 
 # threads doc says CLONE's API may change in future, which would break
 # an XS method prototype
-sub CLONE { XML::LibXML::_CLONE( $_[0] ) }
+sub CLONE {
+  if ($XML::LibXML::__threads_shared) {
+    XML::LibXML::_CLONE( $_[0] );
+  }
+}
+
+sub CLONE_SKIP {
+  return $XML::LibXML::__threads_shared ? 0 : 1;
+}
+
+sub __proxy_registry {
+  my ($class)=caller;
+  die "This version of $class uses API of XML::LibXML 1.66 which is not compatible with XML::LibXML $VERSION. Please upgrade $class!\n";
+}
 
 #-------------------------------------------------------------------------#
 # DOM Level 2 document constructor                                        #
@@ -496,13 +556,11 @@ sub parse_string {
     if ( defined $self->{SAX} ) {
         my $string = shift;
         $self->{SAX_ELSTACK} = [];
-        
         eval { $result = $self->_parse_sax_string($string); };
-
         my $err = $@;
         $self->{_State_} = 0;
         if ($err) {
-	    chomp $err;
+	    chomp $err unless ref $err;
             $self->_cleanup_callbacks();
             croak $err;
         }
@@ -513,7 +571,7 @@ sub parse_string {
         my $err = $@;
         $self->{_State_} = 0;
         if ($err) {
-	    chomp $err;
+	    chomp $err unless ref $err;
             $self->_cleanup_callbacks();
             croak $err;
         }
@@ -540,7 +598,7 @@ sub parse_fh {
         my $err = $@;
         $self->{_State_} = 0;
         if ($err) {
-	    chomp $err;
+	    chomp $err unless ref $err;
             $self->_cleanup_callbacks();
             croak $err;
         }
@@ -550,7 +608,7 @@ sub parse_fh {
         my $err = $@;
         $self->{_State_} = 0;
         if ($err) {
-	    chomp $err;
+	    chomp $err unless ref $err;
             $self->_cleanup_callbacks();
             croak $err;
         }
@@ -578,7 +636,7 @@ sub parse_file {
         my $err = $@;
         $self->{_State_} = 0;
         if ($err) {
-	    chomp $err;
+	    chomp $err unless ref $err;
             $self->_cleanup_callbacks();
             croak $err;
         }
@@ -588,7 +646,7 @@ sub parse_file {
         my $err = $@;
         $self->{_State_} = 0;
         if ($err) {
-	    chomp $err;
+	    chomp $err unless ref $err;
             $self->_cleanup_callbacks();
             croak $err;
         }
@@ -625,8 +683,8 @@ sub parse_xml_chunk {
             # will be terminated. in case of a SAX filter the parsing is not
             # finished at that state. therefore we must not reset the parsing
             unless ( $self->{IS_FILTER} ) {
-                $result = $self->{HANDLER}->end_document();
-            }
+	      $result = $self->{HANDLER}->end_document();
+	    }
         };
     }
     else {
@@ -638,7 +696,7 @@ sub parse_xml_chunk {
     my $err = $@;
     $self->{_State_} = 0;
     if ($err) {
-        chomp $err;
+        chomp $err unless ref $err;
         croak $err;
     }
 
@@ -655,7 +713,7 @@ sub parse_balanced_chunk {
     my $err = $@;
     $self->_cleanup_callbacks();
     if ( $err ) {
-        chomp $err;
+        chomp $err unless ref $err;
         croak $err;
     }
     return $rv
@@ -680,7 +738,7 @@ sub processXIncludes {
     }
 
     if ( $err ) {
-        chomp $err;
+        chomp $err unless ref $err;
         croak $err;
     }
     return $rv;
@@ -701,7 +759,7 @@ sub process_xincludes {
     my $err = $@;
     $self->_cleanup_callbacks();
     if ( $err ) {
-        chomp $err;
+        chomp $err unless ref $err;
         croak $@;
     }
     return $rv;
@@ -745,7 +803,7 @@ sub parse_html_string {
     my $err = $@;
     $self->{_State_} = 0;
     if ($err) {
-      chomp $err;
+      chomp $err unless ref $err;
       $self->_cleanup_callbacks();
       croak $err;
     }
@@ -769,7 +827,7 @@ sub parse_html_file {
     my $err = $@;
     $self->{_State_} = 0;
     if ($err) {
-      chomp $err;
+      chomp $err unless ref $err;
       $self->_cleanup_callbacks();
       croak $err;
     }
@@ -793,7 +851,7 @@ sub parse_html_fh {
     my $err = $@;
     $self->{_State_} = 0;
     if ($err) {
-      chomp $err;
+      chomp $err unless ref $err;
       $self->_cleanup_callbacks();
       croak $err;
     }
@@ -837,7 +895,7 @@ sub push {
     my $err = $@;
     $self->_cleanup_callbacks();
     if ( $err ) {
-        chomp $err;
+        chomp $err unless ref $err;
         croak $err;
     }
 }
@@ -882,7 +940,7 @@ sub finish_push {
     delete $self->{CONTEXT};
     my $err = $@;
     if ( $err ) {
-        chomp $err;
+        chomp $err unless ref $err;
         croak( $err );
     }
     return $retval;
@@ -894,6 +952,10 @@ sub finish_push {
 # XML::LibXML::Node Interface                                             #
 #-------------------------------------------------------------------------#
 package XML::LibXML::Node;
+
+sub CLONE_SKIP {
+  return $XML::LibXML::__threads_shared ? 0 : 1;
+}
 
 sub isSupported {
     my $self    = shift;
@@ -1377,6 +1439,8 @@ package XML::LibXML::Dtd;
 use vars qw( @ISA );
 @ISA = ('XML::LibXML::Node');
 
+# at least DESTROY and CLONE_SKIP must be inherited
+
 1;
 
 #-------------------------------------------------------------------------#
@@ -1408,6 +1472,8 @@ sub setData {
 # XML::LibXML::Namespace Interface                                        #
 #-------------------------------------------------------------------------#
 package XML::LibXML::Namespace;
+
+sub CLONE_SKIP { 1 }
 
 # this is infact not a node!
 sub prefix { return "xmlns"; }
@@ -1448,6 +1514,10 @@ sub isSameNode {
 package XML::LibXML::NamedNodeMap;
 
 use XML::LibXML::Common qw(:libxml);
+
+sub CLONE_SKIP {
+  return $XML::LibXML::__threads_shared ? 0 : 1;
+}
 
 sub new {
     my $class = shift;
@@ -1547,6 +1617,10 @@ package XML::LibXML::_SAXParser;
 
 use XML::SAX::Exception;
 
+sub CLONE_SKIP {
+  return $XML::LibXML::__threads_shared ? 0 : 1;
+}
+
 # these functions will use SAX exceptions as soon i know how things really work
 sub warning {
     my ( $parser, $message, $line, $col ) = @_;
@@ -1577,6 +1651,8 @@ sub fatal_error {
 
 package XML::LibXML::RelaxNG;
 
+sub CLONE_SKIP { 1 }
+
 sub new {
     my $class = shift;
     my %args = @_;
@@ -1599,6 +1675,8 @@ sub new {
 
 package XML::LibXML::Schema;
 
+sub CLONE_SKIP { 1 }
+
 sub new {
     my $class = shift;
     my %args = @_;
@@ -1617,16 +1695,61 @@ sub new {
 1;
 
 #-------------------------------------------------------------------------#
+# XML::LibXML::Pattern Interface                                          #
+#-------------------------------------------------------------------------#
+
+package XML::LibXML::Pattern;
+
+sub CLONE_SKIP { 1 }
+
+sub new {
+  my $class = shift;
+  my ($pattern,$ns_map)=@_;
+  my $self = undef;
+  
+  unless (UNIVERSAL::can($class,'_compilePattern')) {
+    croak("Cannot create XML::LibXML::Pattern - ".
+	  "your libxml2 is compiled without pattern support!");
+  }
+
+  if (ref($ns_map) eq 'HASH') {
+    # translate prefix=>URL hash to a (URL,prefix) list
+    $self = $class->_compilePattern($pattern,0,[reverse %$ns_map]);
+  } else {
+    $self = $class->_compilePattern($pattern,0);
+  }
+  return $self;
+}
+
+1;
+
+#-------------------------------------------------------------------------#
+# XML::LibXML::XPathExpression Interface                                  #
+#-------------------------------------------------------------------------#
+
+package XML::LibXML::XPathExpression;
+
+sub CLONE_SKIP { 1 }
+
+1;
+
+
+#-------------------------------------------------------------------------#
 # XML::LibXML::InputCallback Interface                                    #
 #-------------------------------------------------------------------------#
 package XML::LibXML::InputCallback;
 
 use vars qw($_CUR_CB @_GLOBAL_CALLBACKS @_CB_STACK);
 
-$_CUR_CB = undef;
+BEGIN {
+  $_CUR_CB = undef;
+  @_GLOBAL_CALLBACKS = ();
+  @_CB_STACK = ();
+}
 
-@_GLOBAL_CALLBACKS = ();
-@_CB_STACK = ();
+sub CLONE_SKIP {
+  return $XML::LibXML::__threads_shared ? 0 : 1;
+}
 
 #-------------------------------------------------------------------------#
 # global callbacks                                                        #
@@ -1772,6 +1895,8 @@ sub cleanup_callbacks {
 
     $self->lib_cleanup_callbacks();
 }
+
+$XML::LibXML::__loaded=1;
 
 1;
 

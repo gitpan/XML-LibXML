@@ -37,27 +37,27 @@ XML::LibXML::Element - XML::LibXML Class for Element Nodes
 
 =head1 METHODS
 
-The class inherits from L<<<<<< Abstract Base Class of XML::LibXML Nodes|Abstract Base Class of XML::LibXML Nodes >>>>>>. The documentation for Inherited methods is not listed here. 
+The class inherits from L<<<<<< XML::LibXML::Node >>>>>>. The documentation for Inherited methods is not listed here. 
 
-Many functions listed here are extensively documented in the L<<<<<< DOM Level 3 specification|http://www.w3.org/TR/DOM-Level-3-Core/ >>>>>>. Please refer to the specification for extensive documentation. 
+Many functions listed here are extensively documented in the DOM Level 3 specification (L<<<<<< http://www.w3.org/TR/DOM-Level-3-Core/ >>>>>>). Please refer to the specification for extensive documentation. 
 
 =over 4
 
-=item B<new>
+=item new
 
   $node = XML::LibXML::Element->new( $name );
 
 This function creates a new node unbound to any DOM.
 
 
-=item B<setAttribute>
+=item setAttribute
 
   $node->setAttribute( $aname, $avalue );
 
 This method sets or replaces the node's attribute C<<<<<< $aname >>>>>> to the value C<<<<<< $avalue >>>>>>
 
 
-=item B<setAttributeNS>
+=item setAttributeNS
 
   $node->setAttributeNS( $nsURI, $aname, $avalue );
 
@@ -85,28 +85,28 @@ scope. This is because in libxml2 the namespace URI of an element is not static
 but is computed from a pointer to a namespace declaration attribute. 
 
 
-=item B<getAttribute>
+=item getAttribute
 
   $avalue = $node->getAttribute( $aname );
 
 If C<<<<<< $node >>>>>> has an attribute with the name C<<<<<< $aname >>>>>>, the value of this attribute will get returned.
 
 
-=item B<getAttributeNS>
+=item getAttributeNS
 
   $avalue = $node->setAttributeNS( $nsURI, $aname );
 
 Retrieves an attribute value by local name and namespace URI.
 
 
-=item B<getAttributeNode>
+=item getAttributeNode
 
   $attrnode = $node->getAttributeNode( $aname );
 
 Retrieve an attribute node by name. If no attribute with a given name exists, C<<<<<< undef >>>>>> is returned.
 
 
-=item B<getAttributeNodeNS>
+=item getAttributeNodeNS
 
   $attrnode = $node->getAttributeNodeNS( $namespaceURI, $aname );
 
@@ -114,21 +114,21 @@ Retrieves an attribute node by local name and namespace URI. If no attribute
 with a given localname and namespace exists, C<<<<<< undef >>>>>> is returned.
 
 
-=item B<removeAttribute>
+=item removeAttribute
 
   $node->removeAttribute( $aname );
 
 The method removes the attribute C<<<<<< $aname >>>>>> from the node's attribute list, if the attribute can be found.
 
 
-=item B<removeAttributeNS>
+=item removeAttributeNS
 
   $node->removeAttributeNS( $nsURI, $aname );
 
 Namespace version of C<<<<<< removeAttribute >>>>>>
 
 
-=item B<hasAttribute>
+=item hasAttribute
 
   $boolean = $node->hasAttribute( $aname );
 
@@ -137,14 +137,14 @@ attribute is specified, TRUE (1) will be returned, otherwise the return value
 is FALSE (0).
 
 
-=item B<hasAttributeNS>
+=item hasAttributeNS
 
   $boolean = $node->hasAttributeNS( $nsURI, $aname );
 
 namespace version of C<<<<<< hasAttribute >>>>>>
 
 
-=item B<getChildrenByTagName>
+=item getChildrenByTagName
 
   @nodes = $node->getChildrenByTagName($tagname);
 
@@ -158,7 +158,7 @@ If this function is called in SCALAR context, it returns the number of elements
 found.
 
 
-=item B<getChildrenByTagNameNS>
+=item getChildrenByTagNameNS
 
   @nodes = $node->getChildrenByTagNameNS($nsURI,$tagname);
 
@@ -169,7 +169,7 @@ If this function is called in SCALAR context, it returns the number of elements
 found.
 
 
-=item B<getChildrenByLocalName>
+=item getChildrenByLocalName
 
   @nodes = $node->getChildrenByLocalName($localname);
 
@@ -181,7 +181,7 @@ If this function is called in SCALAR context, it returns the number of elements
 found.
 
 
-=item B<getElementsByTagName>
+=item getElementsByTagName
 
   @nodes = $node->getElementsByTagName($tagname);
 
@@ -189,19 +189,19 @@ This function is part of the spec. It fetches all descendants of a node with a
 given tagname, where C<<<<<< tagname >>>>>> is a qualified name, that is, in case of namespace usage it may consist of a
 prefix and local name. A special C<<<<<< tagname >>>>>> '*' can be used to match any tag name. 
 
-In SCALAR context this function returns a L<<<<<< XML::LibXML::NodeList|XML::LibXML::NodeList >>>>>> object.
+In SCALAR context this function returns a L<<<<<< XML::LibXML::NodeList >>>>>> object.
 
 
-=item B<getElementsByTagNameNS>
+=item getElementsByTagNameNS
 
   @nodes = $node->getElementsByTagNameNS($nsURI,$localname);
 
 Namespace version of C<<<<<< getElementsByTagName >>>>>> as found in the DOM spec. A special C<<<<<< localname >>>>>> '*' can be used to match any local name and C<<<<<< nsURI >>>>>> '*' can be used to match any namespace URI.
 
-In SCALAR context this function returns a L<<<<<< XML::LibXML::NodeList|XML::LibXML::NodeList >>>>>> object.
+In SCALAR context this function returns a L<<<<<< XML::LibXML::NodeList >>>>>> object.
 
 
-=item B<getElementsByLocalName>
+=item getElementsByLocalName
 
   @nodes = $node->getElementsByLocalName($localname);
 
@@ -210,10 +210,10 @@ getElementsByTagName and getElementsByTagNameNS. It will fetch all tags
 matching the given local-name. This allows one to select tags with the same
 local name across namespace borders.
 
-In SCALAR context this function returns a L<<<<<< XML::LibXML::NodeList|XML::LibXML::NodeList >>>>>> object.
+In SCALAR context this function returns a L<<<<<< XML::LibXML::NodeList >>>>>> object.
 
 
-=item B<appendWellBalancedChunk>
+=item appendWellBalancedChunk
 
   $node->appendWellBalancedChunk( $chunk );
 
@@ -229,28 +229,28 @@ I<<<<<< Note that appendWellBalancedChunk() is only left for compatibility reaso
 This form is more explicit and makes it easier to control the flow of a script.
 
 
-=item B<appendText>
+=item appendText
 
   $node->appendText( $PCDATA );
 
 alias for appendTextNode().
 
 
-=item B<appendTextNode>
+=item appendTextNode
 
   $node->appendTextNode( $PCDATA );
 
 This wrapper function lets you add a string directly to an element node.
 
 
-=item B<appendTextChild>
+=item appendTextChild
 
   $node->appendTextChild( $childname , $PCDATA );
 
 Somewhat similar with C<<<<<< appendTextNode >>>>>>: It lets you set an Element, that contains only a C<<<<<< text node >>>>>> directly by specifying the name and the text content.
 
 
-=item B<setNamespace>
+=item setNamespace
 
   $node->setNamespace( $nsURI , $nsPrefix, $activate );
 
@@ -306,7 +306,7 @@ prefix with the namespace URI but the element already carries a declaration
 with the same prefix but different namespace URI. 
 
 
-=item B<setNamespaceDeclURI>
+=item setNamespaceDeclURI
 
   $node->setNamespaceDeclURI( $nsPrefix, $newURI );
 
@@ -330,7 +330,7 @@ integrity of libxml2 data structures).
 This function is NOT part of any DOM API.
 
 
-=item B<setNamespaceDeclPrefix>
+=item setNamespaceDeclPrefix
 
   $node->setNamespaceDeclPrefix( $oldPrefix, $newPrefix );
 

@@ -2,6 +2,7 @@ TYPEMAP
 const char *                T_PV
 xmlParserCtxtPtr            O_PARSER_OBJECT
 xmlRelaxNGPtr               O_OBJECT
+xmlPatternPtr               O_PATTERN_OBJECT
 xmlSchemaPtr                O_OBJECT
 xmlNodeSetPtr               O_OBJECT
 perlxmlParserObjectPtr      O_OBJECT
@@ -9,11 +10,14 @@ xmlDocPtr                   O_DOC_OBJECT
 xmlNodePtr                  O_NODE_OBJECT
 xmlDtdPtr                   O_NODE_OBJECT
 xmlTextReaderPtr            O_OBJECT
+xmlErrorPtr                 O_OBJECT
+xmlHashTablePtr             O_OBJECT
+xmlXPathCompExprPtr         O_XPATH_OBJECT
 
 INPUT
 O_OBJECT
     if( sv_isobject($arg) && (SvTYPE(SvRV($arg)) == SVt_PVMG) )
-            $var = ($type)SvIV((SV*)SvRV( $arg ));
+            $var = INT2PTR($type,SvIV((SV*)SvRV( $arg )));
     else{
             warn( \"${Package}::$func_name() -- $var is not a blessed SV reference\" );
             XSRETURN_UNDEF;
@@ -21,7 +25,7 @@ O_OBJECT
 
 O_DOC_OBJECT
     if( sv_isobject($arg) && (SvTYPE(SvRV($arg)) == SVt_PVMG) ) {
-            $var = ($type)PmmSvNode($arg);
+            $var = INT2PTR($type,PmmSvNode($arg));
             if ( $var == NULL ) {
                croak( \"${Package}::$func_name() -- $var contains no data\" );
                XSRETURN_UNDEF;
@@ -34,7 +38,7 @@ O_DOC_OBJECT
 
 O_NODE_OBJECT
     if( sv_isobject($arg) && (SvTYPE(SvRV($arg)) == SVt_PVMG) ) {
-            $var = ($type)PmmSvNode($arg);
+            $var = INT2PTR($type,PmmSvNode($arg));
             if ( $var == NULL ) {
                croak( \"${Package}::$func_name() -- $var contains no data\" );
                XSRETURN_UNDEF;
@@ -58,6 +62,21 @@ O_PARSER_OBJECT
             XSRETURN_UNDEF;
     }
 
+O_XPATH_OBJECT
+    if( sv_isobject($arg) && (SvTYPE(SvRV($arg)) == SVt_PVMG) && sv_isa($arg,\"XML::LibXML::XPathExpression\"))
+            $var = INT2PTR($type,SvIV((SV*)SvRV( $arg )));
+    else{
+            warn( \"${Package}::$func_name() -- $var is not a XML::LibXML::XPathExpression\" );
+            XSRETURN_UNDEF;
+    }
+
+O_PATTERN_OBJECT
+    if( sv_isobject($arg) && (SvTYPE(SvRV($arg)) == SVt_PVMG) && sv_isa($arg,\"XML::LibXML::Pattern\"))
+            $var = INT2PTR($type,SvIV((SV*)SvRV( $arg )));
+    else{
+            warn( \"${Package}::$func_name() -- $var is not a XML::LibXML::Pattern\" );
+            XSRETURN_UNDEF;
+    }
 
 OUTPUT
 
@@ -66,6 +85,11 @@ OUTPUT
 O_OBJECT
         sv_setref_pv( $arg, (char *)CLASS, (void*)$var );
 
+O_PATTERN_OBJECT
+        sv_setref_pv( $arg, (char *)\"XML::LibXML::Pattern\", (void*)$var );
+
+O_XPATH_OBJECT
+        sv_setref_pv( $arg, (char *)\"XML::LibXML::XPathExpression\", (void*)$var );
 
 O_PARSER_OBJECT
         $arg = PmmContextSv( $var );

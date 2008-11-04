@@ -27,20 +27,20 @@ the class relies on the W3C DOM documentation.
 
 =head1 METHODS
 
-The class inherits from L<<<<<< Abstract Base Class of XML::LibXML Nodes|Abstract Base Class of XML::LibXML Nodes >>>>>>. The documentation for Inherited methods is not listed here. 
+The class inherits from L<<<<<< XML::LibXML::Node >>>>>>. The documentation for Inherited methods is not listed here. 
 
-Many functions listed here are extensively documented in the L<<<<<< DOM Level 3 specification|http://www.w3.org/TR/DOM-Level-3-Core/ >>>>>>. Please refer to the specification for extensive documentation. 
+Many functions listed here are extensively documented in the DOM Level 3 specification (L<<<<<< http://www.w3.org/TR/DOM-Level-3-Core/ >>>>>>). Please refer to the specification for extensive documentation. 
 
 =over 4
 
-=item B<new>
+=item new
 
   $attr = XML::LibXML::Attr->new($name [,$value]);
 
-Class constructor. If you need to work with ISO encoded strings, you should I<<<<<< always >>>>>> use the C<<<<<< createAttrbute >>>>>> of L<<<<<< XML::LibXML DOM Document Class|XML::LibXML DOM Document Class >>>>>>.
+Class constructor. If you need to work with ISO encoded strings, you should I<<<<<< always >>>>>> use the C<<<<<< createAttrbute >>>>>> of L<<<<<< XML::LibXML::Document >>>>>>.
 
 
-=item B<getValue>
+=item getValue
 
   $string = $attr->getValue();
 
@@ -48,14 +48,14 @@ Returns the value stored for the attribute. If undef is returned, the attribute
 has no value, which is different of being C<<<<<< not specified >>>>>>.
 
 
-=item B<value>
+=item value
 
   $string = $attr->value;
 
 Alias for I<<<<<< getValue() >>>>>>
 
 
-=item B<setValue>
+=item setValue
 
   $attr->setValue( $string );
 
@@ -64,7 +64,7 @@ as parameter, the node has to be bound to a document, otherwise the encoding
 might be done incorrectly.
 
 
-=item B<getOwnerElement>
+=item getOwnerElement
 
   $node = $attr->getOwnerElement();
 
@@ -72,7 +72,7 @@ returns the node the attribute belongs to. If the attribute is not bound to a
 node, undef will be returned. Overwriting the underlying implementation, the I<<<<<< parentNode >>>>>> function will return undef, instead of the owner element.
 
 
-=item B<setNamespace>
+=item setNamespace
 
   $attr->setNamespace($nsURI, $prefix);
 
@@ -87,7 +87,7 @@ prefix than C<<<<<< $prefix >>>>>>. The function also fails if the prefix is emp
 This function returns 1 on success, 0 otherwise. 
 
 
-=item B<isId>
+=item isId
 
   $bool = $attr->isId;
 
@@ -97,7 +97,7 @@ HTML documents parsed with the HTML parser ID detection is done automatically.
 In XML documents, all "xml:id" attributes are considered to be of type ID. 
 
 
-=item B<serializeContent($docencoding)>
+=item serializeContent($docencoding)
 
   $string = $attr->serializeContent;
 

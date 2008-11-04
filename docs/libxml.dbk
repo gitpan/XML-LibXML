@@ -49,7 +49,7 @@
             <para>In 1.59, a new callback API was introduced. This new API is not compatible with the previous one.
 	       See XML::LibXML::InputCallback manual page for details.</para>
  	    <para>In 1.61 the XML::LibXML::XPathContext module, previously distributed separately, was merged in.</para>
-	    <para>In 1.66, an experimental support for Perl threads has been implemented.</para>
+	    <para>An experimental support for Perl threads introduced in 1.66 has been replaced in 1.67.</para>
         </sect1>
 
         <sect1>
@@ -88,7 +88,8 @@
 
         <sect1>
             <title>Installation</title>
-
+	    <para>(These instructions are for UNIX and GNU/Linux systems. For MSWin32,
+See Notes for Microsoft Windows below.)</para>
             <para>To install XML::LibXML just follow the standard installation routine for Perl modules:</para>
 
             <orderedlist>
@@ -178,8 +179,45 @@
                 <para>http://theoryx5.uwinnipeg.ca/ppmpackages/</para>
 
                 <para>Usually it takes a little time to build the package for the latest release.</para>
-            </sect2>
-
+		<para>If you want to build XML::LibXML on Windows from source, you can use
+		the following instructions contributed by Christopher J. Madsen:</para>
+ 
+		<para>These instructions assume that you already have your system set up to
+		compile modules that use C components.
+		</para>
+		First, get the libxml2 binaries from http://xmlsoft.org/sources/win32/
+		(currently also available at http://www.zlatkovic.com/pub/libxml/).
+		<para>
+		  You need:
+		</para>
+		<programlisting>  iconv-VERSION.win32.zip
+  libxml2-VERSION.win32.zip
+  zlib-VERSION.win32.zip</programlisting>
+  <para>Download the latest version of each. (Each package will probably have
+  a different version.) When you extract them, you'll get directories
+  named iconv-VERSION.win32, libxml2-VERSION.win32, and
+  zlib-VERSION.win32, each containing bin, lib, and include directories.</para>
+  <para>Combine all the bin, include, and lib directories under c:\Prog\LibXML.
+  (You can use any directory you prefer; just adjust the instructions
+  accordingly.)</para>
+  <para>Get the latest version of XML-LibXML-Common and XML-LibXML from CPAN.
+  Extract them.</para>
+  <para>Issue these commands in the XML-LibXML-Common-VERSION directory:</para>
+  <programlisting>  perl Makefile.PL INC=-Ic:\Prog\LibXML\include LIBS=-Lc:\Prog\LibXML\lib
+  nmake
+  copy c:\Prog\LibXML\bin\*.dll blib\arch\auto\XML\LibXML\Common
+  nmake test
+  nmake install</programlisting>
+  <para>(Note: Some systems use dmake instead of nmake.)</para>
+  <para>By copying the libxml2 DLLs to the arch directory, you help avoid
+  conflicts with other programs you may have installed that use other
+  (possibly incompatible) versions of those DLLs.</para>
+  <para>Issue these commands in the XML-LibXML-VERSION directory:</para>
+  <programlisting>  perl Makefile.PL INC=-Ic:\Prog\LibXML\include LIBS=-Lc:\Prog\LibXML\lib
+  nmake
+  nmake test
+  nmake install</programlisting>
+	    </sect2>
             <sect2>
                 <title>Notes for Mac OS X</title>
 
@@ -526,8 +564,8 @@ EOT</programlisting>
 	    <orderedlist>
 	      <listitem><para>Do NOT apply any encoding-related PerlIO layers
 	      (<literal>:utf8</literal> or <literal>:encoding(...)</literal>)
-	      to file handles that are an imput for the parses
-	      or an ouptut for a serializer of (full) XML documents.
+	      to file handles that are an input for the parses
+	      or an output for a serializer of (full) XML documents.
 	      This is because the conversion of the data to/from the internal character representation
 	      is provided by libxml2 itself which must be able to enforce the encoding
 	      specified by the <literal>&lt;?xml version="1.0" encoding="..."?&gt;</literal>
@@ -565,7 +603,7 @@ $xml_document = $doc->toString(); # returns a byte string
 		other node than the Document node and 
 		a byte string containing the apropriate
 		<programlisting>&lt;?xml version="1.0" encoding="..."?&gt;</programlisting>
-		declaration if appliled to a <xref linkend="XML-LibXML-Document"/>.
+		declaration if applied to a <xref linkend="XML-LibXML-Document"/>.
 		</para>
 	      </listitem>
 	      <listitem>
@@ -591,6 +629,87 @@ my $text = $doc->createTextNode($some_latin2_encoded_byte_string);
             to see if the parser produces any errors. Occasional
             crashes were reported on rare platforms that ship with a broken
             version of iconv.</para>
+	</sect1>
+        <sect1>
+	  <title>Thread Support</title>
+	  <para>
+	    XML::LibXML since 1.67 partially supports Perl threads
+	    in Perl >= 5.8.8. XML::LibXML can be used with threads
+	    in two ways:
+	  </para>
+	  <para>
+	    By default, all
+	    XML::LibXML classes use CLONE_SKIP class method
+	    to prevent Perl from copying XML::LibXML::* objects
+	    when a new thread is spawn.
+	    In this mode, all XML::LibXML::* objects are thread specific.
+	    This is the safest way
+	    to work with XML::LibXML in threads.
+	  </para>
+	  <para>
+	    Alternatively, one may use
+	  </para>
+	  <programlisting>use threads;
+use XML::LibXML qw(:threads_shared);</programlisting>
+	  <para>
+	    to indicate, that
+	    all XML::LibXML node and parser objects
+	    should be shared between the main thread
+	    and any thread spawn from there.
+	    For example, in
+	  </para>
+	  <programlisting>my $parser = XML::LibXML->new();
+my $doc = $parser->parse_file($filename);
+my $thr = threads->new(sub{
+  # code working with $doc
+  1;
+});
+$thr->join;
+</programlisting>
+         <para>
+	   the variable <literal>$doc</literal>
+	   refers to the exact same XML::LibXML::Document
+	   in the spawned thread as in the main thread.
+	 </para>
+	 <para>
+	   Without using mutex locks, 
+	   oaralel threads may read the same document
+	   (i.e. any node that belongs to the document),
+	   parse files, and modify different documents.
+	 </para>
+	 <para>
+	   However, if there is a chance that
+	   some of the threads will attempt to modify a document 
+	   ( or even create
+	   new nodes based on that document,
+	   e.g. with <literal>$doc->createElement</literal>)
+	   that other threads may be reading at the same time,
+	   the user is responsible for creating a mutex lock
+	   and using it in <emphasis>both</emphasis>
+	   in the thread that modifies and
+	   the thread that reads:
+	 </para>
+	  <programlisting>my $parser = XML::LibXML->new();
+my $doc = $parser->parse_file($filename);
+my $mutex : shared;
+my $thr = threads->new(sub{
+   lock $mutex;
+   my $el = $doc->createElement('foo');
+   # ...
+  1;
+});
+{ 
+  lock $mutex;
+  my $root = $doc->documentElement;
+  say $root->name;
+}
+$thr->join;
+</programlisting>
+<para>Note that libxml2 uses dictionaries to store short strings and
+these dicionaries are kept on a document node. Without mutex locks, it
+could happen in the previous example that the thread modifies the
+dictionary while other threads attempt to read from it, which could
+easily lead to a crash.</para>
 	</sect1>
         <sect1>
             <title>Version Information</title>
@@ -973,9 +1092,9 @@ my $fragment = $parser-&gt;parse_xml_chunk( $xml_wb_chunk );</programlisting>
                                used to pass some options to the HTML
                                parser as a HASH reference. Possible
                                options are: Possible options are:
-                               encoding and URI for libxml2 &lt;
-                               2.6.27, and for later versions of
-                               libxml2 additionally: recover,
+                               encoding and URI, and with
+			       libxml2 &gt;	       
+                               2.6.27  additionally: recover,
                                suppress_errors, suppress_warnings,
                                pedantic_parser, no_blanks, and
                                no_network.
@@ -995,9 +1114,8 @@ my $fragment = $parser-&gt;parse_xml_chunk( $xml_wb_chunk );</programlisting>
                                An optional second argument can be used
                                to pass some options to the HTML parser
                                as a HASH reference.  Possible options
-                               are: encoding and URI for libxml2 &lt;
-                               2.6.27, and for later versions of
-                               libxml2 additionally: recover,
+                               are: encoding and URI, and with libxml2 &gt;
+                               2.6.27 additionally: recover,
                                suppress_errors, suppress_warnings,
                                pedantic_parser, no_blanks, and
                                no_network. Note: encoding option may
@@ -1018,7 +1136,7 @@ my $fragment = $parser-&gt;parse_xml_chunk( $xml_wb_chunk );</programlisting>
                             <para>Similar to parse_string() but parses HTML (strict) strings.</para>
                             <para>An optional second argument can be used to pass some options to the
                                HTML parser as a HASH reference. Possible options are:
-		               encoding and URI for libxml2 &lt; 2.6.27, and for later versions of libxml2 additionally:
+		               encoding and URI, and with libxml2 &gt; 2.6.27 additionally:
                                recover, suppress_errors, suppress_warnings, pedantic_parser,
 		               no_blanks, and no_network.
 	                    </para>
@@ -1527,7 +1645,12 @@ local $XML::LibXML::setTagCompression = 1;</programlisting>
             <title>Error Reporting</title>
 
             <para>XML::LibXML throws exceptions during parsing, validation or XPath processing (and some other occasions). These errors can be caught by using
-            <emphasis>eval</emphasis> blocks. The error then will be stored in <emphasis>$@</emphasis>.</para>
+            <emphasis>eval</emphasis> blocks. The error then will be stored in <emphasis>$@</emphasis>.
+	    There are two implementations: the old one throws $@ which is a flat string,
+	    in the new one $@ is an object from the class XML::LibXML::Error;
+	    this class overrides the operator "" so that when printed,
+	    the object flattens to the usual error message.
+	    </para>
 
             <para>XML::LibXML throws errors as they occurs and does not wait if a user test
             for them. This is a very common misunderstanding in the use of XML::LibXML. If the eval is omitted, XML::LibXML will always halt your script by
@@ -1597,12 +1720,9 @@ my $doc = $builder-&gt;result();</programlisting>
 
     <chapter id="XML-LibXML-DOM">
         <title>XML::LibXML DOM Implementation</title>
-
         <titleabbrev>XML::LibXML::DOM</titleabbrev>
-
         <sect1>
             <title>Description</title>
-
             <para>XML::LibXML provides an light-wight interface to
             <emphasis>modify</emphasis> a node of the document tree
             generated by the XML::LibXML parser.  This interface
@@ -1702,7 +1822,7 @@ my $doc = $builder-&gt;result();</programlisting>
              In this respect,
 	     XML::LibXML DOM implementation differs from the DOM
              Level 2 specification according to which special
-              attributes for declaring the appropriate XML namespaces
+              attributes for declaring the apropriate XML namespaces
               should not be added when a node with a namespace prefix
               and namespace URI is created.
             </para>
@@ -1822,6 +1942,38 @@ $root-&gt;setAttributeNodeNS( $attr );</programlisting>
                     <para>is therefore a shortcut for</para>
 
                     <programlisting>my $document = XML::LibXML::Document-&gt;createDocument( "1.0", "UTF-8" );</programlisting>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>URI</term>
+
+                <listitem>
+                    <funcsynopsis>
+                        <funcsynopsisinfo>$strURI = $doc-&gt;URI();</funcsynopsisinfo>
+                    </funcsynopsis>
+
+                    <para>Returns the URI (or filename) of the original document.
+		    For documents obtained by parsing a string of a FH
+		    without using the URI parsing argument of the corresponding <function>parse_*</function> function,
+		    the result is a generated string unknown-XYZ where XYZ is some number;
+		    for documents created with the constructor <function>new</function>,
+		    the URI is undefined.
+                    </para>
+		    <para>The value can be modified by calling <function>setURI</function>
+		    method on the document node.</para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>setURI</term>
+
+                <listitem>
+                    <funcsynopsis>
+                        <funcsynopsisinfo>$doc-&gt;setURI($strURI);</funcsynopsisinfo>
+                    </funcsynopsis>
+
+                    <para>Sets the URI of the document reported by the method URI
+		    (see also the URI argument to the various <function>parse_*</function> functions).
+		    </para>
                 </listitem>
             </varlistentry>
 
@@ -2148,7 +2300,7 @@ print OUT $doc-&gt;toString;</programlisting>
                     </funcsynopsis>
 
                     <para>This function enables you to set the root element for a document. The function supports the import of a node from a different document
-                    tree.</para>
+                    tree, but does not support a document fragment as $root.</para>
                 </listitem>
             </varlistentry>
 
@@ -2465,7 +2617,7 @@ my $dtd      = $document-&gt;createInternalSubset( "foo", "-//FOO//DTD FOO 0.1//
 
                     <para>Implements the DOM Level 2 function</para>
 
-                    <para>In SCALAR context this function returns a <olink target="XML::LibXML::NodeList">XML::LibXML::NodeList</olink> object.</para>
+                    <para>In SCALAR context this function returns a <olink targetdoc="XML::LibXML::NodeList">XML::LibXML::NodeList</olink> object.</para>
                 </listitem>
             </varlistentry>
 
@@ -2479,7 +2631,7 @@ my $dtd      = $document-&gt;createInternalSubset( "foo", "-//FOO//DTD FOO 0.1//
 
                     <para>Implements the DOM Level 2 function</para>
 
-                    <para>In SCALAR context this function returns a <olink target="XML::LibXML::NodeList">XML::LibXML::NodeList</olink> object.</para>
+                    <para>In SCALAR context this function returns a <olink targetdoc="XML::LibXML::NodeList">XML::LibXML::NodeList</olink> object.</para>
                 </listitem>
             </varlistentry>
 
@@ -2493,7 +2645,7 @@ my $dtd      = $document-&gt;createInternalSubset( "foo", "-//FOO//DTD FOO 0.1//
 
                     <para>This allows the fetching of all nodes from a given document with the given Localname.</para>
 
-                    <para>In SCALAR context this function returns a <olink target="XML::LibXML::NodeList">XML::LibXML::NodeList</olink> object.</para>
+                    <para>In SCALAR context this function returns a <olink targetdoc="XML::LibXML::NodeList">XML::LibXML::NodeList</olink> object.</para>
                 </listitem>
             </varlistentry>
 
@@ -3042,8 +3194,10 @@ my $dtd      = $document-&gt;createInternalSubset( "foo", "-//FOO//DTD FOO 0.1//
                         <funcsynopsisinfo>@nodes = $node-&gt;findnodes( $xpath_expression );</funcsynopsisinfo>
                     </funcsynopsis>
 
-                    <para><emphasis>findnodes</emphasis> evaluates the xpath expression (XPath 1.0) on the current node and returns the resulting node set as an array. In scalar context returns a <olink target="XML::LibXML::NodeList">XML::LibXML::NodeList</olink> object.</para>
-
+                    <para><emphasis>findnodes</emphasis> evaluates the xpath expression (XPath 1.0) on the current node and returns the resulting node set as an array. In scalar context returns a <olink targetdoc="XML::LibXML::NodeList">XML::LibXML::NodeList</olink> object.</para>
+          <para>The xpath expression can be passed either as a string or 
+	  or as a  <olink targetdoc="XML::LibXML::XPathExpression">XML::LibXML::XPathExpression</olink> object.
+	  </para>
 	  <para><emphasis>NOTE ON NAMESPACES AND XPATH</emphasis>:</para>
 	  <para>A common mistake about
 	    XPath is to assume that node tests consisting of an
@@ -3107,9 +3261,12 @@ $xpc-&gt;find('/x:html',$node);</programlisting>
 
                     <para><emphasis>find</emphasis> evaluates the XPath 1.0 expression using the current node as the context of the expression, and returns the
                     result depending on what type of result the XPath expression had. For example, the XPath "1 * 3 + 52" results in a
-                    <olink target="XML::LibXML::Number">XML::LibXML::Number</olink> object being returned. Other expressions might return a <olink target="XML::LibXML::Boolean">XML::LibXML::Boolean</olink>
-                    object, or a <olink target="XML::LibXML::Literal">XML::LibXML::Literal</olink> object (a string). Each of those objects uses Perl's overload feature to "do
+                    <olink targetdoc="XML::LibXML::Number">XML::LibXML::Number</olink> object being returned. Other expressions might return a <olink targetdoc="XML::LibXML::Boolean">XML::LibXML::Boolean</olink>
+                    object, or a <olink targetdoc="XML::LibXML::Literal">XML::LibXML::Literal</olink> object (a string). Each of those objects uses Perl's overload feature to "do
                     the right thing" in different contexts.</para>
+          <para>The xpath expression can be passed either as a string or 
+	  or as a  <olink targetdoc="XML::LibXML::XPathExpression">XML::LibXML::XPathExpression</olink> object.
+	  </para>
 	  <para>See also <xref linkend="XML-LibXML-XPathContext"/>-&gt;find.</para>
                 </listitem>
             </varlistentry>
@@ -3131,6 +3288,9 @@ $xpc-&gt;find('/x:html',$node);</programlisting>
                     <para>That is, it returns the literal value of the results. This enables you to ensure that you get a string back from your search, allowing
                     certain shortcuts. This could be used as the equivalent of XSLT's &lt;xsl:value-of select="some_xpath"/&gt;.</para>
 	  <para>See also <xref linkend="XML-LibXML-XPathContext"/>-&gt;findvalue.</para>
+          <para>The xpath expression can be passed either as a string or 
+	  or as a  <olink targetdoc="XML::LibXML::XPathExpression">XML::LibXML::XPathExpression</olink> object.
+	  </para>
                 </listitem>
             </varlistentry>
         
@@ -3146,7 +3306,7 @@ $xpc-&gt;find('/x:html',$node);</programlisting>
 
                     <para><emphasis>getChildnodes</emphasis> implements a more intuitive interface to the childnodes of the current node. It enables you to pass
                     all children directly to a <function>map</function> or <function>grep</function>. If this function is called in scalar context, a
-                    <olink target="XML::LibXML::NodeList">XML::LibXML::NodeList</olink> object will be returned.</para>
+                    <olink targetdoc="XML::LibXML::NodeList">XML::LibXML::NodeList</olink> object will be returned.</para>
                 </listitem>
             </varlistentry>
         
@@ -3312,7 +3472,7 @@ $xpc-&gt;find('/x:html',$node);</programlisting>
                     handled while accessing the functions result.</para>
 
                     <para>If this function is called in array context the attribute nodes are returned as an array. In scalar context the function will return a
-                    <olink target="XML::LibXML::NamedNodeMap">XML::LibXML::NamedNodeMap</olink> object.</para>
+                    <olink targetdoc="XML::LibXML::NamedNodeMap">XML::LibXML::NamedNodeMap</olink> object.</para>
                 </listitem>
             </varlistentry>
         
@@ -3394,7 +3554,43 @@ $xpc-&gt;find('/x:html',$node);</programlisting>
                 </listitem>
             </varlistentry>
         
-
+        <varlistentry>
+          <term>baseURI ()</term>
+          <listitem>
+                    <funcsynopsis>
+                        <funcsynopsisinfo>$strURI = $node-&gt;baseURI();</funcsynopsisinfo>
+                    </funcsynopsis>
+            <para>
+	    Searches for the base URL of the node. The method should work on both XML
+ and HTML documents even if base mechanisms for these are completely different.
+ It returns the base as defined in RFC 2396 sections
+ "5.1.1. Base URI within Document Content"
+ and
+ "5.1.2. Base URI from the Encapsulating Entity".
+ However it does not return the document base (5.1.3), use method <function>URI</function>
+	      of <function>XML::LibXML::Document</function> for this.
+	    </para>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>setBaseURI ($strURI)</term>
+          <listitem>
+                    <funcsynopsis>
+                        <funcsynopsisinfo>$node-&gt;setBaseURI($strURI);</funcsynopsisinfo>
+                    </funcsynopsis>
+            <para>This method only does something useful for an element node
+	    in a XML document.
+            It sets the xml:base attribute on the node to $strURI, which
+	    effectively sets the base URI of the node to the same value.
+	    </para>
+	    <para>
+	    Note: For HTML documents this behaves as if the document was XML
+	    which may not be desired, since it does not effectively
+	    set the base URI of the node. See RFC 2396 appendix D 
+	    for an example of how base URI can be specified in HTML.
+	    </para>
+          </listitem>
+        </varlistentry>
         
             <varlistentry>
                 <term>nodePath</term>
@@ -3713,7 +3909,7 @@ $xpc-&gt;find('/x:html',$node);</programlisting>
 	    A special <function>tagname</function> '*' can be used to match any tag name.
 	  </para>
 
-                    <para>In SCALAR context this function returns a <olink target="XML::LibXML::NodeList">XML::LibXML::NodeList</olink> object.</para>
+                    <para>In SCALAR context this function returns a <olink targetdoc="XML::LibXML::NodeList">XML::LibXML::NodeList</olink> object.</para>
                 </listitem>
             </varlistentry>
         
@@ -3731,7 +3927,7 @@ $xpc-&gt;find('/x:html',$node);</programlisting>
                	    A special <function>localname</function> '*' can be used to match any local name
 	            and <function>nsURI</function> '*' can be used to match any namespace URI.</para>
 
-                    <para>In SCALAR context this function returns a <olink target="XML::LibXML::NodeList">XML::LibXML::NodeList</olink> object.</para>
+                    <para>In SCALAR context this function returns a <olink targetdoc="XML::LibXML::NodeList">XML::LibXML::NodeList</olink> object.</para>
                 </listitem>
             </varlistentry>
         
@@ -3748,7 +3944,7 @@ $xpc-&gt;find('/x:html',$node);</programlisting>
                     <para>This function is not found in the DOM specification. It is a mix of getElementsByTagName and getElementsByTagNameNS. It will fetch all
                     tags matching the given local-name. This allows one to select tags with the same local name across namespace borders.</para>
 
-                    <para>In SCALAR context this function returns a <olink target="XML::LibXML::NodeList">XML::LibXML::NodeList</olink> object.</para>
+                    <para>In SCALAR context this function returns a <olink targetdoc="XML::LibXML::NodeList">XML::LibXML::NodeList</olink> object.</para>
                 </listitem>
             </varlistentry>
         
@@ -4308,7 +4504,7 @@ $xpc-&gt;find('/x:html',$node);</programlisting>
                     of <xref linkend="XML-LibXML-Document"/>.</para>
                 </listitem>
             </varlistentry>
-
+        
             <varlistentry>
                 <term>getValue</term>
 
@@ -4321,9 +4517,7 @@ $xpc-&gt;find('/x:html',$node);</programlisting>
                     <function>not specified</function>.</para>
                 </listitem>
             </varlistentry>
-        
-
-        
+                
             <varlistentry>
                 <term>value</term>
 
@@ -5128,7 +5322,8 @@ $doc = XML::LibXML-&gt;new-&gt;parse_file($url);</programlisting>
             <title>Description</title>
 
         <para>The XML::LibXML::Schema class is a tiny frontend to libxml2's XML Schema implementation. Currently it supports only schema parsing and
-        document validation.</para>
+        document validation. As of 2.6.32, libxml2 only supports decimal types up to 24 digits (the standard requires at least 18). 
+	</para>
 	</sect1>
         <sect1>
             <title>Methods</title>
@@ -5286,7 +5481,7 @@ my @nodes = $xc-&gt;findnodes('$A[work_area/street = $B]/name');
 	      (e.g. Document, Element, etc.), or NodeList. For
 	      convenience, simple (non-blessed) array references
 	      containing only <xref linkend="XML-LibXML-Node"/> objects can be
-	      used instead of a <olink target="XML::LibXML::NodeList">XML::LibXML::NodeList</olink>.</para>
+	      used instead of a <olink targetdoc="XML::LibXML::NodeList">XML::LibXML::NodeList</olink>.</para>
           </listitem>
         </varlistentry>
         <varlistentry>
@@ -5333,7 +5528,7 @@ my @nodes = $xc-&gt;findnodes('$A[work_area/street = $B]/name');
 	      NodeList. For convenience, simple (non-blessed) array
 	      references containing only <xref linkend="XML-LibXML-Node"/>
 	      objects can be used instead of a
-	      <olink target="XML::LibXML::NodeList">XML::LibXML::NodeList</olink>.</para>
+	      <olink targetdoc="XML::LibXML::NodeList">XML::LibXML::NodeList</olink>.</para>
           </listitem>
         </varlistentry>
         <varlistentry>
@@ -5368,9 +5563,12 @@ my @nodes = $xc-&gt;findnodes('$A[work_area/street = $B]/name');
           <funcsynopsis><funcsynopsisinfo>$nodelist = $xpc-&gt;findnodes($xpath, $context_node )</funcsynopsisinfo></funcsynopsis>
             <para>Performs the xpath statement on the current node and
 	      returns the result as an array. In scalar context
-	      returns a <olink target="XML::LibXML::NodeList">XML::LibXML::NodeList</olink> object. Optionally, a
+	      returns a <olink targetdoc="XML::LibXML::NodeList">XML::LibXML::NodeList</olink> object. Optionally, a
 	      node may be passed as a second argument to set the
 	      context node for the query.</para>
+          <para>The xpath expression can be passed either as a string or 
+	  or as a  <olink targetdoc="XML::LibXML::XPathExpression">XML::LibXML::XPathExpression</olink> object.
+	  </para>
           </listitem>
         </varlistentry>
         <varlistentry>
@@ -5381,14 +5579,17 @@ my @nodes = $xc-&gt;findnodes('$A[work_area/street = $B]/name');
 	      as the context of the expression, and returns the result
 	      depending on what type of result the XPath expression
 	      had. For example, the XPath <literal>1 * 3 +
-	      52</literal> results in a <olink target="XML::LibXML::Number">XML::LibXML::Number</olink> object
+	      52</literal> results in a <olink targetdoc="XML::LibXML::Number">XML::LibXML::Number</olink> object
 	      being returned. Other expressions might return a
-	      <olink target="XML::LibXML::Boolean">XML::LibXML::Boolean</olink> object, or a
-	      <olink target="XML::LibXML::Literal">XML::LibXML::Literal</olink> object (a string). Each of those
+	      <olink targetdoc="XML::LibXML::Boolean">XML::LibXML::Boolean</olink> object, or a
+	      <olink targetdoc="XML::LibXML::Literal">XML::LibXML::Literal</olink> object (a string). Each of those
 	      objects uses Perl's overload feature to ``do the right
 	      thing'' in different contexts. Optionally, a node may be
 	      passed as a second argument to set the context node for
 	      the query.</para>
+          <para>The xpath expression can be passed either as a string or 
+	  or as a  <olink targetdoc="XML::LibXML::XPathExpression">XML::LibXML::XPathExpression</olink> object.
+	  </para>
           </listitem>
         </varlistentry>
         <varlistentry>
@@ -5404,6 +5605,9 @@ my @nodes = $xc-&gt;findnodes('$A[work_area/street = $B]/name');
             select=``some_xpath''/&gt;. Optionally, a node may be
             passed in the second argument to set the context node for
             the query.</para>
+          <para>The xpath expression can be passed either as a string or 
+	  or as a  <olink targetdoc="XML::LibXML::XPathExpression">XML::LibXML::XPathExpression</olink> object.
+	  </para>
           </listitem>
         </varlistentry>
         <varlistentry>
@@ -5505,7 +5709,7 @@ my @nodes = $xc-&gt;findnodes('$A[work_area/street = $B]/name');
     <sect1>
       <title>Synopsis</title>
       <programlisting>use XML::LibXML::Reader;</programlisting>
-      <programlisting>$reader = new XML::LibXML::Reader(location =&gt; "file.xml")
+      <programlisting>my $reader = new XML::LibXML::Reader(location =&gt; "file.xml")
        or die "cannot read file.xml\n";
 while ($reader-&gt;read) {
   processNode($reader);
@@ -5572,6 +5776,7 @@ sub processNode {
   my $reader = XML::LibXML::Reader-&gt;new( location =&gt; "file.xml", ... );
   my $reader = XML::LibXML::Reader-&gt;new( string =&gt; $xml_string, ... );
   my $reader = XML::LibXML::Reader-&gt;new( IO =&gt; $file_handle, ... );
+  my $reader = XML::LibXML::Reader-&gt;new( FD =&gt; fileno(STDIN), ... );
   my $reader = XML::LibXML::Reader-&gt;new( DOM =&gt; $dom, ... );
 </programlisting>
       <para>where ... are (optional) reader options described below in Parser options.
@@ -5621,7 +5826,11 @@ sub processNode {
             <term>URI</term>
             <listitem>
               <para>can be used to provide baseURI when parsing
-		strings or filehandles.</para>
+		strings or filehandles. This URI is used when resolving relative URIs to 
+		external DTD subset, external entities, or XInclude elements.
+		This URI is returned by the <function>URI</function> method
+		of the <function>XML::LibXML::Document</function> object.
+		</para>
             </listitem>
           </varlistentry>
           <varlistentry>
@@ -5794,6 +6003,18 @@ sub processNode {
           </listitem>
         </varlistentry>
         <varlistentry>
+          <term>nextPatternMatch (compiled_pattern)</term>
+          <listitem>
+            <para>Skip nodes following the current one in the document
+	      order until an element matching a given
+	      compiled pattern is reached. See
+              <xref linkend="XML-LibXML-Pattern"/> for information on 
+	      compiled patterns. See also the <literal>matchesPattern</literal>
+	      method.</para>
+            <para>Returns 1 if the element was found, 0 if there is no more nodes to read, or -1 in case of error.</para>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
           <term>skipSiblings ()</term>
           <listitem>
             <para>Skip all nodes on the same or lower level until the
@@ -5920,6 +6141,29 @@ sub processNode {
 	      neither an element nor attribute.</para>
           </listitem>
         </varlistentry>
+        <varlistentry>
+          <term>nodePath()</term>
+          <listitem>
+            <para>Returns a cannonical location path to the current element 
+	    from the root node to the current node. Namespaced
+	    elements are matched by '*', because there is no way to declare
+	    prefixes within XPath patterns. Unlike 
+	    <literal>XML::LibXML::Node::nodePath()</literal>, this function
+	    does not provide sibling counts (i.e. instead of e.g. '/a/b[1]' and '/a/b[2]'
+	    you get '/a/b' for both matches).
+	    </para>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>matchesPattern(compiled_pattern)</term>
+          <listitem>
+            <para>Returns a true value if the current
+	    node matches a compiled pattern.
+            See <xref linkend="XML-LibXML-Pattern"/> for information on 
+	    compiled patterns. See also the <literal>nextPatternMatch</literal>
+	    method.</para>
+          </listitem>
+        </varlistentry>	
       </variablelist>
     </sect1>
     <sect1>
@@ -6139,9 +6383,8 @@ sub processNode {
         <varlistentry>
           <term>baseURI ()</term>
           <listitem>
-            <para>The base URI of the node. See the XML Base W3C
-	      specification.</para>
-          </listitem>
+            <para>Returns the base URI of a given node.</para>
+          </listitem>	  
         </varlistentry>
         <varlistentry>
           <term>isValid ()</term>
@@ -6273,9 +6516,372 @@ sub processNode {
     </sect1>
     <sect1>
       <title>SEE ALSO</title>
+      <para><xref linkend="XML-LibXML-Pattern"/> for information about compiled patterns.</para>
       <para>http://xmlsoft.org/html/libxml-xmlreader.html</para>
       <para>http://dotgnu.org/pnetlib-doc/System/Xml/XmlTextReader.html</para>
     </sect1>
+  </chapter>
+  <chapter id="XML-LibXML-XPathExpression">
+    <title>XML::LibXML::XPathExpression - interface to libxml2 pre-compiled XPath expressions</title>
+    <titleabbrev>XML::LibXML::XPathExpression</titleabbrev>
+    <sect1>
+      <title>Synopsis</title>
+      <programlisting>use XML::LibXML;
+my $compiled_xpath = new XML::LibXML::XPathExpression('//foo[@bar="baz"][position()&lt;4]');
+
+# interface from XML::LibXML::Node 
+
+my $result = $node->find($compiled_xpath);
+my @nodes = $node->findnodes($compiled_xpath);
+my $value = $node->findvalue($compiled_xpath);
+
+# interface from XML::LibXML::XPathContext
+
+my $result = $xpc->find($compiled_xpath,$node);
+my @nodes = $xpc->findnodes($compiled_xpath,$node);
+my $value = $xpc->findvalue($compiled_xpath,$node);
+</programlisting>
+    </sect1>
+    <sect1>
+      <title>Description</title>
+      <para>This is a perl interface to libxml2's pre-compiled XPath expressions. 
+      Pre-compiling an XPath expression can give in some performance
+      benefit if the same XPath query is evaluated many times. 
+      <function>XML::LibXML::XPathExpression</function> objects
+      can be passed to all <function>find...</function> 
+      functions <function>XML::LibXML</function>
+      that expect an XPath expression.
+      </para>
+      <variablelist>
+	<varlistentry>
+	  <term>new()</term>
+	  <listitem>
+	    <funcsynopsis>
+	      <funcsynopsisinfo>$compiled = XML::LibXML::XPathExpression-&gt;new( xpath_string );</funcsynopsisinfo>
+	    </funcsynopsis>
+	    <para>The constructor takes an XPath 1.0 expression as a string
+	    and returns an object representing the pre-compiled
+	    expressions (the actual data structure is internal to libxml2).
+	    </para>
+	  </listitem>
+	</varlistentry>
+      </variablelist>
+    </sect1>
+  </chapter>
+  <chapter id="XML-LibXML-Pattern">
+    <title>XML::LibXML::Pattern - interface to libxml2 XPath patterns</title>
+    <titleabbrev>XML::LibXML::Pattern</titleabbrev>
+    <sect1>
+      <title>Synopsis</title>
+      <programlisting>use XML::LibXML;
+my $pattern = new XML::LibXML::Pattern('/x:html/x:body//x:div', { 'x' => 'http://www.w3.org/1999/xhtml' });
+# test a match on a XML::LibXML::Node $node
+
+if ($pattern->matchesNode($node)) { ... }
+
+# or on a XML::LibXML::Reader
+
+if ($reader->matchesPattern($pattern)) { ... }
+
+# or skip reading all nodes that do not match
+
+print $reader->nodePath while $reader->nextPatternMatch($pattern);
+</programlisting>
+    </sect1>
+    <sect1>
+      <title>Description</title>
+      <para>This is a perl interface to libxml2's pattern matching support
+	<emphasis>http://xmlsoft.org/html/libxml-pattern.html</emphasis>. 
+      This feature requires recent versions of libxml2.</para>
+      <para>Patterns are a small subset of XPath language, which is limitted
+      to (disjunctions of) location paths involving the child and descendant axes in abbreviated form
+      as described by the extended BNF given below:
+      </para>
+      <programlisting>Selector ::=     Path ( '|' Path )*
+Path     ::=     ('.//' | '//' | '/' )? Step ( '/' Step )*
+Step     ::=     '.' | NameTest
+NameTest ::=     QName | '*' | NCName ':' '*'</programlisting>
+      <para>For readability, whitespace may be used in selector XPath expressions even though not explicitly allowed by the grammar: whitespace may be freely added within patterns before or after any token, where</para>
+      <programlisting>token     ::=     '.' | '/' | '//' | '|' | NameTest</programlisting>
+      <para>Note that no predicates or attribute tests are allowed.</para>
+      <para>Patterns are particularly useful for stream parsing provided via the <literal>XML::LibXML::Reader</literal> interface.</para>
+      <variablelist>
+	<varlistentry>
+	  <term>new()</term>
+	  <listitem>
+	    <funcsynopsis>
+	      <funcsynopsisinfo>$pattern = XML::LibXML::Pattern-&gt;new( pattern, { prefix => namespace_URI, ... } );</funcsynopsisinfo>
+	    </funcsynopsis>
+	    <para>The constructor of a pattern takes a pattern expression (as described
+	    by the BNF grammar above) and an optional HASH reference mapping
+	    prefixes to namespace URIs. The method returns a compiled pattern object.
+	    </para>
+	    <para>
+	    Note that if the document
+	    has a default namespace, it must still be given an prefix in order
+	    to be matched (as demanded by the XPath 1.0 specification). For example,
+	    to match an element <literal>&lt;a xmlns="http://foo.bar"&lt;/a></literal>, one
+	    should use a pattern like this:
+	    </para>
+	    <programlisting>$pattern = XML::LibXML::Pattern-&gt;new( 'foo:a', { foo => 'http://foo.bar' });</programlisting>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term>matchesNode($node)</term>
+	  <listitem>
+	    <funcsynopsis>
+	      <funcsynopsisinfo>$bool = $pattern->matchesNode($node);</funcsynopsisinfo>
+	    </funcsynopsis>
+	    <para>Given a XML::LibXML::Node object, returns a true value if 
+	    the node matches the compiled pattern expression.</para>
+	  </listitem>
+	</varlistentry>
+      </variablelist>
+    </sect1>
+    <sect1>
+      <title>SEE ALSO</title>
+      <para><xref linkend="XML-LibXML-Reader"/> for other methods involving compiled patterns.</para>
+    </sect1>      
+  </chapter>
+  <chapter id="XML-LibXML-Error">
+    <title>Structured Errors</title>
+    <titleabbrev>XML::LibXML::Error</titleabbrev> 
+    <sect1>
+      <title>Synopsis</title>
+      <programlisting>
+        eval { ... };
+        if (ref($@)) {
+          # handle a structured error (XML::LibXML::Error object)
+        } elsif ($@) {
+          # error, but not an XML::LibXML::Error object
+        } else {
+          # no error
+        }
+      </programlisting>
+    </sect1>
+    <sect1>
+      <title>Description</title>
+      <para>The
+	XML::LibXML::Error class is a tiny frontend to
+	<emphasis>libxml2</emphasis>&#39;s structured error support. If
+	XML::LibXML is compied with structured error support, all errors
+	reported by libxml2 are transformed to XML::LibXML:Error
+	objects. These objects automatically serialize to the
+	corresponding error messages when printed or used in a string
+	operation, but as objects, can also be used to get a detailed and
+	structured information about the error that occurred.
+      </para>
+      <para>Unlike most other XML::LibXML objects, XML::LibXML::Error
+	doesn't wrap an underlying <emphasis>libxml2</emphasis>
+	structure directly, but rather transforms it to a blessed Perl
+	hash reference containing the individual fields of the
+	structured error information as hash key-value pairs. Individual
+	items (fields) of a structured error can either be
+	obtained directly as $@-&#62;{field}, or using autoloaded
+	methods such as as $@-&#62;field() (where field is the field
+	name). XML::LibXML::Error objects have the following fields:
+	domain, code, level, file, line, nodename, message, str1, str2,
+	str3, int1, int2, and _prev (some of them may be undefined).
+      </para>
+      <variablelist>
+	<varlistentry>
+	  <term>as_string</term>
+	  <listitem>
+	    <funcsynopsis>
+	      <funcsynopsisinfo>$message = $@-&#62;as_string();</funcsynopsisinfo>
+	    </funcsynopsis>
+	    <para>This functions takes serializes a XML::LibXML::Error
+	      object to a string containing the full error message
+	      close to the message produced by <emphasis>libxml2</emphasis> default error
+	      handlers and tools like xmllint. This method is also used
+	      to overload "" operator on XML::LibXML::Error, so it is
+	      automatically called whenever XML::LibXML::Error object
+	      is treated as a string (e.g. in print $@).
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term>dump</term>
+	  <listitem>
+	    <funcsynopsis>
+	      <funcsynopsisinfo>print $@->dump();</funcsynopsisinfo>
+	    </funcsynopsis>
+	    <para>This function serializes a XML::LibXML::Error to a 
+	      string displaying all fields of the error structure
+	      individually on separate lines of the form 'name' => 'value'.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term>domain</term>
+	  <listitem>
+	    <funcsynopsis>
+	      <funcsynopsisinfo>$error_domain = $@->domain();</funcsynopsisinfo>
+	    </funcsynopsis>
+	    <para>Returns string containing information about what part
+	      of the library raised the error. Can be one of:
+	      "parser", "tree", "namespace", "validity", "HTML parser",
+	      "memory", "output", "I/O", "ftp", "http",
+	      "XInclude", "XPath", "xpointer", "regexp", "Schemas
+	      datatype", 
+	      "Schemas parser", "Schemas validity",
+	      "Relax-NG parser", "Relax-NG validity", "Catalog",
+	      "C14N", "XSLT", "validity".
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term>code</term>
+	  <listitem>
+	    <funcsynopsis>
+	      <funcsynopsisinfo>$error_code = $@->code();</funcsynopsisinfo>
+	    </funcsynopsis>
+	    <para>Returns the actual libxml2 error code.
+	      The XML::LibXML::ErrNo module defines
+	      constants for individual error codes. Currently
+	      libxml2 uses over 480 different error codes.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term>message</term>
+	  <listitem>
+	    <funcsynopsis>
+	      <funcsynopsisinfo>$error_message = $@->message();</funcsynopsisinfo>
+	    </funcsynopsis>
+	    <para>Returns a human-readable informative error
+	      message.</para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term>level</term>
+	  <listitem>
+	    <funcsynopsis>
+	      <funcsynopsisinfo>$error_level = $@->level();</funcsynopsisinfo>
+	    </funcsynopsis>
+	    <para>Returns an integer value describing how consequent is
+	      the error. XML::LibXML::Error defines the following
+	      constants:
+	    </para>
+	    <itemizedlist>
+	      <listitem>
+		<para>XML_ERR_NONE = 0</para>
+	      </listitem>
+	      <listitem>
+		<para>XML_ERR_WARNING = 1 : A simple warning.</para>
+	      </listitem>
+	      <listitem>
+		<para>XML_ERR_ERROR = 2 : A recoverable error.</para>
+	      </listitem>
+	      <listitem>
+		<para>XML_ERR_FATAL = 3 : A fatal error.</para>
+	      </listitem>
+	    </itemizedlist>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term>file</term>
+	  <listitem>
+	    <funcsynopsis>
+	      <funcsynopsisinfo>$filename = $@->file();</funcsynopsisinfo>
+	    </funcsynopsis>
+	    <para>Returns the filename of the file being processed while
+	      the error occurred.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term>line</term>
+	  <listitem>
+	    <funcsynopsis>
+	      <funcsynopsisinfo>$line = $@->line();</funcsynopsisinfo>
+	    </funcsynopsis>
+	    <para>The line number, if available.</para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term>nodename</term>
+	  <listitem>
+	    <funcsynopsis>
+	      <funcsynopsisinfo>$nodename = $@->nodename();</funcsynopsisinfo>
+	    </funcsynopsis>
+	    <para>Name of the node where error occurred, if available.
+	      When this field is non-empty, libxml2 actually returned a
+	      physical pointer to the specified node. Due to memory
+	      management issues, it is very difficult to implement a
+	      way to expose the pointer to the Perl level as a
+	      XML::LibXML::Node. For this reason, XML::LibXML::Error
+	      currently only exposes the name the node.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term>str1</term>
+	  <listitem>
+	    <funcsynopsis>
+	      <funcsynopsisinfo>$error_str1 = $@->str1();</funcsynopsisinfo>
+	    </funcsynopsis>
+	    <para>Error specific. Extra string information.</para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term>str2</term>
+	  <listitem>
+	    <funcsynopsis>
+	      <funcsynopsisinfo>$error_str2 = $@->str2();</funcsynopsisinfo>
+	    </funcsynopsis>
+	    <para>Error specific. Extra string information.</para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term>str3</term>
+	  <listitem>
+	    <funcsynopsis>
+	      <funcsynopsisinfo>$error_str3 = $@->str3();</funcsynopsisinfo>
+	    </funcsynopsis>
+	    <para>Error specific. Extra string information.</para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term>int1</term>
+	  <listitem>
+	    <funcsynopsis>
+	      <funcsynopsisinfo>$error_int1 = $@->int1();</funcsynopsisinfo>
+	    </funcsynopsis>
+	    <para>Error specific. Extra numeric information.</para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term>int2</term>
+	  <listitem>
+	    <funcsynopsis>
+	      <funcsynopsisinfo>$error_int2 = $@->int2();</funcsynopsisinfo>
+	    </funcsynopsis>
+	    <para>Error specific. Extra numeric information.</para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term>_prev</term>
+	  <listitem>
+	    <funcsynopsis>
+	      <funcsynopsisinfo>$previous_error = $@->_prev();</funcsynopsisinfo>
+	    </funcsynopsis>
+	    <para>This field can possibly hold a reference to another
+	      XML::LibXML::Error object representing an error which
+	      occurred just before this error.</para>
+	  </listitem>
+	</varlistentry>
+      </variablelist>
+    </sect1>
+  </chapter>
+  <chapter id="XML-LibXML-ErrNo">
+    <title>Structured Errors</title>
+    <titleabbrev>XML::LibXML::ErrNo</titleabbrev> 
+    <para>This module is based on xmlerror.h libxml2 C header file. 
+       It defines symbolic constants for all libxml2 error codes.
+       Currently libxml2 uses over 480 different error codes.
+       See also XML::LibXML::Error.
+    </para>
   </chapter>
 </book>
 

@@ -2,7 +2,6 @@
 
 XML::LibXML::SAX - XML::LibXML direct SAX parser
 
-
 =head1 DESCRIPTION
 
 XML::LibXML provides an interface to libxml2 direct SAX interface. Through this

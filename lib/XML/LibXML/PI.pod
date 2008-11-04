@@ -17,7 +17,7 @@ XML::LibXML::PI - XML::LibXML Processing Instructions
 
 Processing instructions are implemented with XML::LibXML with read and write
 access. The PI data is the PI without the PI target (as specified in XML 1.0
-[17]) as a string. This string can be accessed with getData as implemented in L<<<<<< Abstract Base Class of XML::LibXML Nodes|Abstract Base Class of XML::LibXML Nodes >>>>>>.
+[17]) as a string. This string can be accessed with getData as implemented in L<<<<<< XML::LibXML::Node >>>>>>.
 
 The write access is aware about the fact, that many processing instructions
 have attribute like data. Therefore setData() provides besides the DOM spec
@@ -46,12 +46,12 @@ described above, the call
 
 will have the same result as above.
 
-L<<<<<< XML::LibXML Processing Instructions|XML::LibXML Processing Instructions >>>>>>'s implementation of setData() documented below differs a bit from the the
-standard version as available in L<<<<<< Abstract Base Class of XML::LibXML Nodes|Abstract Base Class of XML::LibXML Nodes >>>>>>:
+L<<<<<< XML::LibXML::PI >>>>>>'s implementation of setData() documented below differs a bit from the the
+standard version as available in L<<<<<< XML::LibXML::Node >>>>>>:
 
 =over 4
 
-=item B<setData>
+=item setData
 
   $pinode->setData( $data_string );
   $pinode->setData( name=>string_value [...] );

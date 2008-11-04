@@ -1,6 +1,6 @@
 use Test;
 
-BEGIN { plan tests => 52 }
+BEGIN { plan tests => 53 }
 
 use XML::LibXML;
 use XML::LibXML::SAX;
@@ -75,7 +75,7 @@ sub {
 
 ########### Error Handling ###########
 {
-  my $xml = '<a>Text</b>';
+  my $xml = '<foo><bar/><a>Text</b></foo>';
 
   my $handler = SAXErrorTester->new;
 
@@ -94,6 +94,20 @@ sub {
 
 }
 
+########### XML::LibXML::SAX::parse_chunk test ###########
+
+{
+  my $chunk = '<app>LOGOUT</app><bar/>';
+  my $builder = XML::LibXML::SAX::Builder->new( Encoding => 'UTF-8' );
+  my $parser = XML::LibXML::SAX->new( Handler => $builder );
+  $parser->start_document();
+  $builder->start_element({Name=>'foo'});
+  $parser->parse_chunk($chunk);
+  $parser->parse_chunk($chunk);
+  $builder->end_element({Name=>'foo'});
+  $parser->end_document();
+  ok($builder->result()->documentElement->toString(), '<foo>'.$chunk.$chunk.'</foo>');
+}
 ########### Helper class #############
 
 package SAXTester;
@@ -201,6 +215,11 @@ sub fatal_error {
     $_[0]->{fatal_called} = 1;
 }
 
+sub start_element {
+    # test if we can do other stuff 
+    XML::LibXML->new->parse_string("<foo/>");
+    return;
+}
 sub new {
     bless {}, shift;
 }

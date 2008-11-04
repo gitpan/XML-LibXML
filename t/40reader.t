@@ -13,7 +13,7 @@ BEGIN{
      plan skip_all => "Reader not supported for libxml2 <= 2.6.20";
      exit;
   } else {
-     plan tests => 93;
+     plan tests => 100;
   }
 
   use_ok('XML::LibXML::Reader');
@@ -195,9 +195,13 @@ EOF
 {
   my $bad_xml = <<'EOF';
 <root>
+  <foo/>
   <x>
      foo
   </u>
+  <x>
+    foo
+  </x>
 </root>
 EOF
   my $reader = new XML::LibXML::Reader(
@@ -205,7 +209,10 @@ EOF
     URI => "mystring.xml"
    );
   eval { $reader->finish };
-  ok((defined $@ and $@ =~ /in mystring.xml at line 2:/), 'catchin error');
+  use Data::Dumper;
+  print Dumper($@);
+  print $@;
+  ok((defined $@ and $@ =~ /in mystring.xml at line 3:|mystring.xml:5:/), 'catchin error');
 }
 
 {
@@ -224,7 +231,8 @@ EOF
 	RelaxNG => $RNG,
        );
       eval { $reader->finish };
-      ok($@, "catch validation error for ".(ref($RNG) ? 'XML::LibXML::RelaxNG' : 'RelaxNG file'));
+      print $@;
+      ok($@, "catch validation error for a ".(ref($RNG) ? 'XML::LibXML::RelaxNG' : 'RelaxNG file'));
     }
 
   }
@@ -251,3 +259,53 @@ EOF
 
   }
 }
+# Patterns
+{
+  my ($node1,$node2, $node3);
+  my $xml = <<'EOF';
+<root>
+  <AA foo="FOO"> text1 <inner/> </AA>
+  <DD/><BB bar="BAR">text2<CC> xx </CC>foo<FF/> </BB>x
+  <EE baz="BAZ"> xx <PP>preserved</PP> yy <XX>FOO</XX></EE>
+  <a/>
+  <b/>
+  <x:ZZ xmlns:x="foo"/>
+  <QQ/>
+  <YY/>
+</root>
+EOF
+  my $pattern = new XML::LibXML::Pattern('//inner|CC|/root/y:ZZ',{y=>'foo'});
+  ok($pattern);
+  {
+    my $reader = new XML::LibXML::Reader(string => $xml);
+    ok($reader);
+    my $matches='';
+    while ($reader->read) {
+      if ($reader->matchesPattern($pattern)) {
+	$matches.=$reader->nodePath.',';
+      }
+    }
+    ok($matches,'/root/AA/inner,/root/BB/CC,/root/*,');
+  }
+  {
+    my $reader = new XML::LibXML::Reader(string => $xml);
+    ok($reader);
+    my $matches='';
+    while ($reader->nextPatternMatch($pattern)) {
+      $matches.=$reader->nodePath.',';
+    }
+    ok($matches,'/root/AA/inner,/root/BB/CC,/root/*,');
+  }
+  {
+    my $dom = XML::LibXML->new->parse_string($xml);
+    ok($dom);
+    my $matches='';
+    for my $node ($dom->findnodes('//node()|@*')) {
+      if ($pattern->matchesNode($node)) {
+	$matches.=$node->nodePath.',';
+      }
+    }
+    ok($matches,'/root/AA/inner,/root/BB/CC,/root/*,');
+  }
+}
+

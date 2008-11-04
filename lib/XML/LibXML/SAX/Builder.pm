@@ -1,4 +1,4 @@
-# $Id: Builder.pm 709 2008-01-29 21:01:32Z pajas $
+# $Id: Builder.pm 741 2008-11-02 22:38:48Z pajas $
 
 package XML::LibXML::SAX::Builder;
 
@@ -6,6 +6,10 @@ use XML::LibXML;
 use XML::NamespaceSupport;
 
 use vars qw ($VERSION);
+
+sub CLONE_SKIP {
+  return $XML::LibXML::__threads_shared ? 0 : 1;
+}
 
 $VERSION = "1.66"; # VERSION TEMPLATE: DO NOT CHANGE
 
@@ -36,8 +40,8 @@ sub set_document_locator {
 sub start_dtd {
   my ($self, $dtd) = @_;
   if (defined $dtd->{Name} and
-      (defined $dtd->{SystemID} or defined $dtd->{PublicID})) {
-    $self->{DOM}->createExternalSubset($dtd->{Name},$dtd->{PublicID},$dtd->{SystemID});
+      (defined $dtd->{SystemId} or defined $dtd->{PublicId})) {
+    $self->{DOM}->createExternalSubset($dtd->{Name},$dtd->{PublicId},$dtd->{SystemId});
   }
 }
 
@@ -46,7 +50,7 @@ sub end_dtd {
 
 sub start_document {
     my ($self, $doc) = @_;
-
+    print "start document called\n";
     $self->{DOM} = XML::LibXML::Document->createDocument();
 
     if ( defined $self->{Encoding} ) {
@@ -74,6 +78,7 @@ sub xml_decl {
 
 sub end_document {
     my ($self, $doc) = @_;
+    print "end_document called\n";
     my $d = $self->done();
     return $d;
 }

@@ -1,16 +1,22 @@
 # -------------------------------------------------------------------------- #
-# $Id: Makefile.PL 710 2008-01-29 21:04:51Z pajas $
+# $Id: Makefile.PL 753 2008-11-04 13:58:47Z pajas $
 # -------------------------------------------------------------------------- #
 # Makefile.PL for XML::LibXML.
 # This file is required to generate a localized Makefile
 # -------------------------------------------------------------------------- #
 
+
+BEGIN {
+  if ($] < 5.006_001) {
+    warn "\nSorry, at least Perl 5.6.1 is required for this module!\n\n";
+    exit;
+  }
+}
+
 use ExtUtils::MakeMaker;
 use Config;
 use Symbol;
 use File::Spec;
-
-use v5.6.1; # refuse to compile on earlier
 
 $|=0;
 my %config;
@@ -42,7 +48,7 @@ my %INFOS = (
 # -------------------------------------------------------------------------- #
 # read extra configurations from the commandline
 my %params;
-@params{qw(DEBUG DEFINE EXTRALIBDIR GDOME INC LIBS SKIP_SAX_INSTALL XMLPREFIX)}=();
+@params{qw(DEBUG DEFINE EXTRALIBDIR GDOME INC LIBS SKIP_SAX_INSTALL XMLPREFIX NO_THREADS)}=();
 
 @ARGV = grep {
   my ($key, $val) = split(/=/, $_, 2);
@@ -71,6 +77,11 @@ if ( $] >= 5.006 ) {
     warn "enable native perl UTF8\n";
     $config{DEFINE} .= " -DHAVE_UTF8";
 }
+if ( $] < 5.008 or $config{NO_THREADS} ) {
+  warn "disabling XML::LibXML support for Perl threads\n";
+  $config{DEFINE} .= " -DNO_XML_LIBXML_THREADS";
+}
+delete $config{NO_THREADS};
 # -------------------------------------------------------------------------- #
 
 # -------------------------------------------------------------------------- #
@@ -115,6 +126,8 @@ unless ( $is_Win32 ) { # cannot get config in W32
                      [2,6,24,1], # all tests pass
                      [2,6,25,0], # broken XPath
                      [2,6,31,1], # tested, works ok
+                     [2,7,0,0], # broken release
+                     [2,7,2,1], # tested, ok
                     );
     my $xml2cfg = "xml2-config";
     my $libprefix = $ENV{XMLPREFIX} || $config{XMLPREFIX};
@@ -267,6 +280,10 @@ Or get libxml2 from
   http://xmlsoft.org/
 If you install via RPMs, make sure you also install the -devel
 RPMs, as this is where the headers (.h files) are.
+
+Also, you may try to run perl Makefile.PL with the DEBUG=1 parameter
+to see the exact reason why the detection of libxml2 installation
+failed or why Makefile.PL was not able to compile a test program.
 DEATH
 exit 0; # 0 recommended by http://cpantest.grango.org (Notes for CPAN Authors)
 }
