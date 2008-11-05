@@ -1,5 +1,5 @@
 # -------------------------------------------------------------------------- #
-# $Id: Makefile.PL 753 2008-11-04 13:58:47Z pajas $
+# $Id: Makefile.PL 755 2008-11-05 12:04:34Z pajas $
 # -------------------------------------------------------------------------- #
 # Makefile.PL for XML::LibXML.
 # This file is required to generate a localized Makefile
@@ -125,7 +125,7 @@ unless ( $is_Win32 ) { # cannot get config in W32
                      [2,6,20,0], # broken schemas
                      [2,6,24,1], # all tests pass
                      [2,6,25,0], # broken XPath
-                     [2,6,31,1], # tested, works ok
+                     [2,6,32,1], # tested, works ok
                      [2,7,0,0], # broken release
                      [2,7,2,1], # tested, ok
                     );

@@ -1,4 +1,4 @@
-# $Id: 06elements.t 624 2006-11-14 16:57:34Z pajas $
+# $Id: 06elements.t 755 2008-11-05 12:04:34Z pajas $
 
 ##
 # this test checks the DOM element and attribute interface of XML::LibXML
@@ -305,7 +305,7 @@ EOF
     # fixed values are defined
     ok ($root->getAttribute('fixed'),'foo');
     skip (
-	XML::LibXML::LIBXML_VERSION >= 20627 ? 0 : 'skipping for libxml2 <= 2.6.27',
+	XML::LibXML::LIBXML_VERSION >= 20627 ? 0 : 'skipping for libxml2 < 2.6.27',
 	$root->getAttributeNS($ns,'ns_fixed'),'ns_foo');
     ok ($root->getAttribute('a:ns_fixed'),'ns_foo');
 
