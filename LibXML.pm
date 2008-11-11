@@ -1,4 +1,4 @@
-# $Id: LibXML.pm 754 2008-11-04 14:16:54Z pajas $
+# $Id: LibXML.pm 760 2008-11-11 19:30:27Z pajas $
 
 package XML::LibXML;
 
@@ -21,7 +21,7 @@ use IO::Handle; # for FH reads called as methods
 
 BEGIN {
 
-$VERSION = "1.68"; # VERSION TEMPLATE: DO NOT CHANGE
+$VERSION = "1.69"; # VERSION TEMPLATE: DO NOT CHANGE
 require Exporter;
 require DynaLoader;
 @ISA = qw(DynaLoader Exporter);
@@ -989,21 +989,31 @@ sub findnodes {
     }
 }
 
+sub exists {
+    my ($node, $xpath) = @_;
+    my (undef, $value) = $node->_find($xpath,1);
+    return $value;
+}
+
 sub findvalue {
     my ($node, $xpath) = @_;
     my $res;
-    eval {
-        $res = $node->find($xpath);
-    };
-    if  ( $@ ) {
-        die $@;
-    }
+    $res = $node->find($xpath);
     return $res->to_literal->value;
+}
+
+sub findbool {
+    my ($node, $xpath) = @_;
+    my ($type, @params) = $node->_find($xpath,1);
+    if ($type) {
+        return $type->new(@params);
+    }
+    return undef;
 }
 
 sub find {
     my ($node, $xpath) = @_;
-    my ($type, @params) = $node->_find($xpath);
+    my ($type, @params) = $node->_find($xpath,0);
     if ($type) {
         return $type->new(@params);
     }

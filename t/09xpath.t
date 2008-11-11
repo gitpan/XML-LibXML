@@ -1,7 +1,7 @@
 use Test;
 use strict;
 
-BEGIN { plan tests => 48 };
+BEGIN { plan tests => 57 };
 use XML::LibXML;
 
 my $xmlstring = <<EOSTR;
@@ -88,6 +88,18 @@ ok($doc);
 
     $result = $doc->find( "contains(/foo/bar[3], 'test 1')" );
     ok( $result == 0 );
+
+    ok( $doc->exists("/foo/bar[2]") );
+    ok( $doc->exists("/foo/bar[3]"), 0 );
+    ok( $doc->exists("-7.2"),1 );
+    ok( $doc->exists("0"),0 );
+    ok( $doc->exists("'foo'"),1 );
+    ok( $doc->exists("''"),0 );
+    ok( $doc->exists("'0'"),1 );
+
+    my ($node) = $doc->findnodes("/foo/bar[1]" );
+    ok( $node );
+    ok ($node->exists("following-sibling::bar"));
 }
 
 {

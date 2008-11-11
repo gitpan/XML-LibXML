@@ -1,4 +1,4 @@
-# $Id: Builder.pm 741 2008-11-02 22:38:48Z pajas $
+# $Id: Builder.pm 760 2008-11-11 19:30:27Z pajas $
 
 package XML::LibXML::SAX::Builder;
 
@@ -11,7 +11,7 @@ sub CLONE_SKIP {
   return $XML::LibXML::__threads_shared ? 0 : 1;
 }
 
-$VERSION = "1.68"; # VERSION TEMPLATE: DO NOT CHANGE
+$VERSION = "1.69"; # VERSION TEMPLATE: DO NOT CHANGE
 
 sub new {
     my $class = shift;
@@ -50,7 +50,6 @@ sub end_dtd {
 
 sub start_document {
     my ($self, $doc) = @_;
-    print "start document called\n";
     $self->{DOM} = XML::LibXML::Document->createDocument();
 
     if ( defined $self->{Encoding} ) {
@@ -78,7 +77,6 @@ sub xml_decl {
 
 sub end_document {
     my ($self, $doc) = @_;
-    print "end_document called\n";
     my $d = $self->done();
     return $d;
 }

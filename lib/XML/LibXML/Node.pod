@@ -38,6 +38,7 @@ XML::LibXML::Node - Abstract Base Class of XML::LibXML Nodes
   @nodes = $node->findnodes( $xpath_expression );
   $result = $node->find( $xpath );
   print $node->findvalue( $xpath );
+  $bool = $node->exists( $xpath_expression );
   @childnodes = $node->childNodes;
   $xmlstring = $node->toString($format,$docencoding);
   $c14nstring = $node->toStringC14N($with_comments, $xpath_expression);
@@ -449,6 +450,18 @@ select="some_xpath"/>.
 See also L<<<<<< XML::LibXML::XPathContext >>>>>>->findvalue.
 
 The xpath expression can be passed either as a string or or as a L<<<<<< XML::LibXML::XPathExpression >>>>>> object. 
+
+
+=item exists
+
+  $bool = $node->exists( $xpath_expression );
+
+This method behaves like I<<<<<< findnodes >>>>>>, except that it only returns a boolean value (1 if the expression matches a
+node, 0 otherwise) and may be faster than I<<<<<< findnodes >>>>>>, because the XPath evaluation may stop early on the first match (this is true
+for libxml2 >= 2.6.27). 
+
+For XPath expressions that do not return node-set, the method returns true if
+the returned value is a non-zero number or a non-empty string.
 
 
 =item childNodes

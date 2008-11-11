@@ -1,6 +1,6 @@
 /**
  * perl-libxml-mm.c
- * $Id: perl-libxml-mm.c 729 2008-10-30 13:16:23Z pajas $
+ * $Id: perl-libxml-mm.c 758 2008-11-11 19:02:28Z pajas $
  *
  * Basic concept:
  * perl varies in the implementation of UTF8 handling. this header (together
@@ -1017,7 +1017,8 @@ PmmFastDecodeString( int charset,
     }
 
     if ( charset == XML_CHAR_ENCODING_UTF8 ) {
-        return xmlStrdup( string );
+        retval = xmlStrdup( string );
+        *len = xmlStrlen(retval);
     }
     else if ( charset == XML_CHAR_ENCODING_ERROR ){
         coder = xmlFindCharEncodingHandler( (const char *) encoding );

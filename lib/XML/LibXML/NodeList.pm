@@ -1,4 +1,4 @@
-# $Id: NodeList.pm 709 2008-01-29 21:01:32Z pajas $
+# $Id: NodeList.pm 760 2008-11-11 19:30:27Z pajas $
 
 package XML::LibXML::NodeList;
 use strict;
@@ -7,7 +7,7 @@ use XML::LibXML::Literal;
 use XML::LibXML::Number;
 
 use vars qw ($VERSION);
-$VERSION = "1.68"; # VERSION TEMPLATE: DO NOT CHANGE
+$VERSION = "1.69"; # VERSION TEMPLATE: DO NOT CHANGE
 
 use overload 
 		'""' => \&to_literal,
