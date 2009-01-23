@@ -1,4 +1,4 @@
-# $Id: Parser.pm 760 2008-11-11 19:30:27Z pajas $
+# $Id: Parser.pm 772 2009-01-23 21:42:09Z pajas $
 
 package XML::LibXML::SAX::Parser;
 
@@ -10,7 +10,7 @@ use XML::LibXML::Common qw(:libxml);
 use XML::SAX::Base;
 use XML::SAX::DocumentLocator;
 
-$VERSION = "1.69"; # VERSION TEMPLATE: DO NOT CHANGE
+$VERSION = "1.69_1"; # VERSION TEMPLATE: DO NOT CHANGE
 @ISA = ('XML::SAX::Base');
 
 sub CLONE_SKIP {

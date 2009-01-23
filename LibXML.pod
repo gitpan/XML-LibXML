@@ -376,8 +376,7 @@ distributed XML::LibXML::Common module).
 
 =item C<<<<<< :encoding >>>>>>
 
-Exports two encoding conversion functions from the (separate) module
-XML::LibXML::Common.
+Exports two encoding conversion functions from XML::LibXML::Common.
 
 
 
@@ -385,7 +384,7 @@ XML::LibXML::Common.
   decodeFromUTF8()
 
 
-=item C<<<<<< :libxml >>>>>>
+=item C<<<<<< :ns >>>>>>
 
 Exports two convenience constants: the implicit namespace of the reserved C<<<<<< xml: >>>>>> prefix, and the implicit namespace for the reserved C<<<<<< xmlns: >>>>>> prefix.
 

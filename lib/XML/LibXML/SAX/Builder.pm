@@ -1,4 +1,4 @@
-# $Id: Builder.pm 760 2008-11-11 19:30:27Z pajas $
+# $Id: Builder.pm 772 2009-01-23 21:42:09Z pajas $
 
 package XML::LibXML::SAX::Builder;
 
@@ -11,7 +11,7 @@ sub CLONE_SKIP {
   return $XML::LibXML::__threads_shared ? 0 : 1;
 }
 
-$VERSION = "1.69"; # VERSION TEMPLATE: DO NOT CHANGE
+$VERSION = "1.69_1"; # VERSION TEMPLATE: DO NOT CHANGE
 
 sub new {
     my $class = shift;

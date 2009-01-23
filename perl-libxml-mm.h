@@ -1,6 +1,6 @@
 /**
  * perl-libxml-mm.h
- * $Id: perl-libxml-mm.h 754 2008-11-04 14:16:54Z pajas $
+ * $Id: perl-libxml-mm.h 765 2008-11-26 09:24:43Z pajas $
  *
  * Basic concept:
  * perl varies in the implementation of UTF8 handling. this header (together
@@ -103,7 +103,7 @@ typedef LocalProxyNode* LocalProxyNodePtr;
 
 #define PmmUSEREGISTRY		(PROXY_NODE_REGISTRY_MUTEX != NULL)
 #define PmmREGISTRY		(INT2PTR(xmlHashTablePtr,SvIV(SvRV(get_sv("XML::LibXML::__PROXY_NODE_REGISTRY",0)))))
-// #define PmmREGISTRY			(INT2PTR(xmlHashTablePtr,SvIV(SvRV(PROXY_NODE_REGISTRY))))
+/* #define PmmREGISTRY			(INT2PTR(xmlHashTablePtr,SvIV(SvRV(PROXY_NODE_REGISTRY)))) */
 
 void
 PmmCloneProxyNodes();

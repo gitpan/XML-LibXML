@@ -1,7 +1,12 @@
-/* $Id: LibXML.xs 756 2008-11-11 13:30:55Z pajas $ */
+/* $Id: LibXML.xs 770 2009-01-23 19:06:56Z pajas $ */
 
 #ifdef __cplusplus
 extern "C" {
+#endif
+
+#if defined(_MSC_VER)
+#define _CRT_SECURE_NO_DEPRECATE 1
+#define _CRT_NONSTDC_NO_DEPRECATE 1
 #endif
 
 /* perl stuff */
@@ -14,7 +19,7 @@ extern "C" {
 #include <fcntl.h>
 
 #ifndef WIN32
-#  include <unistd.h>
+#include <unistd.h>
 #endif
 
 /* libxml2 configuration properties */
@@ -1307,9 +1312,9 @@ LibXML_generic_extension_function(xmlXPathParserContextPtr ctxt, int nargs)
                     const char * cls = "XML::LibXML::Node";
                     xmlNodePtr tnode;
                     SV * element;
+                    int l = nodelist->nodeNr;
 
-                    len = nodelist->nodeNr;
-                    for( j = 0 ; j < len; j++){
+                    for( j = 0 ; j < l; j++){
                         tnode = nodelist->nodeTab[j];
                         if( tnode != NULL && tnode->doc != NULL) {
                             owner = PmmOWNERPO(PmmNewNode(INT2PTR(xmlNodePtr,tnode->doc)));
@@ -1567,7 +1572,7 @@ int
 INIT_THREAD_SUPPORT()
     CODE:
 #ifdef XML_LIBXML_THREADS
-      SV *threads = get_sv("threads::threads", 0); // no create
+      SV *threads = get_sv("threads::threads", 0); /* no create */
       if( threads && SvOK(threads) && SvTRUE(threads) ) {
         PROXY_NODE_REGISTRY_MUTEX = get_sv("XML::LibXML::__PROXY_NODE_REGISTRY_MUTEX",0);
 	RETVAL = 1;
@@ -5196,7 +5201,6 @@ _find( pnode, pxpath, to_bool )
         ProxyNodePtr owner = NULL;
         xmlXPathObjectPtr found = NULL;
         xmlNodeSetPtr nodelist = NULL;
-        STRLEN len = 0 ;
         xmlChar * xpath = NULL;
         xmlXPathCompExprPtr comp = NULL;
         PREINIT_SAVED_ERROR
@@ -5247,10 +5251,10 @@ _find( pnode, pxpath, to_bool )
                             const char * cls = "XML::LibXML::Node";
                             xmlNodePtr tnode;
                             SV * element;
+                            int l = nodelist->nodeNr;
 
                             owner = PmmOWNERPO(SvPROXYNODE(pnode));
-                            len = nodelist->nodeNr;
-                            for( i=0 ; i < len; i++){
+                            for( i=0 ; i < l; i++){
                                 /* we have to create a new instance of an
                                  * objectptr. and then
                                  * place the current node into the new
@@ -5320,7 +5324,6 @@ _findnodes( pnode, perl_xpath )
         ProxyNodePtr owner = NULL;
         xmlNodeSetPtr nodelist = NULL;
         SV * element = NULL ;
-        STRLEN len = 0 ;
         xmlChar * xpath = NULL ;
         xmlXPathCompExprPtr comp = NULL;
         PREINIT_SAVED_ERROR
@@ -5364,10 +5367,11 @@ _findnodes( pnode, perl_xpath )
 	    REPORT_ERROR(1);
             if ( nodelist->nodeNr > 0 ) {
                 int i;
+                int len = nodelist->nodeNr;
                 const char * cls = "XML::LibXML::Node";
                 xmlNodePtr tnode;
                 owner = PmmOWNERPO(SvPROXYNODE(pnode));
-                len = nodelist->nodeNr;
+
                 for(i=0 ; i < len; i++){
                     /* we have to create a new instance of an objectptr.
                      * and then place the current node into the new object.
@@ -7740,7 +7744,6 @@ _findnodes( pxpath_context, perl_xpath )
         xmlXPathObjectPtr found = NULL;
         xmlNodeSetPtr nodelist = NULL;
         SV * element = NULL ;
-        STRLEN len = 0 ;
         xmlChar * xpath = NULL;
         xmlXPathCompExprPtr comp = NULL;
         PREINIT_SAVED_ERROR
@@ -7796,8 +7799,8 @@ _findnodes( pxpath_context, perl_xpath )
                 int i;
                 const char * cls = "XML::LibXML::Node";
                 xmlNodePtr tnode;
-                len = nodelist->nodeNr;
-                for( i = 0  ; i < len; i++){
+                int l = nodelist->nodeNr;
+                for( i = 0  ; i < l; i++){
                     /* we have to create a new instance of an objectptr. 
                      * and then place the current node into the new object. 
                      * afterwards we can push the object to the array!
@@ -7852,7 +7855,6 @@ _find( pxpath_context, pxpath, to_bool )
         ProxyNodePtr owner = NULL;
         xmlXPathObjectPtr found = NULL;
         xmlNodeSetPtr nodelist = NULL;
-        STRLEN len = 0 ;
         xmlChar * xpath = NULL;
         xmlXPathCompExprPtr comp = NULL;
         PREINIT_SAVED_ERROR
@@ -7909,9 +7911,9 @@ _find( pxpath_context, pxpath, to_bool )
                             const char * cls = "XML::LibXML::Node";
                             xmlNodePtr tnode;
                             SV * element;
-                        
-                            len = nodelist->nodeNr;
-                            for( i = 0 ; i < len; i++){
+                            int l = nodelist->nodeNr;
+
+                            for( i = 0 ; i < l; i++){
                                 /* we have to create a new instance of an
                                  * objectptr. and then
                                  * place the current node into the new
@@ -8084,7 +8086,7 @@ baseURI(reader)
 	const xmlChar *result = NULL;
     CODE:
 	result = xmlTextReaderConstBaseUri(reader);
-	RETVAL = C2Sv(result, xmlTextReaderConstEncoding(reader));
+	RETVAL = C2Sv(result, NULL);
     OUTPUT:
 	RETVAL
 
@@ -8111,7 +8113,7 @@ encoding(reader)
 	const xmlChar *result = NULL;
     CODE:
 	result = xmlTextReaderConstEncoding(reader);
-	RETVAL = C2Sv(result, xmlTextReaderConstEncoding(reader));
+	RETVAL = C2Sv(result, NULL);
     OUTPUT:
 	RETVAL
 
@@ -8122,7 +8124,7 @@ localName(reader)
 	const xmlChar *result = NULL;
     CODE:
 	result = xmlTextReaderConstLocalName(reader);
-	RETVAL = C2Sv(result, xmlTextReaderConstEncoding(reader));
+	RETVAL = C2Sv(result, NULL);
     OUTPUT:
 	RETVAL
 
@@ -8133,7 +8135,7 @@ name(reader)
 	const xmlChar *result = NULL;
     CODE:
 	result = xmlTextReaderConstName(reader);
-	RETVAL = C2Sv(result, xmlTextReaderConstEncoding(reader));
+	RETVAL = C2Sv(result, NULL);
     OUTPUT:
 	RETVAL
 
@@ -8144,7 +8146,7 @@ namespaceURI(reader)
 	const xmlChar *result = NULL;
     CODE:
 	result = xmlTextReaderConstNamespaceUri(reader);
-	RETVAL = C2Sv(result, xmlTextReaderConstEncoding(reader));
+	RETVAL = C2Sv(result, NULL);
     OUTPUT:
 	RETVAL
 
@@ -8155,7 +8157,7 @@ prefix(reader)
 	const xmlChar *result = NULL;
     CODE:
 	result = xmlTextReaderConstPrefix(reader);
-	RETVAL = C2Sv(result, xmlTextReaderConstEncoding(reader));
+	RETVAL = C2Sv(result, NULL);
     OUTPUT:
 	RETVAL
 
@@ -8166,7 +8168,7 @@ value(reader)
 	const xmlChar *result = NULL;
     CODE:
 	result = xmlTextReaderConstValue(reader);
-	RETVAL = C2Sv(result, xmlTextReaderConstEncoding(reader));
+	RETVAL = C2Sv(result, NULL);
     OUTPUT:
 	RETVAL
 
@@ -8177,7 +8179,7 @@ xmlLang(reader)
 	const xmlChar *result = NULL;
     CODE:
 	result = xmlTextReaderConstXmlLang(reader);
-	RETVAL = C2Sv(result, xmlTextReaderConstEncoding(reader));
+	RETVAL = C2Sv(result, NULL);
     OUTPUT:
 	RETVAL
 
@@ -8189,7 +8191,7 @@ xmlVersion(reader)
 	const xmlChar *result = NULL;
     CODE:
 	result = xmlTextReaderConstXmlVersion(reader);
-	RETVAL = C2Sv(result, xmlTextReaderConstEncoding(reader));
+	RETVAL = C2Sv(result, NULL);
     OUTPUT:
 	RETVAL
 
@@ -8211,7 +8213,7 @@ getAttribute(reader, name)
 	xmlChar *result = NULL;
     CODE:
 	result = xmlTextReaderGetAttribute(reader, (xmlChar*) name);
-	RETVAL = C2Sv(result, xmlTextReaderConstEncoding(reader));
+	RETVAL = C2Sv(result, NULL);
         xmlFree(result);
     OUTPUT:
 	RETVAL
@@ -8224,7 +8226,7 @@ getAttributeNo(reader, no)
 	xmlChar *result = NULL;
     CODE:
 	result = xmlTextReaderGetAttributeNo(reader, no);
-	RETVAL = C2Sv(result, xmlTextReaderConstEncoding(reader));
+	RETVAL = C2Sv(result, NULL);
         xmlFree(result);
     OUTPUT:
 	RETVAL
@@ -8239,7 +8241,7 @@ getAttributeNs(reader, localName, namespaceURI)
     CODE:
 	result = xmlTextReaderGetAttributeNs(reader,  (xmlChar*) localName, 
 					     (xmlChar*) namespaceURI);
-	RETVAL = C2Sv(result, xmlTextReaderConstEncoding(reader));
+	RETVAL = C2Sv(result, NULL);
         xmlFree(result);
     OUTPUT:
 	RETVAL
@@ -8285,6 +8287,33 @@ hasValue(reader)
     OUTPUT:
 	RETVAL
 
+SV*
+getAttributeHash(reader)
+	xmlTextReaderPtr reader
+    PREINIT:
+	HV* hv;
+	SV* sv;
+	const xmlChar* name;
+	PREINIT_SAVED_ERROR
+    CODE:
+	INIT_ERROR_HANDLER;
+	hv=newHV();
+	if (xmlTextReaderHasAttributes(reader) && xmlTextReaderMoveToFirstAttribute(reader)==1) {
+	  do {
+	    name = xmlTextReaderConstName(reader);
+	    sv=C2Sv((xmlTextReaderConstValue(reader)),NULL);
+	    if (sv && hv_store(hv, (const char*) name, xmlStrlen(name), sv, 0)==NULL) {
+	      SvREFCNT_dec(sv);  /* free if not needed by hv_stores */
+	    }
+	  } while (xmlTextReaderMoveToNextAttribute(reader)==1);
+	  xmlTextReaderMoveToElement(reader);
+	}
+        RETVAL=newRV_noinc((SV*)hv);
+        CLEANUP_ERROR_HANDLER;
+	REPORT_ERROR(0);
+    OUTPUT:
+	RETVAL
+
 int
 isDefault(reader)
 	xmlTextReaderPtr reader
@@ -8325,7 +8354,7 @@ lookupNamespace(reader, prefix)
 	xmlChar *result = NULL;
     CODE:
 	result = xmlTextReaderLookupNamespace(reader, (xmlChar*) prefix);
-	RETVAL = C2Sv(result, xmlTextReaderConstEncoding(reader));
+	RETVAL = C2Sv(result, NULL);
         xmlFree(result);
     OUTPUT:
 	RETVAL
@@ -8575,7 +8604,7 @@ readInnerXml(reader)
         CLEANUP_ERROR_HANDLER;
 	REPORT_ERROR(0);
         if (!result) XSRETURN_UNDEF;
-	RETVAL = C2Sv(result, xmlTextReaderConstEncoding(reader));
+	RETVAL = C2Sv(result, NULL);
         xmlFree(result);
     OUTPUT:
 	RETVAL
@@ -8593,7 +8622,7 @@ readOuterXml(reader)
 	CLEANUP_ERROR_HANDLER;
 	REPORT_ERROR(0);
         if (result) {
-	  RETVAL = C2Sv(result, xmlTextReaderConstEncoding(reader));
+	  RETVAL = C2Sv(result, NULL);
 	  xmlFree(result);
 	} else {
            XSRETURN_UNDEF;
@@ -8994,6 +9023,7 @@ _compilePattern(CLASS, ppattern, pattern_type, ns_map=NULL)
         xmlChar** namespaces = NULL;
 	SV** aux;
         int last,i;
+	PREINIT_SAVED_ERROR
     CODE:
         if ( pattern == NULL )
 	   XSRETURN_UNDEF;
@@ -9006,9 +9036,12 @@ _compilePattern(CLASS, ppattern, pattern_type, ns_map=NULL)
           }
 	  namespaces[i]=0;
 	}
+	INIT_ERROR_HANDLER;
 	RETVAL = xmlPatterncompile(pattern, NULL, pattern_type, (const xmlChar **) namespaces);
         Safefree(namespaces);
         xmlFree( pattern );
+        CLEANUP_ERROR_HANDLER;
+        REPORT_ERROR(0);
         if ( RETVAL == NULL ) {
 	  croak("Compilation of pattern failed");
 	}
@@ -9047,6 +9080,7 @@ new(CLASS, pxpath)
     CODE:
         if ( pxpath == NULL )
 	   XSRETURN_UNDEF;
+	INIT_ERROR_HANDLER;
 	RETVAL = xmlXPathCompile( xpath );
         xmlFree( xpath );
         CLEANUP_ERROR_HANDLER;
@@ -9063,3 +9097,175 @@ DESTROY( self )
     CODE:
         xs_warn( "DESTROY COMPILED XPATH OBJECT" );
         xmlXPathFreeCompExpr(self);
+
+MODULE = XML::LibXML         PACKAGE = XML::LibXML::Common
+
+PROTOTYPES: DISABLE
+
+SV*
+encodeToUTF8( encoding, string )
+        const char * encoding
+        SV * string
+    PREINIT:
+        xmlChar * realstring = NULL;
+        xmlChar * tstr = NULL;
+        xmlCharEncoding enc = 0;
+        STRLEN len = 0;
+        xmlBufferPtr in = NULL, out = NULL;
+        xmlCharEncodingHandlerPtr coder = NULL;
+	PREINIT_SAVED_ERROR
+    CODE:
+        realstring = (xmlChar*) SvPV(string, len);
+        if ( realstring != NULL ) {
+            /* warn("encode %s", realstring ); */
+#ifdef HAVE_UTF8
+            if ( !DO_UTF8(string) && encoding != NULL ) {
+#else 
+            if ( encoding != NULL ) {
+#endif
+                enc = xmlParseCharEncoding( encoding );
+    
+                if ( enc == 0 ) {
+                    /* this happens if the encoding is "" or NULL */
+                    enc = XML_CHAR_ENCODING_UTF8;
+                }
+
+                if ( enc == XML_CHAR_ENCODING_UTF8 ) {
+                    /* copy the string */
+                    /* warn( "simply copy the string" ); */
+                    tstr = xmlStrndup( realstring, len );
+                }
+                else {
+                    INIT_ERROR_HANDLER;                
+                    if ( enc > 1 ) {
+                        coder= xmlGetCharEncodingHandler( enc );
+                    }
+                    else if ( enc == XML_CHAR_ENCODING_ERROR ){
+                        coder =xmlFindCharEncodingHandler( encoding );
+                    }
+                    else {
+                        croak("no encoder found\n");
+                    }
+                    if ( coder == NULL ) {  
+                        croak( "cannot encode string" );
+                    }
+                    in    = xmlBufferCreateStatic((void*)realstring, len );
+                    out   = xmlBufferCreate();
+                    if ( xmlCharEncInFunc( coder, out, in ) >= 0 ) {
+                        tstr = xmlStrdup( out->content );
+                    }
+        
+                    xmlBufferFree( in );
+                    xmlBufferFree( out );
+                    xmlCharEncCloseFunc( coder );
+
+                    CLEANUP_ERROR_HANDLER;
+                    REPORT_ERROR(0);
+                }
+            }
+            else {
+                tstr = xmlStrndup( realstring, len );
+            }
+
+            if ( !tstr ) {
+                croak( "return value missing!" );
+            }
+
+            len = xmlStrlen( tstr ); 
+            RETVAL = newSVpvn( (const char *)tstr, len );
+#ifdef HAVE_UTF8
+            SvUTF8_on(RETVAL);
+#endif  
+            xmlFree(tstr);
+        }
+        else {
+            XSRETURN_UNDEF;
+        }
+    OUTPUT:
+        RETVAL
+
+SV*
+decodeFromUTF8( encoding, string ) 
+        const char * encoding
+        SV* string
+    PREINIT:
+        xmlChar * tstr = NULL;
+        xmlChar * realstring = NULL;
+        xmlCharEncoding enc = 0;
+        STRLEN len = 0;
+        xmlBufferPtr in = NULL, out = NULL;
+        xmlCharEncodingHandlerPtr coder = NULL;
+	PREINIT_SAVED_ERROR
+    CODE: 
+#ifdef HAVE_UTF8
+        if ( !SvUTF8(string) ) {
+            croak("string is not utf8!!");
+        }
+        else {
+#endif
+            realstring = (xmlChar*) SvPV(string, len);
+            if ( realstring != NULL ) {
+                /* warn("decode %s", realstring ); */
+                enc = xmlParseCharEncoding( encoding );
+                if ( enc == 0 ) {
+                    /* this happens if the encoding is "" or NULL */
+                    enc = XML_CHAR_ENCODING_UTF8;
+                }
+
+                if ( enc == XML_CHAR_ENCODING_UTF8 ) {
+                    /* copy the string */
+                    /* warn( "simply copy the string" ); */
+                    tstr = xmlStrdup( realstring );
+                    len = xmlStrlen( tstr );
+                }
+                else {
+                    INIT_ERROR_HANDLER;                
+                    if ( enc > 1 ) {
+                        coder= xmlGetCharEncodingHandler( enc );
+                    }
+                    else if ( enc == XML_CHAR_ENCODING_ERROR ){
+                        coder = xmlFindCharEncodingHandler( encoding );
+                    }
+                    else {
+                        croak("no encoder found\n");
+                    }
+
+                    if ( coder == NULL ) {  
+                        croak( "cannot encode string" );
+                    }
+
+                    in    = xmlBufferCreate();
+                    out   = xmlBufferCreate();
+                    xmlBufferCCat( in, (char*) realstring );
+                    if ( xmlCharEncOutFunc( coder, out, in ) >= 0 ) {
+                        len  = xmlBufferLength( out );
+                        tstr = xmlCharStrndup( (char*) xmlBufferContent( out ), len );
+                    }
+        
+                    xmlBufferFree( in );
+                    xmlBufferFree( out );
+                    xmlCharEncCloseFunc( coder );
+                    CLEANUP_ERROR_HANDLER;
+                    REPORT_ERROR(0);
+                    if ( !tstr ) {
+                        croak( "return value missing!" );
+                    }
+                }
+
+                RETVAL = newSVpvn( (const char *)tstr, len );
+                xmlFree( tstr );
+#ifdef HAVE_UTF8
+                if ( enc == XML_CHAR_ENCODING_UTF8 ) {
+                    SvUTF8_on(RETVAL);
+                }
+#endif  
+            }
+            else {
+                XSRETURN_UNDEF;
+            }
+#ifdef HAVE_UTF8
+        }
+#endif
+    OUTPUT:
+        RETVAL
+

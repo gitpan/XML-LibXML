@@ -1,4 +1,4 @@
-# $Id: Generator.pm 760 2008-11-11 19:30:27Z pajas $
+# $Id: Generator.pm 772 2009-01-23 21:42:09Z pajas $
 
 package XML::LibXML::SAX::Generator;
 
@@ -7,7 +7,7 @@ use strict;
 use XML::LibXML;
 use vars qw ($VERSION);
 
-$VERSION = "1.69"; # VERSION TEMPLATE: DO NOT CHANGE
+$VERSION = "1.69_1"; # VERSION TEMPLATE: DO NOT CHANGE
 
 sub CLONE_SKIP {
   return $XML::LibXML::__threads_shared ? 0 : 1;

@@ -1,10 +1,12 @@
 package XML::LibXML::Error;
 
 use strict;
-use vars qw($AUTOLOAD @error_domains);
+use vars qw($AUTOLOAD @error_domains $VERSION);
 use Carp;
 use overload
   '""' => \&as_string;
+
+$VERSION = "1.69_1"; # VERSION TEMPLATE: DO NOT CHANGE
 
 use constant XML_ERR_NONE	     => 0;
 use constant XML_ERR_WARNING	     => 1; # A simple warning
@@ -84,7 +86,7 @@ use constant XML_ERR_FROM_VALID	     => 23; # The validaton module
 
     sub _callback_error {
       #print "CALLBACK\n";
-      my ($xE,$prev) = shift;
+      my ($xE,$prev) = @_;
       my $terr;
       $terr=XML::LibXML::Error->new($xE);
       unless ( defined $terr->{file} and length $terr->{file} ) {

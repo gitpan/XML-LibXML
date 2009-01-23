@@ -1,6 +1,6 @@
 /**
  * perl-libxml-mm.c
- * $Id: perl-libxml-mm.c 758 2008-11-11 19:02:28Z pajas $
+ * $Id: perl-libxml-mm.c 769 2009-01-09 14:34:37Z pajas $
  *
  * Basic concept:
  * perl varies in the implementation of UTF8 handling. this header (together
@@ -149,11 +149,12 @@ PmmProxyNodeRegistryPtr(ProxyNodePtr proxy)
 /*
  * efficiently generate a string representation of the given pointer
  */
+#define _PMM_HASH_NAME_SIZE(n) n+(n>>3)+(n%8>0 ? 1 : 0)
 xmlChar *
 PmmRegistryName(void * ptr)
 {
 	unsigned long int v = (unsigned long int) ptr;
-	int HASH_NAME_SIZE = sizeof(void *) + ceil(sizeof(void *)/8);
+	int HASH_NAME_SIZE = _PMM_HASH_NAME_SIZE(sizeof(void*));
 	xmlChar * name;
 	int i;
 
@@ -202,7 +203,9 @@ PmmRegisterProxyNode(ProxyNodePtr proxy)
 }
 
 /* utility method for PmmUnregisterProxyNode */
-static inline void
+/* PP: originally this was static inline void, but on AIX the compiler
+   did not chew it, so I'm removing the inline */
+static void
 PmmRegistryHashDeallocator(void *payload, xmlChar *name)
 {
 	Safefree((LocalProxyNodePtr) payload);
@@ -1078,7 +1081,6 @@ C2Sv( const xmlChar *string, const xmlChar *encoding )
 {
     SV *retval = &PL_sv_undef;
     xmlCharEncoding enc;
-    STRLEN len = 0;
 
     if ( string != NULL ) {
         if ( encoding != NULL ) {
@@ -1092,8 +1094,7 @@ C2Sv( const xmlChar *string, const xmlChar *encoding )
             enc = XML_CHAR_ENCODING_UTF8;
         }
 
-        len = xmlStrlen( string );
-        retval = newSVpvn( (const char *)string, xmlStrlen(string) );
+        retval = newSVpvn( (const char *)string, (STRLEN) xmlStrlen(string) );
    
         if ( enc == XML_CHAR_ENCODING_UTF8 ) {
             /* create an UTF8 string. */       
