@@ -1,9 +1,16 @@
 # -------------------------------------------------------------------------- #
-# $Id: Makefile.PL 774 2009-01-23 22:10:55Z pajas $
+# $Id: Makefile.PL 777 2009-02-06 15:32:29Z pajas $
 # -------------------------------------------------------------------------- #
 # Makefile.PL for XML::LibXML.
 # This file is required to generate a localized Makefile
 # -------------------------------------------------------------------------- #
+#
+#
+# This is free software, you may use it and distribute it under the same terms as
+# Perl itself.
+#
+# Copyright 2001-2003 AxKit.com Ltd., 2002-2006 Christian Glahn, 2006-2009 Petr Pajas
+#
 
 
 BEGIN {
@@ -28,7 +35,7 @@ my %config;
 my %INFOS = (
     'NAME'	=> 'XML::LibXML',
     'VERSION_FROM' => 'LibXML.pm', # finds $VERSION
-    'AUTHOR'    => 'Christian Glahn',
+    'AUTHOR'    => 'Petr Pajas',
     'ABSTRACT'  => 'Interface to Gnome libxml2 xml parsing and DOM library',
     'PREREQ_PM' => {
 		    'XML::SAX' => '0.11',
@@ -47,7 +54,7 @@ my %INFOS = (
 # -------------------------------------------------------------------------- #
 # read extra configurations from the commandline
 my %params;
-@params{qw(FORCE DEBUG DEFINE EXTRALIBDIR GDOME INC LIBS SKIP_SAX_INSTALL XMLPREFIX NO_THREADS)}=();
+@params{qw(FORCE DEBUG DEFINE EXTRALIBDIR GDOME INC LIBS SKIP_SAX_INSTALL XMLPREFIX NO_THREADS LDFLAGS)}=();
 
 @ARGV = grep {
   my ($key, $val) = split(/=/, $_, 2);
@@ -150,7 +157,7 @@ unless ( $is_Win32 ) { # cannot get config in W32
 
         if ( $@ ) {
             if ( $@ =~ /^VERSION|^FORCED/ ) {
-                print STDERR "The installed version of libxml2 not compatible with XML::LibXML.\n\n".
+                print STDERR "The installed version of libxml2 not compatible with XML::LibXML (and probably buggy)!\n\n".
                     "You may continue at your own risk using 'perl Makefile.PL FORCE=1', but:\n\n".
                     "  - don't expect XML::LibXML to build or work correctly!\n".
                     "  - don't report errors!\n".
@@ -242,10 +249,18 @@ GDOME
 if ($config{LIBS} !~ /\-lxml2\b/) {
     # in this case we are not able to run xml2-config. therefore we need to
     # expand the libz as well.
-    $config{LIBS} .= $is_Win32 ? ' -llibxml2 -lzlib' : ' -lxml2 -lz';
+  if ($is_Win32) {
+    if( $ENV{ACTIVEPERL_MINGW} ) {
+      $config{LIBS} .= ' -llibxml2.lib -lzlib.lib';
+    } else {
+      $config{LIBS} .= ' -llibxml2 -lzlib';
+    }
+  } else {
+    $config{LIBS} .= ' -lxml2 -lz';
+  }
 }
 
-if ($config{LIBS} !~ /\-lz\b/) {
+if ($config{LIBS} !~ /\-lz\b/ and !($is_win32 && $config{LIBS} !~ /\-lzlib\b/)) {
     # note if libxml2 has not -lz within its cflags, we should not use
     # it! We should trust libxml2 and assume libz is not available on the
     # current system (this is ofcourse not true with win32 systems.
@@ -254,7 +269,15 @@ if ($config{LIBS} !~ /\-lz\b/) {
         warn "zlib was not configured\n";
         warn "set zlib\n" if $is_Win32;
     }
-    $config{LIBS} .= $is_Win32 ? ' -lzlib' :'';
+  if ($is_Win32) {
+    if( $ENV{ACTIVEPERL_MINGW} ) {
+      $config{LIBS} .= ' -lzlib.lib';
+    } else {
+      $config{LIBS} .= ' -lzlib';
+    }
+  } else {
+    $config{LIBS} .= ' -lz';
+  }
 }
 
 if ($config{LIBS} !~ /\-lm\b/) {
@@ -293,10 +316,10 @@ exit 0; # 0 recommended by http://cpantest.grango.org (Notes for CPAN Authors)
 
 # -------------------------------------------------------------------------- #
 # NOTE This should be removed for a release, we should test here, if we are
-# building from a CVS version
-if ( -d './CVS' ) {
+# building from a SVN version
+if ( -d './svn' ) {
     print <<EOT;
-If you are building XML::LibXML from CVS, you may wish to run
+If you are building XML::LibXML from SVN, you may wish to run
 
   \$ make docs
 
@@ -309,6 +332,12 @@ EOT
 
 # -------------------------------------------------------------------------- #
 # _NOW_ write the Makefile
+
+my $ldflags = delete $config{LDFLAGS};
+if ($ldflags) {
+    $config{dynamic_lib} = { OTHERLDFLAGS => " $ldflags " };
+}
+
 WriteMakefile(
               %INFOS,
               %config,

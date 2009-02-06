@@ -1,11 +1,18 @@
-# $Id: SAX.pm 772 2009-01-23 21:42:09Z pajas $
-# Copyright (c) 2001-2002, AxKit.com Ltd. All rights reserved.
+# $Id: SAX.pm 776 2009-02-06 11:12:56Z pajas $
+#
+# This is free software, you may use it and distribute it under the same terms as
+# Perl itself.
+#
+# Copyright 2001-2003 AxKit.com Ltd., 2002-2006 Christian Glahn, 2006-2009 Petr Pajas
+#
+#
+
 package XML::LibXML::SAX;
 
 use strict;
 use vars qw($VERSION @ISA);
 
-$VERSION = "1.69_1"; # VERSION TEMPLATE: DO NOT CHANGE
+$VERSION = "1.69_2"; # VERSION TEMPLATE: DO NOT CHANGE
 
 use XML::LibXML;
 use XML::SAX::Base;

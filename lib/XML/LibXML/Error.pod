@@ -27,8 +27,10 @@ XML::LibXML::Error - Structured Errors
   $error_str1 = $@->str1();
   $error_str2 = $@->str2();
   $error_str3 = $@->str3();
-  $error_int1 = $@->int1();
-  $error_int2 = $@->int2();
+  $error_num1 = $@->num1();
+  $error_num2 = $@->num2();
+  $string = $@->context();
+  $offset = $@->column();
   $previous_error = $@->_prev();
 
 =head1 DESCRIPTION
@@ -47,7 +49,7 @@ key-value pairs. Individual items (fields) of a structured error can either be
 obtained directly as $@->{field}, or using autoloaded methods such as as
 $@->field() (where field is the field name). XML::LibXML::Error objects have
 the following fields: domain, code, level, file, line, nodename, message, str1,
-str2, str3, int1, int2, and _prev (some of them may be undefined). 
+str2, str3, num1, num2, and _prev (some of them may be undefined). 
 
 =over 4
 
@@ -180,18 +182,34 @@ Error specific. Extra string information.
 Error specific. Extra string information.
 
 
-=item int1
+=item num1
 
-  $error_int1 = $@->int1();
-
-Error specific. Extra numeric information.
-
-
-=item int2
-
-  $error_int2 = $@->int2();
+  $error_num1 = $@->num1();
 
 Error specific. Extra numeric information.
+
+
+=item num2
+
+  $error_num2 = $@->num2();
+
+In recent libxml2 versions, this value contains a column number of the error or
+0 if N/A.
+
+
+=item context
+
+  $string = $@->context();
+
+For parsing errors, this field contains about 80 characters of the XML near the
+place where the error occurred. The field C<<<<<< $@->column() >>>>>> contains the corresponding offset. Where N/A, the field is undefined. 
+
+
+=item column
+
+  $offset = $@->column();
+
+See C<<<<<< $@->column() >>>>>> above. 
 
 
 =item _prev
@@ -218,6 +236,6 @@ Petr Pajas
 
 =head1 COPYRIGHT
 
-2001-2007, AxKit.com Ltd; 2002-2006 Christian Glahn; 2006-2008 Petr Pajas, All rights reserved.
+2001-2007, AxKit.com Ltd; 2002-2006 Christian Glahn; 2006-2008 Petr Pajas.
 
 =cut

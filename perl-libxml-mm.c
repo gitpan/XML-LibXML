@@ -1,6 +1,14 @@
 /**
  * perl-libxml-mm.c
- * $Id: perl-libxml-mm.c 769 2009-01-09 14:34:37Z pajas $
+ * $Id: perl-libxml-mm.c 776 2009-02-06 11:12:56Z pajas $
+ *
+ * This is free software, you may use it and distribute it under the same terms as
+ * Perl itself.
+ *
+ * Copyright 2001-2003 AxKit.com Ltd., 2002-2006 Christian Glahn, 2006-2009 Petr Pajas
+*/
+
+/*
  *
  * Basic concept:
  * perl varies in the implementation of UTF8 handling. this header (together

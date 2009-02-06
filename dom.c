@@ -1,4 +1,10 @@
-/* $Id: dom.c 763 2008-11-25 14:57:44Z pajas $ */
+/* $Id: dom.c 776 2009-02-06 11:12:56Z pajas $
+ *
+ * This is free software, you may use it and distribute it under the same terms as
+ * Perl itself.
+ *
+ * Copyright 2001-2003 AxKit.com Ltd., 2002-2006 Christian Glahn, 2006-2009 Petr Pajas
+*/
 
 #include "dom.h"
 

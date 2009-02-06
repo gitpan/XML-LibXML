@@ -1,4 +1,11 @@
 # $Id: XPathContext.pm 422 2002-11-08 17:10:30Z phish $
+#
+# This is free software, you may use it and distribute it under the same terms as
+# Perl itself.
+#
+# Copyright 2001-2003 AxKit.com Ltd., 2002-2006 Christian Glahn, 2006-2009 Petr Pajas
+#
+#
 
 package XML::LibXML::XPathContext;
 
@@ -9,7 +16,7 @@ use Carp;
 use XML::LibXML;
 use XML::LibXML::NodeList;
 
-$VERSION = "1.69_1"; # VERSION TEMPLATE: DO NOT CHANGE
+$VERSION = "1.69_2"; # VERSION TEMPLATE: DO NOT CHANGE
 
 # should LibXML XPath data types be used for simple objects
 # when passing parameters to extension functions (default: no)

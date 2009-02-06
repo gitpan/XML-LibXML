@@ -1,4 +1,10 @@
-/* $Id: LibXML.xs 770 2009-01-23 19:06:56Z pajas $ */
+/* $Id: LibXML.xs 777 2009-02-06 15:32:29Z pajas $
+ *
+ * This is free software, you may use it and distribute it under the same terms as
+ * Perl itself.
+ *
+ * Copyright 2001-2003 AxKit.com Ltd., 2002-2006 Christian Glahn, 2006-2009 Petr Pajas
+*/
 
 #ifdef __cplusplus
 extern "C" {
@@ -4853,12 +4859,34 @@ addChild( self, nNode )
         xmlNodePtr retval = NULL;
         ProxyNodePtr proxy;
     CODE:
+        switch ( nNode->type ) {
+        case XML_DOCUMENT_FRAG_NODE:
+            croak("Adding document fragments with addChild not supported!");
+            XSRETURN_UNDEF;
+        case XML_DOCUMENT_NODE :
+        case XML_HTML_DOCUMENT_NODE :
+        case XML_DOCB_DOCUMENT_NODE :
+            croak("addChild: HIERARCHY_REQUEST_ERR\n");
+            XSRETURN_UNDEF;
+        case XML_NOTATION_NODE :
+        case XML_NAMESPACE_DECL :
+        case XML_DTD_NODE :
+        case XML_DOCUMENT_TYPE_NODE :
+        case XML_ENTITY_DECL :
+        case XML_ELEMENT_DECL :
+        case XML_ATTRIBUTE_DECL :
+            croak("addChild: unsupported node type!");
+            XSRETURN_UNDEF;
+	default:
+	  break;
+        }
+
         xmlUnlinkNode(nNode);
         proxy = PmmPROXYNODE(nNode);
         retval = xmlAddChild( self, nNode );
 
         if ( retval == NULL ) {
-            croak( "ERROR!\n" );
+            croak( "Error: addChild failed (check node types)!\n" );
         }
 
         if ( retval != nNode ) {
@@ -8944,7 +8972,10 @@ line( self )
 int
 num1( self )
         xmlErrorPtr self
+    ALIAS:
+        int1 = 1
     CODE:
+        PERL_UNUSED_VAR(ix);
         RETVAL = self->int1;
     OUTPUT:
         RETVAL
@@ -8952,7 +8983,10 @@ num1( self )
 int
 num2( self )
         xmlErrorPtr self
+    ALIAS:
+        int2 = 1
     CODE:
+        PERL_UNUSED_VAR(ix);
         RETVAL = self->int2;
     OUTPUT:
         RETVAL
@@ -9005,6 +9039,58 @@ str3( self )
     OUTPUT:
         RETVAL
 
+void
+context_and_column( self )
+        xmlErrorPtr self
+   PREINIT:
+        xmlParserInputPtr input;
+	const xmlChar *cur, *base;
+	unsigned int n, col;	/* GCC warns if signed, because compared with sizeof() */
+	xmlChar  content[81]; /* space for 80 chars + line terminator */
+	xmlChar *ctnt;
+	int domain;
+        xmlParserCtxtPtr ctxt = NULL;
+   PPCODE:
+	domain = self->domain;
+	if ((domain == XML_FROM_PARSER) || (domain == XML_FROM_HTML) ||
+	    (domain == XML_FROM_DTD) || (domain == XML_FROM_NAMESPACE) ||
+	    (domain == XML_FROM_IO) || (domain == XML_FROM_VALID)) {
+	  ctxt = (xmlParserCtxtPtr) self->ctxt;
+	}
+       if (ctxt == NULL) XSRETURN_EMPTY;
+       input = ctxt->input;
+       if ((input != NULL) && (input->filename == NULL) &&
+            (ctxt->inputNr > 1)) {
+            input = ctxt->inputTab[ctxt->inputNr - 2];
+        }
+        if (input == NULL) XSRETURN_EMPTY;
+	cur = input->cur;
+	base = input->base;
+	/* skip backwards over any end-of-lines */
+	while ((cur > base) && ((*(cur) == '\n') || (*(cur) == '\r'))) {
+	  cur--;
+	}
+        n = 0;
+        /* search backwards for beginning-of-line (to max buff size) */
+        while ((n++ < (sizeof(content)-1)) && (cur > base) && 
+	       (*(cur) != '\n') && (*(cur) != '\r'))
+	  cur--;
+	if ((*(cur) == '\n') || (*(cur) == '\r')) cur++;
+	/* calculate the error position in terms of the current position */
+	col = input->cur - cur;
+	/* search forward for end-of-line (to max buff size) */
+	n = 0;
+	ctnt = content;
+	/* copy selected text to our buffer */
+	while ((*cur != 0) && (*(cur) != '\n') && 
+	       (*(cur) != '\r') && (n < sizeof(content)-1)) {
+	  *ctnt++ = *cur++;
+	  n++;
+	}
+	*ctnt = 0;
+        EXTEND(SP,2);
+        PUSHs(sv_2mortal(C2Sv(content, NULL)));
+        PUSHs(sv_2mortal(newSViv(col)));
 
 #endif /* WITH_SERRORS */
 

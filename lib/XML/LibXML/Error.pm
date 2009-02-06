@@ -1,3 +1,11 @@
+# $Id: Error.pm,v 1.1.2.1 2004/04/20 20:09:48 pajas Exp $
+#
+# This is free software, you may use it and distribute it under the same terms as
+# Perl itself.
+#
+# Copyright 2001-2003 AxKit.com Ltd., 2002-2006 Christian Glahn, 2006-2009 Petr Pajas
+#
+#
 package XML::LibXML::Error;
 
 use strict;
@@ -6,7 +14,7 @@ use Carp;
 use overload
   '""' => \&as_string;
 
-$VERSION = "1.69_1"; # VERSION TEMPLATE: DO NOT CHANGE
+$VERSION = "1.69_2"; # VERSION TEMPLATE: DO NOT CHANGE
 
 use constant XML_ERR_NONE	     => 0;
 use constant XML_ERR_WARNING	     => 1; # A simple warning
@@ -51,6 +59,7 @@ use constant XML_ERR_FROM_VALID	     => 23; # The validaton module
     my ($class,$xE) = @_;
     my $terr;
     if (ref($xE)) {
+      my ($context,$column) = $xE->context_and_column();
       $terr =bless {
 	domain  => $xE->domain(),
 	level   => $xE->level(),
@@ -63,6 +72,11 @@ use constant XML_ERR_FROM_VALID	     => 23; # The validaton module
 	str3    => $xE->str3(),
 	num1    => $xE->num1(),
 	num2    => $xE->num2(),
+	(defined($context) ?
+	   (
+	     context => $context,
+	     column => $column,
+	    ) : ()),
       }, $class;
     } else {
       # !!!! problem : got a flat error
@@ -130,12 +144,16 @@ sub AUTOLOAD {
   return undef unless ref($self);
   my $sub = $AUTOLOAD;
   $sub =~ s/.*:://;
-  if ($sub=~/^(?:code|_prev|level|file|line|domain|nodename|message|num[123]|num[12])$/) {
+  if ($sub=~/^(?:code|_prev|level|file|line|domain|nodename|message|column|context|str[123]|num[12])$/) {
     return $self->{$sub};
   } else {
     croak("Unknown error field $sub");
   }
 }
+
+# backward compatibility
+sub int1 { $_[0]->num1 }
+sub int2 { $_[0]->num2 }
 
 sub DESTROY {}
 
@@ -179,9 +197,15 @@ sub as_string {
     chomp($str);
     $msg.=" ".$str."\n";
     if (($self->{domain} == XML_ERR_FROM_XPATH) and
-        defined($self->{str1})) {
-        $msg.=$self->{str1}."\n";
-        $msg.=(" " x $self->{num1})."^\n";
+	  defined($self->{str1})) {
+      $msg.=$self->{str1}."\n";
+      $msg.=(" " x $self->{num1})."^\n";
+    } elsif (defined $self->{context}) {
+      my $context = $self->{context};
+      $msg.=$context."\n";
+      $context = substr($context,0,$self->{column});
+      $context=~s/[^\t]/ /g;
+      $msg.=$context."^\n";
     }
     return $msg;
 }

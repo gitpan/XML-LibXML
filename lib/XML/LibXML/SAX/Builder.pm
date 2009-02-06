@@ -1,4 +1,11 @@
-# $Id: Builder.pm 772 2009-01-23 21:42:09Z pajas $
+# $Id: Builder.pm 776 2009-02-06 11:12:56Z pajas $
+#
+# This is free software, you may use it and distribute it under the same terms as
+# Perl itself.
+#
+# Copyright 2001-2003 AxKit.com Ltd., 2002-2006 Christian Glahn, 2006-2009 Petr Pajas
+#
+#
 
 package XML::LibXML::SAX::Builder;
 
@@ -11,7 +18,7 @@ sub CLONE_SKIP {
   return $XML::LibXML::__threads_shared ? 0 : 1;
 }
 
-$VERSION = "1.69_1"; # VERSION TEMPLATE: DO NOT CHANGE
+$VERSION = "1.69_2"; # VERSION TEMPLATE: DO NOT CHANGE
 
 sub new {
     my $class = shift;
