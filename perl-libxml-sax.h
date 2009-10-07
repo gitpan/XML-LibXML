@@ -1,6 +1,6 @@
 /**
  * perl-libxml-sax.h
- * $Id: perl-libxml-sax.h 576 2006-07-28 10:44:05Z pajas $
+ * $Id: perl-libxml-sax.h 792 2009-09-24 08:36:11Z pajas $
  */
 
 #ifndef __PERL_LIBXML_SAX_H__
@@ -15,6 +15,17 @@ extern "C" {
 #ifdef __cplusplus
 }
 #endif
+
+
+/*
+ * auxiliary macro to serve as an croak(NULL)
+ * unlike croak(NULL), this version does not produce
+ * a warning (see the perlapi for the meaning of croak(NULL))
+ *
+ */
+
+#define croak_obj Perl_croak(aTHX_ NULL)
+
 
 /* has to be called in BOOT sequence */
 void

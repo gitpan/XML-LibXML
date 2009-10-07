@@ -15,6 +15,7 @@ XML::LibXML::Error - Structured Errors
             # no error
           }
 
+  $XML::LibXML::Error::WARNINGS=1;
   $message = $@->as_string();
   print $@->dump();
   $error_domain = $@->domain();
@@ -53,7 +54,15 @@ str2, str3, num1, num2, and _prev (some of them may be undefined).
 
 =over 4
 
-=item as_string
+=item $XML::LibXML::Error::WARNINGS
+
+  $XML::LibXML::Error::WARNINGS=1;
+
+Traditionally, XML::LibXML was supressing parser warnings by setting libxml2's
+global variable xmlGetWarningsDefaultValue to 0. Since 1.70 we do not change
+libxml2's global variables anymore; for backward compatibility, XML::LibXML
+suppresses warnings. This variable can be set to 1 to enable reporting of these
+warnings via Perl C<<<<<< warn >>>>>> and to 2 to report hem via C<<<<<< die >>>>>>. 
 
   $message = $@->as_string();
 
@@ -232,10 +241,14 @@ Petr Pajas
 
 =head1 VERSION
 
-1.66
+1.70
 
 =head1 COPYRIGHT
 
-2001-2007, AxKit.com Ltd; 2002-2006 Christian Glahn; 2006-2008 Petr Pajas.
+2001-2007, AxKit.com Ltd.
+
+2002-2006, Christian Glahn.
+
+2006-2009, Petr Pajas.
 
 =cut

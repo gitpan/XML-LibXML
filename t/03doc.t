@@ -1,4 +1,4 @@
-# $Id: 03doc.t 747 2008-11-03 14:29:15Z pajas $
+# $Id: 03doc.t 802 2009-09-30 13:26:35Z pajas $
 
 ##
 # this test checks the DOM Document interface of XML::LibXML
@@ -12,7 +12,7 @@
 use Test;
 use strict;
 
-BEGIN { plan tests => 166 };
+BEGIN { plan tests => 168 };
 use XML::LibXML;
 use XML::LibXML::Common qw(:libxml);
 
@@ -157,8 +157,17 @@ use XML::LibXML::Common qw(:libxml);
         }
 
     }
-
-
+    {
+      my $elem = $doc->createElement('foo');
+      my $attr = $doc->createAttribute(attr => 'e & f');
+      $elem->addChild($attr);
+      ok ($elem->toString() eq '<foo attr="e &amp; f"/>');
+      $elem->removeAttribute('attr');
+      $attr = $doc->createAttributeNS(undef,'attr2' => 'a & b');
+      $elem->addChild($attr);
+      print $elem->toString(),"\n";
+      ok ($elem->toString() eq '<foo attr2="a &amp; b"/>');
+    }
     {
         eval {
             my $attr = $doc->createAttributeNS("http://kungfoo", "kung:foo","bar");
@@ -473,7 +482,7 @@ if (eval { require Encode; }) {
   for my $enc (qw(UTF-16 UTF-16LE UTF-16BE)) {
     print "------------------\n";
     print $enc,"\n";
-    my $xml = Encode::encode('UTF-16LE',qq{<?xml version="1.0" encoding="$enc"?>
+    my $xml = Encode::encode($enc,qq{<?xml version="1.0" encoding="$enc"?>
 <test foo="bar"/>
 });
     my $dom = XML::LibXML->new->parse_string($xml);

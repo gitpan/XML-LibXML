@@ -1,4 +1,4 @@
-# $Id: LibXML.pm 776 2009-02-06 11:12:56Z pajas $
+# $Id: LibXML.pm 809 2009-10-04 21:17:41Z pajas $
 #
 #
 # This is free software, you may use it and distribute it under the same terms as
@@ -11,9 +11,9 @@
 package XML::LibXML;
 
 use strict;
-use vars qw($VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS
+use vars qw($VERSION $ABI_VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS
             $skipDTD $skipXMLDeclaration $setTagCompression
-            $MatchCB $ReadCB $OpenCB $CloseCB 
+            $MatchCB $ReadCB $OpenCB $CloseCB %PARSER_FLAGS
             );
 use Carp;
 
@@ -26,13 +26,30 @@ use XML::LibXML::XPathContext;
 use IO::Handle; # for FH reads called as methods
 
 BEGIN {
-
-$VERSION = "1.69_2"; # VERSION TEMPLATE: DO NOT CHANGE
+$VERSION = "1.70"; # VERSION TEMPLATE: DO NOT CHANGE
+$ABI_VERSION = 2;
 require Exporter;
 require DynaLoader;
 @ISA = qw(DynaLoader Exporter);
 
 use vars qw($__PROXY_NODE_REGISTRY $__threads_shared $__PROXY_NODE_REGISTRY_MUTEX $__loaded);
+
+sub VERSION {
+  my $class = shift;
+  my ($caller) = caller;
+  my $req_abi = $ABI_VERSION;
+  if (UNIVERSAL::can($caller,'REQUIRE_XML_LIBXML_ABI_VERSION')) {
+    $req_abi = $caller->REQUIRE_XML_LIBXML_ABI_VERSION();
+  } elsif ($caller eq 'XML::LibXSLT') {
+    # XML::LibXSLT without REQUIRE_XML_LIBXML_ABI_VERSION is an old and incompatible version
+    $req_abi = 1;
+  }
+  unless ($req_abi == $ABI_VERSION) {
+    my $ver = @_ ? ' '.$_[0] : '';
+    die ("This version of $caller requires XML::LibXML$ver (ABI $req_abi), which is incompatible with currently installed XML::LibXML $VERSION (ABI $ABI_VERSION). Please upgrade $caller, XML::LibXML, or both!");
+  }
+  return $class->UNIVERSAL::VERSION(@_)
+}
 
 #-------------------------------------------------------------------------#
 # export information                                                      #
@@ -208,29 +225,175 @@ sub threads_shared_enabled {
   }
 }
 
+
+#-------------------------------------------------------------------------#
+# parser flags                                                            #
+#-------------------------------------------------------------------------#
+
+# Copied directly from http://xmlsoft.org/html/libxml-parser.html#xmlParserOption
+use constant {
+  XML_PARSE_RECOVER	  => 1,	       # recover on errors
+  XML_PARSE_NOENT	  => 2,	       # substitute entities
+  XML_PARSE_DTDLOAD	  => 4,	       # load the external subset
+  XML_PARSE_DTDATTR	  => 8,	       # default DTD attributes
+  XML_PARSE_DTDVALID	  => 16,       # validate with the DTD
+  XML_PARSE_NOERROR	  => 32,       # suppress error reports
+  XML_PARSE_NOWARNING	  => 64,       # suppress warning reports
+  XML_PARSE_PEDANTIC	  => 128,      # pedantic error reporting
+  XML_PARSE_NOBLANKS	  => 256,      # remove blank nodes
+  XML_PARSE_SAX1	  => 512,      # use the SAX1 interface internally
+  XML_PARSE_XINCLUDE	  => 1024,     # Implement XInclude substitition
+  XML_PARSE_NONET	  => 2048,     # Forbid network access
+  XML_PARSE_NODICT	  => 4096,     # Do not reuse the context dictionnary
+  XML_PARSE_NSCLEAN	  => 8192,     # remove redundant namespaces declarations
+  XML_PARSE_NOCDATA	  => 16384,    # merge CDATA as text nodes
+  XML_PARSE_NOXINCNODE	  => 32768,    # do not generate XINCLUDE START/END nodes
+  XML_PARSE_COMPACT	  => 65536,    # compact small text nodes; no modification of the tree allowed afterwards
+                                       # (will possibly crash if you try to modify the tree)
+  XML_PARSE_OLD10	  => 131072,   # parse using XML-1.0 before update 5
+  XML_PARSE_NOBASEFIX	  => 262144,   # do not fixup XINCLUDE xml#base uris
+  XML_PARSE_HUGE	  => 524288,   # relax any hardcoded limit from the parser
+  XML_PARSE_OLDSAX	  => 1048576,  # parse using SAX2 interface from before 2.7.0
+};
+
+use constant XML_LIBXML_PARSE_DEFAULTS => ( XML_PARSE_NODICT | XML_PARSE_HUGE | XML_PARSE_DTDLOAD | XML_PARSE_NOENT );
+
+# this hash is made global so that applications can add names for new
+# libxml2 parser flags as temporary workaround
+
+%PARSER_FLAGS = (
+  recover		 => XML_PARSE_RECOVER,
+  expand_entities	 => XML_PARSE_NOENT,
+  load_ext_dtd	         => XML_PARSE_DTDLOAD,
+  complete_attributes	 => XML_PARSE_DTDATTR,
+  validation		 => XML_PARSE_DTDVALID,
+  suppress_errors	 => XML_PARSE_NOERROR,
+  suppress_warnings	 => XML_PARSE_NOWARNING,
+  pedantic_parser	 => XML_PARSE_PEDANTIC,
+  no_blanks		 => XML_PARSE_NOBLANKS,
+  expand_xinclude	 => XML_PARSE_XINCLUDE,
+  xinclude		 => XML_PARSE_XINCLUDE,
+  no_network		 => XML_PARSE_NONET,
+  clean_namespaces	 => XML_PARSE_NSCLEAN,
+  no_cdata		 => XML_PARSE_NOCDATA,
+  no_xinclude_nodes	 => XML_PARSE_NOXINCNODE,
+  old10		         => XML_PARSE_OLD10,
+  no_base_fix		 => XML_PARSE_NOBASEFIX,
+  huge		         => XML_PARSE_HUGE,
+  oldsax		 => XML_PARSE_OLDSAX,
+);
+
+my %OUR_FLAGS = (
+  recover => 'XML_LIBXML_RECOVER',
+  line_numbers => 'XML_LIBXML_LINENUMBERS',
+  URI => 'XML_LIBXML_BASE_URI',
+  base_uri => 'XML_LIBXML_BASE_URI',
+  gdome => 'XML_LIBXML_GDOME',
+  ext_ent_handler => 'ext_ent_handler',
+);
+
+sub _parser_options {
+  my ($self, $opts) = @_;
+
+  # currently dictionaries break XML::LibXML memory management
+
+  my $flags;
+
+  if (ref($self)) {
+    $flags = ($self->{XML_LIBXML_PARSER_OPTIONS}||0);
+  } else {
+    $flags = XML_LIBXML_PARSE_DEFAULTS;		# safety precaution
+  }
+
+  my ($key, $value);
+  while (($key,$value) = each %$opts) {
+    my $f = $PARSER_FLAGS{ $key };
+    if (defined $f) {
+      if ($value) {
+	$flags |= $f
+      } else {
+	$flags &= ~$f;
+      }
+    } elsif ($key eq 'set_parser_flags') { # this can be used to pass flags XML::LibXML does not yet know about
+      $flags |= $value;
+    } elsif ($key eq 'unset_parser_flags') {
+      $flags &= ~$value;
+    }
+
+  }
+  return $flags;
+}
+
+my %compatibility_flags = (
+  XML_LIBXML_VALIDATION => 'validation',
+  XML_LIBXML_EXPAND_ENTITIES => 'expand_entities',
+  XML_LIBXML_PEDANTIC => 'pedantic_parser',
+  XML_LIBXML_NONET => 'no_network',
+  XML_LIBXML_EXT_DTD => 'load_ext_dtd',
+  XML_LIBXML_COMPLETE_ATTR => 'complete_attributes',
+  XML_LIBXML_EXPAND_XINCLUDE => 'expand_xinclude',
+  XML_LIBXML_NSCLEAN => 'clean_namespaces',
+  XML_LIBXML_KEEP_BLANKS => 'keep_blanks',
+  XML_LIBXML_LINENUMBERS => 'line_numbers',
+);
+
 #-------------------------------------------------------------------------#
 # parser constructor                                                      #
 #-------------------------------------------------------------------------#
+
+
 sub new {
     my $class = shift;
-    my %options = @_;
-    if ( not exists $options{XML_LIBXML_KEEP_BLANKS} ) {
-        $options{XML_LIBXML_KEEP_BLANKS} = 1;
+    my $self = bless {
+    }, $class;
+    if (@_) {
+      my %opts = ();
+      if (ref($_[0]) eq 'HASH') {
+	%opts = %{$_[0]};
+      } else {
+	# old interface
+	my %args = @_;
+	%opts=(
+	  map {
+	    (($compatibility_flags{ $_ }||$_) => $args{ $_ })
+	  } keys %args
+	);
+      }
+      # parser flags
+      $opts{no_blanks} = !$opts{keep_blanks} if exists($opts{keep_blanks}) and !exists($opts{no_blanks});
+
+      for (keys %OUR_FLAGS) {
+	$self->{$OUR_FLAGS{$_}} = delete $opts{$_};
+      }
+      $class->load_catalog(delete($opts{catalog})) if $opts{catalog};
+
+      $self->{XML_LIBXML_PARSER_OPTIONS} = XML::LibXML->_parser_options(\%opts);
+
+      # store remaining unknown options directly in $self
+      for (keys %opts) {
+	$self->{$_}=$opts{$_} unless exists $PARSER_FLAGS{$_};
+      }
+    } else {
+      $self->{XML_LIBXML_PARSER_OPTIONS} = XML_LIBXML_PARSE_DEFAULTS;
+    }
+    if ( defined $self->{Handler} ) {
+      $self->set_handler( $self->{Handler} );
     }
 
-    if ( defined $options{catalog} ) {
-        $class->load_catalog( $options{catalog} );
-        delete $options{catalog};
-    }
-
-    my $self = bless \%options, $class;
-    if ( defined $options{Handler} ) {
-        $self->set_handler( $options{Handler} );
-    }
-
-    $self->{XML_LIBXML_EXT_DTD} = 1;
     $self->{_State_} = 0;
     return $self;
+}
+
+sub _clone {
+  my ($self)=@_;
+  my $new = ref($self)->new({
+      recover => $self->{XML_LIBXML_RECOVER},
+      line_nubers => $self->{XML_LIBXML_LINENUMBERS},
+      base_uri => $self->{XML_LIBXML_BASE_URI},
+      gdome => $self->{XML_LIBXML_GDOME},
+      set_parser_flags => $self->{XML_LIBXML_PARSER_OPTIONS},
+    });
+  return $new;
 }
 
 #-------------------------------------------------------------------------#
@@ -371,17 +534,70 @@ sub callbacks {
 }
 
 #-------------------------------------------------------------------------#
-# member variable manipulation                                            #
+# internal member variable manipulation                                   #
 #-------------------------------------------------------------------------#
+sub __parser_option {
+  my ($self, $opt) = @_;
+  if (@_>2) {
+    if ($_[2]) {
+      $self->{XML_LIBXML_PARSER_OPTIONS} |= $opt;
+      return 1;
+    } else {
+      $self->{XML_LIBXML_PARSER_OPTIONS} &= ~$opt;
+      return 0;
+    }
+  } else {
+    return ($self->{XML_LIBXML_PARSER_OPTIONS} & $opt) ? 1 : 0;
+  }
+}
+
+sub option_exists {
+    my ($self,$name)=@_;
+    return ($PARSER_FLAGS{$name} || $OUR_FLAGS{$name}) ? 1 : 0;
+}
+sub get_option {
+    my ($self,$name)=@_;
+    my $flag = $OUR_FLAGS{$name};
+    return $self->{$flag} if $flag;
+    $flag = $PARSER_FLAGS{$name};
+    return $self->__parser_option($flag) if $flag;
+    warn "XML::LibXML::get_option: unknown parser option $name\n";
+    return undef;
+}
+sub set_option {
+    my ($self,$name,$value)=@_;
+    my $flag = $OUR_FLAGS{$name};
+    return ($self->{$flag}=$value) if $flag;
+    $flag = $PARSER_FLAGS{$name};
+    return $self->__parser_option($flag,$value) if $flag;
+    warn "XML::LibXML::get_option: unknown parser option $name\n";
+    return undef;
+}
+sub set_options {
+  my $self=shift;
+  my $opts;
+  if (@_==1 and ref($_[0]) eq 'HASH') {
+    $opts = $_[0];
+  } elsif (@_ % 2 == 0) {
+    $opts={@_};
+  } else {
+    croak("Odd number of elements passed to set_options");
+  }
+  $self->set_option($_=>$opts->{$_}) foreach keys %$opts;
+  return;
+}
+
 sub validation {
     my $self = shift;
-    $self->{XML_LIBXML_VALIDATION} = shift if scalar @_;
-    return $self->{XML_LIBXML_VALIDATION};
+    return $self->__parser_option(XML_PARSE_DTDVALID,@_);
 }
 
 sub recover {
     my $self = shift;
-    $self->{XML_LIBXML_RECOVER} = shift if scalar @_;
+    if (scalar @_) {
+      $self->{XML_LIBXML_RECOVER} = $_[0];
+      $self->__parser_option(XML_PARSE_RECOVER,@_);
+    }
     return $self->{XML_LIBXML_RECOVER};
 }
 
@@ -389,25 +605,30 @@ sub recover_silently {
     my $self = shift;
     my $arg = shift;
     (($arg == 1) ? $self->recover(2) : $self->recover($arg)) if defined($arg);
-    return ($self->recover() == 2) ? 1 : 0;
+    return (($self->recover()||0) == 2) ? 1 : 0;
 }
 
 sub expand_entities {
     my $self = shift;
-    $self->{XML_LIBXML_EXPAND_ENTITIES} = shift if scalar @_;
-    return $self->{XML_LIBXML_EXPAND_ENTITIES};
+    if (scalar(@_) and $_[0]) {
+      return $self->__parser_option(XML_PARSE_NOENT | XML_PARSE_DTDLOAD,1);
+    }
+    return $self->__parser_option(XML_PARSE_NOENT,@_);
 }
 
 sub keep_blanks {
     my $self = shift;
-    $self->{XML_LIBXML_KEEP_BLANKS} = shift if scalar @_;
-    return $self->{XML_LIBXML_KEEP_BLANKS};
+    my @args; # we have to negate the argument and return negated value, since
+              # the actual flag is no_blanks
+    if (scalar @_) {
+      @args=($_[0] ? 0 : 1);
+    }
+    return $self->__parser_option(XML_PARSE_NOBLANKS,@args) ? 0 : 1;
 }
 
 sub pedantic_parser {
     my $self = shift;
-    $self->{XML_LIBXML_PEDANTIC} = shift if scalar @_;
-    return $self->{XML_LIBXML_PEDANTIC};
+    return $self->__parser_option(XML_PARSE_PEDANTIC,@_);
 }
 
 sub line_numbers {
@@ -418,26 +639,22 @@ sub line_numbers {
 
 sub no_network {
     my $self = shift;
-    $self->{XML_LIBXML_NONET} = shift if scalar @_;
-    return $self->{XML_LIBXML_NONET};
+    return $self->__parser_option(XML_PARSE_NONET,@_);
 }
 
 sub load_ext_dtd {
     my $self = shift;
-    $self->{XML_LIBXML_EXT_DTD} = shift if scalar @_;
-    return $self->{XML_LIBXML_EXT_DTD};
+    return $self->__parser_option(XML_PARSE_DTDLOAD,@_);
 }
 
 sub complete_attributes {
     my $self = shift;
-    $self->{XML_LIBXML_COMPLETE_ATTR} = shift if scalar @_;
-    return $self->{XML_LIBXML_COMPLETE_ATTR};
+    return $self->__parser_option(XML_PARSE_DTDATTR,@_);
 }
 
 sub expand_xinclude  {
     my $self = shift;
-    $self->{XML_LIBXML_EXPAND_XINCLUDE} = shift if scalar @_;
-    return $self->{XML_LIBXML_EXPAND_XINCLUDE};
+    return $self->__parser_option(XML_PARSE_XINCLUDE,@_);
 }
 
 sub base_uri {
@@ -454,8 +671,7 @@ sub gdome_dom {
 
 sub clean_namespaces {
     my $self = shift;
-    $self->{XML_LIBXML_NSCLEAN} = shift if scalar @_;
-    return $self->{XML_LIBXML_NSCLEAN};
+    return $self->__parser_option(XML_PARSE_NSCLEAN,@_);
 }
 
 #-------------------------------------------------------------------------#
@@ -485,8 +701,7 @@ sub _auto_expand {
 
     $result->setBaseURI( $uri ) if defined $uri;
 
-    if ( defined $self->{XML_LIBXML_EXPAND_XINCLUDE}
-         and  $self->{XML_LIBXML_EXPAND_XINCLUDE} == 1 ) {
+    if ( $self->expand_xinclude ) {
         $self->{_State_} = 1;
         eval { $self->processXIncludes($result); };
         my $err = $@;
@@ -503,7 +718,6 @@ sub _auto_expand {
 sub _init_callbacks {
     my $self = shift;
     my $icb = $self->{XML_LIBXML_CALLBACK_STACK};
-    
     unless ( defined $icb ) {
         $self->{XML_LIBXML_CALLBACK_STACK} = XML::LibXML::InputCallback->new();
         $icb = $self->{XML_LIBXML_CALLBACK_STACK};
@@ -517,7 +731,6 @@ sub _init_callbacks {
     if ( defined $mcb and defined $ocb and defined $rcb and defined $ccb ) {
         $icb->register_callbacks( [$mcb, $ocb, $rcb, $ccb] );
     }
-    
     $icb->init_callbacks();
 }
 
@@ -541,31 +754,60 @@ sub __write {
     }
 }
 
-# currently this is only used in the XInlcude processor
-# but in the future, all parsing functions should turn to
-# the new libxml2 parsing API internally and this will
-# become handy
-sub _parser_options {
-  my ($self,$opts)=@_;
-  $opts = {} unless ref $opts;
-  my $flags = 0;
-  $flags |=     1 if  exists $opts->{recover} ? $opts->{recover} : $self->recover;
-  $flags |=     2 if  exists $opts->{expand_entities} ? $opts->{expand_entities} : $self->expand_entities;
-  $flags |=     4 if  exists $opts->{load_ext_dtd} ? $opts->{load_ext_dtd} : $self->load_ext_dtd;
-  $flags |=     8 if  exists $opts->{complete_attributes} ? $opts->{complete_attributes} : $self->complete_attributes;
-  $flags |=    16 if  exists $opts->{validation} ? $opts->{validation} : $self->validation;
-  $flags |=    32 if  $opts->{suppress_errors};
-  $flags |=    64 if  $opts->{suppress_warnings};
-  $flags |=   128 if  exists $opts->{pedantic_parser} ? $opts->{pedantic_parser} : $self->pedantic_parser;
-  $flags |=   256 if  exists $opts->{no_blanks} ? $opts->{no_blanks} : !$self->keep_blanks();
-  $flags |=  1024 if  exists $opts->{expand_xinclude} ? $opts->{expand_xinclude} : $self->expand_xinclude;
-  $flags |=  2048 if  exists $opts->{no_network} ? $opts->{no_network} : $self->no_network;
-  $flags |=  8192 if  exists $opts->{clean_namespaces} ? $opts->{clean_namespaces} : $self->clean_namespaces;
-  $flags |= 16384 if  $opts->{no_cdata};
-  $flags |= 32768 if  $opts->{no_xinclude_nodes};
-  return ($flags);
+sub load_xml {
+  my ($class_or_self) = shift;
+  my %args = map { ref($_) eq 'HASH' ? (%$_) : $_ } @_;
+  my $URI = delete($args{URI});
+  $URI = "$URI"  if defined $URI; # stringify in case it is an URI object
+  my $parser;
+  if (ref($class_or_self)) {
+    $parser = $class_or_self->_clone();
+    $parser->{XML_LIBXML_PARSER_OPTIONS} = $parser->_parser_options(\%args);
+  } else {
+    $parser = $class_or_self->new(\%args);
+  }
+  my $dom;
+  if ( defined $args{location} ) {
+    $dom = $parser->parse_file( "$args{location}" );
+  }
+  elsif ( defined $args{string} ) {
+    $dom = $parser->parse_string( $args{string}, $URI );
+  }
+  elsif ( defined $args{IO} ) {
+    $dom = $parser->parse_fh( $args{IO}, $URI );
+  }
+  else {
+    croak("XML::LibXML->load: specify location, string, or IO");
+  }
+  return $dom;
 }
 
+sub load_html {
+  my ($class_or_self) = shift;
+  my %args = map { ref($_) eq 'HASH' ? (%$_) : $_ } @_;
+  my $URI = delete($args{URI});
+  $URI = "$URI"  if defined $URI; # stringify in case it is an URI object
+  my $parser;
+  if (ref($class_or_self)) {
+    $parser = $class_or_self->_clone();
+  } else {
+    $parser = $class_or_self->new();
+  }
+  my $dom;
+  if ( defined $args{location} ) {
+    $dom = $parser->parse_html_file( "$args{location}", \%args );
+  }
+  elsif ( defined $args{string} ) {
+    $dom = $parser->parse_html_string( $args{string}, \%args );
+  }
+  elsif ( defined $args{IO} ) {
+    $dom = $parser->parse_html_fh( $args{IO}, \%args );
+  }
+  else {
+    croak("XML::LibXML->load: specify location, string, or IO");
+  }
+  return $dom;
+}
 
 #-------------------------------------------------------------------------#
 # parsing functions                                                       #
@@ -660,6 +902,7 @@ sub parse_file {
     my $self = shift;
     croak("parse_file is not a class method! Create a parser object with XML::LibXML->new first!") unless ref $self;
     croak("parse already in progress") if $self->{_State_};
+
     $self->{_State_} = 1;
     my $result;
 
@@ -815,6 +1058,13 @@ sub _html_options {
   $flags |=   128 if exists $opts->{pedantic_parser} ? $opts->{pedantic_parser} : $self->pedantic_parser;
   $flags |=   256 if exists $opts->{no_blanks} ? $opts->{no_blanks} : !$self->keep_blanks;
   $flags |=  2048 if exists $opts->{no_network} ? $opts->{no_network} : !$self->no_network;
+  $flags |= 16384 if  $opts->{no_cdata};
+  $flags |= 65536 if $opts->{compact}; # compact small text nodes; no modification
+                                         # of the tree allowed afterwards
+                                         # (WILL possibly CRASH IF YOU try to MODIFY THE TREE)
+  $flags |= 524288 if $opts->{huge}; # relax any hardcoded limit from the parser
+  $flags |= 1048576 if $opts->{oldsax}; # parse using SAX2 interface from before 2.7.0
+
   return ($opts->{URI},$opts->{encoding},$flags);
 }
 
@@ -972,8 +1222,8 @@ sub finish_push {
     else {
         eval { $retval = $self->_end_push( $self->{CONTEXT}, $restore ); };
     }
-    delete $self->{CONTEXT};
     my $err = $@;
+    delete $self->{CONTEXT};
     if ( $err ) {
         chomp $err unless ref $err;
         croak( $err );
@@ -1002,7 +1252,13 @@ sub getChildNodes { my $self = shift; return $self->childNodes(); }
 
 sub childNodes {
     my $self = shift;
-    my @children = $self->_childNodes();
+    my @children = $self->_childNodes(0);
+    return wantarray ? @children : XML::LibXML::NodeList->new_from_ref(\@children , 1);
+}
+
+sub nonBlankChildNodes {
+    my $self = shift;
+    my @children = $self->_childNodes(1);
     return wantarray ? @children : XML::LibXML::NodeList->new_from_ref(\@children , 1);
 }
 
@@ -1061,21 +1317,33 @@ sub setOwnerDocument {
 }
 
 sub toStringC14N {
-    my ($self, $comments, $xpath) = (shift, shift, shift);
+    my ($self, $comments, $xpath, $xpc) = @_;
     return $self->_toStringC14N( $comments || 0,
 				 (defined $xpath ? $xpath : undef),
 				 0,
-				 undef );
+				 undef,
+				 (defined $xpc ? $xpc : undef)
+				);
 }
 sub toStringEC14N {
-    my ($self, $comments, $xpath, $inc_prefix_list) = @_;
+    my ($self, $comments, $xpath, $xpc, $inc_prefix_list) = @_;
+    unless (UNIVERSAL::isa($xpc,'XML::LibXML::XPathContext')) {
+      if ($inc_prefix_list) {
+	croak("toStringEC14N: 3rd argument is not an XML::LibXML::XPathContext");
+      } else {
+	$inc_prefix_list=$xpc;
+	$xpc=undef;
+      }
+    }
     if (defined($inc_prefix_list) and !UNIVERSAL::isa($inc_prefix_list,'ARRAY')) {
       croak("toStringEC14N: inclusive_prefix_list must be undefined or ARRAY");
     }
     return $self->_toStringC14N( $comments || 0,
 				 (defined $xpath ? $xpath : undef),
 				 1,
-				 (defined $inc_prefix_list ? $inc_prefix_list : undef));
+				 (defined $inc_prefix_list ? $inc_prefix_list : undef),
+				 (defined $xpc ? $xpc : undef)
+				);
 }
 
 *serialize_c14n = \&toStringC14N;
@@ -1357,14 +1625,16 @@ sub getChildrenByTagName {
 
 sub getChildrenByLocalName {
     my ( $node, $name ) = @_;
-    my @nodes;
-    if ($name eq '*') {
-      @nodes = grep { $_->nodeType == XML_ELEMENT_NODE() }
-	$node->childNodes();
-    } else {
-      @nodes = grep { $_->nodeType == XML_ELEMENT_NODE() and
-		      $_->localName eq $name } $node->childNodes();
-    }
+    # my @nodes;
+    # if ($name eq '*') {
+    #   @nodes = grep { $_->nodeType == XML_ELEMENT_NODE() }
+    # 	$node->childNodes();
+    # } else {
+    #   @nodes = grep { $_->nodeType == XML_ELEMENT_NODE() and
+    # 		      $_->localName eq $name } $node->childNodes();
+    # }
+    # return wantarray ? @nodes : XML::LibXML::NodeList->new_from_ref(\@nodes, 1);
+    my @nodes = $node->_getChildrenByTagNameNS('*',$name);
     return wantarray ? @nodes : XML::LibXML::NodeList->new_from_ref(\@nodes, 1);
 }
 
@@ -1764,6 +2034,26 @@ sub new {
     $self = $class->_compilePattern($pattern,0);
   }
   return $self;
+}
+
+1;
+
+#-------------------------------------------------------------------------#
+# XML::LibXML::RegExp Interface                                          #
+#-------------------------------------------------------------------------#
+
+package XML::LibXML::RegExp;
+
+sub CLONE_SKIP { 1 }
+
+sub new {
+  my $class = shift;
+  my ($regexp)=@_;
+  unless (UNIVERSAL::can($class,'_compile')) {
+    croak("Cannot create XML::LibXML::RegExp - ".
+	  "your libxml2 is compiled without regexp support!");
+  }
+  return $class->_compile($regexp);
 }
 
 1;

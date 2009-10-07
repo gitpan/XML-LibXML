@@ -1,5 +1,5 @@
 # -------------------------------------------------------------------------- #
-# $Id: Makefile.PL 777 2009-02-06 15:32:29Z pajas $
+# $Id: Makefile.PL 818 2009-10-07 12:26:07Z pajas $
 # -------------------------------------------------------------------------- #
 # Makefile.PL for XML::LibXML.
 # This file is required to generate a localized Makefile
@@ -136,7 +136,7 @@ unless ( $is_Win32 ) { # cannot get config in W32
                      [2,6,25,0], # broken XPath
                      [2,6,32,1], # tested, works ok
                      [2,7,1,0], # broken release, broken utf-16
-                     [2,7,2,1], # tested, ok
+                     [2,7,6,1], # tested, ok
                     );
     my $xml2cfg = "xml2-config";
     my $libprefix = $ENV{XMLPREFIX} || $config{XMLPREFIX};
@@ -246,7 +246,7 @@ GDOME
 # -------------------------------------------------------------------------- #
 # fix the ld flags
 # -------------------------------------------------------------------------- #
-if ($config{LIBS} !~ /\-lxml2\b/) {
+if ($config{LIBS} !~ /\-l(?:lib)?xml2\b/) {
     # in this case we are not able to run xml2-config. therefore we need to
     # expand the libz as well.
   if ($is_Win32) {
@@ -256,7 +256,7 @@ if ($config{LIBS} !~ /\-lxml2\b/) {
       $config{LIBS} .= ' -llibxml2 -lzlib';
     }
   } else {
-    $config{LIBS} .= ' -lxml2 -lz';
+    $config{LIBS} .= ' -lxml2 -lz -lm';
   }
 }
 
@@ -279,12 +279,6 @@ if ($config{LIBS} !~ /\-lz\b/ and !($is_win32 && $config{LIBS} !~ /\-lzlib\b/)) 
     $config{LIBS} .= ' -lz';
   }
 }
-
-if ($config{LIBS} !~ /\-lm\b/) {
-    # math support is important, but is not available separately in W32
-    $config{LIBS} .= $is_Win32 ? '' :' -lm';
-}
-# -------------------------------------------------------------------------- #
 
 # -------------------------------------------------------------------------- #
 # MacOS X Compiler switches have to go here
@@ -355,9 +349,11 @@ sub MY::manifypods {
     $str .= <<EOF;
 
 docs-fast :
+\t\@$^X -pi~ -e 's{<edition>[0-9.]*</edition>}{<edition>'"\$(VERSION)"'</edition>}' docs/libxml.dbk
 \t\@$^X -Iblib/arch -Iblib/lib example/xmllibxmldocs.pl docs/libxml.dbk lib/XML/LibXML/
 
 docs : pure_all
+\t\@$^X -pi~ -e 's{<edition>[0-9.]*</edition>}{<edition>'"\$(VERSION)"'</edition>}' docs/libxml.dbk
 \t\@$^X -Iblib/arch -Iblib/lib example/xmllibxmldocs.pl docs/libxml.dbk lib/XML/LibXML/
 \t\@$^X -pi.old -e 's/a/a/' Makefile.PL
 \t\@echo "==> YOU MUST NOW RE-RUN $^X Makefile.PL <=="
@@ -402,7 +398,7 @@ sub MY::postamble {
 version:
 	@version=`grep '\# VERSION TEMPLATE' $(VERSION_FROM)`; \
 	echo "New version line: $$version"; \
-	perl -pi~ -e '$$_=q('"$$version"')."\n" if /#\ VERSION TEMPLATE/ ' $(TO_INST_PM)
+	perl -pi~ -e '$$_=q('"$$version"')."\n" if /#\ VERSION TEMPLATE/ ' $(TO_INST_PM);
 
 MAKE_FRAG
 }

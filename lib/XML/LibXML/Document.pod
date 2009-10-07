@@ -23,11 +23,9 @@ XML::LibXML::Document - XML::LibXML DOM Document Class
   my $compression = $doc->compression;
   $doc->setCompression($ziplevel);
   $docstring = $dom->toString($format);
-  $c14nstr = $doc->toStringC14N($comment_flag,$xpath); 
-  $ec14nstr = $doc->toStringEC14N($inclusive_prefix_list, $comment_flag,$xpath); 
+  $c14nstr = $doc->toStringC14N($comment_flag, $xpath [, $xpath_context ]); 
+  $ec14nstr = $doc->toStringEC14N($comment_flag, $xpath [, $xpath_context ], $inclusive_prefix_list); 
   $str = $doc->serialize($format); 
-  $c14nstr = $doc->serialize_c14n($comment_flag,$xpath); 
-  $ec14nstr = $doc->serialize_exc_c14n($comment_flag,$xpath,$inclusive_prefix_list); 
   $state = $doc->toFile($filename, $format);
   $state = $doc->toFH($fh, $format);
   $str = $document->toStringHTML();
@@ -270,14 +268,14 @@ level. This value can not be altered on run-time.
 
 =item toStringC14N
 
-  $c14nstr = $doc->toStringC14N($comment_flag,$xpath); 
+  $c14nstr = $doc->toStringC14N($comment_flag, $xpath [, $xpath_context ]); 
 
 See the documentation in L<<<<<< XML::LibXML::Node >>>>>>. 
 
 
 =item toStringEC14N
 
-  $ec14nstr = $doc->toStringEC14N($inclusive_prefix_list, $comment_flag,$xpath); 
+  $ec14nstr = $doc->toStringEC14N($comment_flag, $xpath [, $xpath_context ], $inclusive_prefix_list); 
 
 See the documentation in L<<<<<< XML::LibXML::Node >>>>>>. 
 
@@ -292,14 +290,10 @@ with libxml2.
 
 =item serialize_c14n
 
-  $c14nstr = $doc->serialize_c14n($comment_flag,$xpath); 
-
 An alias for toStringC14N().
 
 
 =item serialize_exc_c14n
-
-  $ec14nstr = $doc->serialize_exc_c14n($comment_flag,$xpath,$inclusive_prefix_list); 
 
 An alias for toStringEC14N().
 
@@ -689,10 +683,14 @@ Petr Pajas
 
 =head1 VERSION
 
-1.66
+1.70
 
 =head1 COPYRIGHT
 
-2001-2007, AxKit.com Ltd; 2002-2006 Christian Glahn; 2006-2008 Petr Pajas.
+2001-2007, AxKit.com Ltd.
+
+2002-2006, Christian Glahn.
+
+2006-2009, Petr Pajas.
 
 =cut

@@ -7,9 +7,7 @@ XML::LibXML - Perl Binding for libxml2
 
 
   use XML::LibXML;
-  my $parser = XML::LibXML->new();
-
-  my $doc = $parser->parse_string(<<'EOT');
+  my $dom = XML::LibXML->load_xml(string => <<'EOT');
   <some-xml/>
   EOT
 
@@ -33,12 +31,12 @@ For further information, please check the following documentation:
 
 =item L<<<<<< XML::LibXML::Parser >>>>>>
 
-Parsing XML Files with XML::LibXML
+Parsing XML files with XML::LibXML
 
 
 =item L<<<<<< XML::LibXML::DOM >>>>>>
 
-XML::LibXML DOM Implementation
+XML::LibXML Document Object Model (DOM) Implementation
 
 
 =item L<<<<<< XML::LibXML::SAX >>>>>>
@@ -51,59 +49,9 @@ XML::LibXML direct SAX parser
 Reading XML with a pull-parser
 
 
-=item L<<<<<< XML::LibXML::Document >>>>>>
-
-XML::LibXML DOM Document Class
-
-
-=item L<<<<<< XML::LibXML::Node >>>>>>
-
-Abstract Base Class of XML::LibXML Nodes
-
-
-=item L<<<<<< XML::LibXML::Element >>>>>>
-
-XML::LibXML Class for Element Nodes
-
-
-=item L<<<<<< XML::LibXML::Text >>>>>>
-
-XML::LibXML Class for Text Nodes
-
-
-=item L<<<<<< XML::LibXML::Comment >>>>>>
-
-XML::LibXML Comment Nodes
-
-
-=item L<<<<<< XML::LibXML::CDATASection >>>>>>
-
-XML::LibXML Class for CDATA Sections
-
-
-=item L<<<<<< XML::LibXML::Attr >>>>>>
-
-XML::LibXML Attribute Class
-
-
-=item L<<<<<< XML::LibXML::DocumentFragment >>>>>>
-
-XML::LibXML's DOM L2 Document Fragment Implementation
-
-
-=item L<<<<<< XML::LibXML::Namespace >>>>>>
-
-XML::LibXML Namespace Implementation
-
-
-=item L<<<<<< XML::LibXML::PI >>>>>>
-
-XML::LibXML Processing Instructions
-
-
 =item L<<<<<< XML::LibXML::Dtd >>>>>>
 
-XML::LibXML DTD Support
+XML::LibXML frontend for DTD validation
 
 
 =item L<<<<<< XML::LibXML::RelaxNG >>>>>>
@@ -120,6 +68,74 @@ XML::LibXML frontend for W3C Schema schema validation
 
 API for evaluating XPath expressions with enhanced support for the evaluation
 context
+
+
+=item L<<<<<< XML::LibXML::InputCallback >>>>>>
+
+Implementing custom URI Resolver and input callbacks
+
+
+=item L<<<<<< XML::LibXML::Common >>>>>>
+
+Common functions for XML::LibXML related Classes
+
+
+
+=back
+
+The nodes in the Document Object Model (DOM) are represented by the following
+classes (most of which "inherit" from L<<<<<< XML::LibXML::Node >>>>>>):
+
+=over 4
+
+=item L<<<<<< XML::LibXML::Document >>>>>>
+
+XML::LibXML class for DOM document nodes
+
+
+=item L<<<<<< XML::LibXML::Node >>>>>>
+
+Abstract base class for XML::LibXML DOM nodes
+
+
+=item L<<<<<< XML::LibXML::Element >>>>>>
+
+XML::LibXML class for DOM element nodes
+
+
+=item L<<<<<< XML::LibXML::Text >>>>>>
+
+XML::LibXML class for DOM text nodes
+
+
+=item L<<<<<< XML::LibXML::Comment >>>>>>
+
+XML::LibXML class for comment DOM nodes
+
+
+=item L<<<<<< XML::LibXML::CDATASection >>>>>>
+
+XML::LibXML class for DOM CDATA sections
+
+
+=item L<<<<<< XML::LibXML::Attr >>>>>>
+
+XML::LibXML DOM attribute class
+
+
+=item L<<<<<< XML::LibXML::DocumentFragment >>>>>>
+
+XML::LibXML's DOM L2 Document Fragment implementation
+
+
+=item L<<<<<< XML::LibXML::Namespace >>>>>>
+
+XML::LibXML DOM namespace nodes
+
+
+=item L<<<<<< XML::LibXML::PI >>>>>>
+
+XML::LibXML DOM processing instruction nodes
 
 
 
@@ -159,10 +175,9 @@ to/from the internal character representation is provided by libxml2 itself
 which must be able to enforce the encoding specified by the C<<<<<< <?xml version="1.0" encoding="..."?> >>>>>> declaration. Here is an example to follow: 
 
   use XML::LibXML;
-  my $parser = XML::LibXML->new;
   open my $fh, "file.xml";
   binmode $fh; # drop all PerlIO layers possibly created by a use open pragma
-  $doc = $parser->parse_fh($fh);
+  $doc = XML::LibXML->load_xml(IO => $fh);
   open my $out, "out.xml";
   binmode $fh; # as above
   $doc->toFh($fh);
@@ -241,8 +256,7 @@ between the main thread and any thread spawn from there. For example, in
 
 
 
-  my $parser = XML::LibXML->new();
-  my $doc = $parser->parse_file($filename);
+  my $doc = XML::LibXML->load_xml(location => $filename);
   my $thr = threads->new(sub{
     # code working with $doc
     1;
@@ -262,8 +276,7 @@ for creating a mutex lock and using it in I<<<<<< both >>>>>> in the thread that
 
 
 
-  my $parser = XML::LibXML->new();
-  my $doc = $parser->parse_file($filename);
+  my $doc = XML::LibXML->load_xml(location => $filename);
   my $mutex : shared;
   my $thr = threads->new(sub{
      lock $mutex;
@@ -347,8 +360,7 @@ Includes the tags C<<<<<< :libxml >>>>>>, C<<<<<< :encoding >>>>>>, and C<<<<<< 
 
 =item C<<<<<< :libxml >>>>>>
 
-Exports integer constants for DOM node types (defined in a separately
-distributed XML::LibXML::Common module).
+Exports integer constants for DOM node types.
 
 
 
@@ -410,14 +422,16 @@ itself. As they support some additional features, they are mentioned here.
 XSLT 1.0 Processor using libxslt and XML::LibXML
 
 
-=item L<<<<<< XML::LibXML::Common >>>>>>
-
-Common functions for XML::LibXML related Classes
-
-
 =item L<<<<<< XML::LibXML::Iterator >>>>>>
 
 XML::LibXML Implementation of the DOM Traversal Specification
+
+
+=item L<<<<<< XML::CompactTree::XS >>>>>>
+
+Uses XML::LibXML::Reader to very efficiently to parse XML document or element
+into native Perl data structures, which are less flexible but significantly
+faster to process then DOM.
 
 
 
@@ -488,10 +502,14 @@ Petr Pajas
 
 =head1 VERSION
 
-1.66
+1.70
 
 =head1 COPYRIGHT
 
-2001-2007, AxKit.com Ltd; 2002-2006 Christian Glahn; 2006-2008 Petr Pajas.
+2001-2007, AxKit.com Ltd.
+
+2002-2006, Christian Glahn.
+
+2006-2009, Petr Pajas.
 
 =cut

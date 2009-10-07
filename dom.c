@@ -1,4 +1,4 @@
-/* $Id: dom.c 776 2009-02-06 11:12:56Z pajas $
+/* $Id: dom.c 816 2009-10-05 20:17:36Z pajas $
  *
  * This is free software, you may use it and distribute it under the same terms as
  * Perl itself.
@@ -7,7 +7,7 @@
 */
 
 #include "dom.h"
-
+#include "perl-libxml-mm.h"
 
 /* #define warn(string) fprintf(stderr, string) */
 
@@ -16,6 +16,44 @@
 #else
 #define xs_warn(string)
 #endif
+
+void
+domClearPSVIInList(xmlNodePtr list);
+
+void
+domClearPSVI(xmlNodePtr tree) {
+    xmlAttrPtr prop;
+
+    if (tree == NULL)
+        return;
+    if (tree->type == XML_ELEMENT_NODE) {
+        tree->psvi = NULL;
+        prop = tree->properties;
+        while (prop != NULL) {
+            if (tree->type == XML_ATTRIBUTE_NODE)
+                ((xmlAttrPtr) prop)->psvi = NULL;
+            domClearPSVIInList(prop->children);
+            prop = prop->next;
+        }
+    } else if (tree->type == XML_DOCUMENT_NODE) {
+        ((xmlDocPtr) tree)->psvi = NULL;
+    }
+    if (tree->children != NULL)
+        domClearPSVIInList(tree->children);
+}
+
+void
+domClearPSVIInList(xmlNodePtr list) {
+    xmlNodePtr cur;
+
+    if (list == NULL)
+        return;
+    cur = list;
+    while (cur != NULL) {
+        domClearPSVI(cur);
+        cur = cur->next;
+    }
+}
 
 /**
  * Name: domReconcileNs
@@ -413,25 +451,25 @@ domAddNodeToList(xmlNodePtr cur, xmlNodePtr leader, xmlNodePtr followup)
  * function returns 1 (TRUE), otherwise 0 (FALSE).
  **/
 int
-domIsParent( xmlNodePtr cur, xmlNodePtr ref ) {
+domIsParent( xmlNodePtr cur, xmlNodePtr refNode ) {
     xmlNodePtr helper = NULL;
 
-    if ( cur == NULL
-         || ref == NULL
-         || cur->doc != ref->doc
-         || ref->children == NULL
+    if ( cur == NULL || refNode == NULL) return 0;
+    if (refNode==cur) return 1;
+    if ( cur->doc != refNode->doc
+         || refNode->children == NULL
          || cur->parent == (xmlNodePtr)cur->doc
          || cur->parent == NULL ) {
         return 0;
     }
 
-    if( ref->type == XML_DOCUMENT_NODE ) {
+    if( refNode->type == XML_DOCUMENT_NODE ) {
         return 1;
     }
 
     helper= cur;
     while ( helper && (xmlDocPtr) helper != cur->doc ) {
-        if( helper == ref ) {
+        if( helper == refNode ) {
             return 1;
         }
         helper = helper->parent;
@@ -441,13 +479,24 @@ domIsParent( xmlNodePtr cur, xmlNodePtr ref ) {
 }
 
 int
-domTestHierarchy(xmlNodePtr cur, xmlNodePtr ref) 
+domTestHierarchy(xmlNodePtr cur, xmlNodePtr refNode) 
 {
-    if ( !ref || !cur || cur->type == XML_ATTRIBUTE_NODE ) {
+    if ( !refNode || !cur ) {
         return 0;
     }
+    if (cur->type == XML_ATTRIBUTE_NODE) {
+      switch ( refNode->type ){
+      case XML_TEXT_NODE:
+      case XML_ENTITY_REF_NODE:
+        return 1;
+        break;
+      default:
+        return 0;
+        break;
+      }
+    }
 
-    switch ( ref->type ){
+    switch ( refNode->type ){
     case XML_ATTRIBUTE_NODE:
     case XML_DOCUMENT_NODE:
         return 0;
@@ -456,7 +505,7 @@ domTestHierarchy(xmlNodePtr cur, xmlNodePtr ref)
         break;
     }
     
-    if ( domIsParent( cur, ref ) ) {
+    if ( domIsParent( cur, refNode ) ) {
         return 0;
     }
 
@@ -464,10 +513,10 @@ domTestHierarchy(xmlNodePtr cur, xmlNodePtr ref)
 }
 
 int
-domTestDocument(xmlNodePtr cur, xmlNodePtr ref)
+domTestDocument(xmlNodePtr cur, xmlNodePtr refNode)
 {
     if ( cur->type == XML_DOCUMENT_NODE ) {
-        switch ( ref->type ) {
+        switch ( refNode->type ) {
         case XML_ATTRIBUTE_NODE:
         case XML_ELEMENT_NODE:
         case XML_ENTITY_NODE:
@@ -538,6 +587,9 @@ domImportNode( xmlDocPtr doc, xmlNodePtr node, int move, int reconcileNS ) {
 
     /* tell all children about the new boss */ 
     if ( node && node->doc != doc ) {
+        /* if the source document contained psvi, mark the current document as psvi tainted */
+        if (PmmIsPSVITainted(node->doc))
+            PmmInvalidatePSVI(doc);
         xmlSetTreeDoc(return_node, doc);
     }
 
@@ -1002,20 +1054,6 @@ domSetNodeValue( xmlNodePtr n , xmlChar* val ){
     }
 }
 
-
-void
-domSetParentNode( xmlNodePtr self, xmlNodePtr p ) {
-    /* never set the parent to a node in the own subtree */ 
-    if( self && !domIsParent(self, p)) {
-        if( self->parent != p ){
-            xmlUnlinkNode( self );
-            self->parent = p;
-            if( p->doc != self->doc ) {
-                self->doc = p->doc;
-            }
-        }
-    }
-}
 
 xmlNodeSetPtr
 domGetElementsByTagName( xmlNodePtr n, xmlChar* name ){

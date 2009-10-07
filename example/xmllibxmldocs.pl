@@ -121,18 +121,21 @@ sub set_general_info {
         $infostr .= "\n=head1 VERSION\n\n" . $version->string_value() . "\n\n";
     }
 
-    my ( $copyright ) = $infonode->findnodes( "copyright" );
-    if ( defined $copyright ) {
+    my @copyright = $infonode->findnodes( "copyright" );
+    if ( @copyright ) {
         $infostr .= "=head1 COPYRIGHT\n\n";
-        my $node_y = $copyright->getChildrenByTagName( "year" );
-        my $node_h = $copyright->getChildrenByTagName( "holder" );
-        if ( defined $node_y ) {
+	foreach my $copyright (@copyright) {
+	  my $node_y = $copyright->getChildrenByTagName( "year" );
+	  my $node_h = $copyright->getChildrenByTagName( "holder" );
+	  if ( defined $node_y ) {
             $infostr .= $node_y->string_value() . ", ";
-        }
-        if ( defined $node_h ) {
+	  }
+	  if ( defined $node_h ) {
             $infostr .= $node_h->string_value();
-        }
-        $infostr .= ".\n\n=cut\n"
+	  }
+	  $infostr .= ".\n\n";
+	}
+        $infostr .= "=cut\n"
     }
 
     $self->{infoblock} = $infostr;
@@ -429,9 +432,11 @@ sub dump_pod {
             $self->{OFILE}->print( "  ". $str );
             $self->{OFILE}->print( "\n\n" );
         }
-        elsif ( $node->nodeName() eq "funcsynopsis" ) {
-            $self->dump_pod($node);
-            $self->{OFILE}->print( "\n" );
+	elsif ( $node->nodeName() eq "funcsynopsis") {
+            if (($node->getAttribute('role')||'') ne 'synopsis') {
+              $self->dump_pod($node);
+              $self->{OFILE}->print( "\n" );
+            }
         }
         elsif(  $node->nodeName() eq "funcsynopsisinfo" ) {
             my $str = $node->string_value() ;

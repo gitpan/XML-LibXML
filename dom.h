@@ -1,5 +1,5 @@
 /* dom.h
- * $Id: dom.h 747 2008-11-03 14:29:15Z pajas $
+ * $Id: dom.h 792 2009-09-24 08:36:11Z pajas $
  * Author: Christian Glahn (2001)
  * 
  * This header file provides some definitions for wrapper functions.
@@ -212,9 +212,6 @@ domGetNodeValue( xmlNodePtr self );
 void
 domSetNodeValue( xmlNodePtr self, xmlChar* value );
 
-void
-domSetParentNode( xmlNodePtr self, xmlNodePtr newParent );
-
 xmlNodePtr
 domReplaceNode( xmlNodePtr old, xmlNodePtr new );
 
@@ -277,5 +274,8 @@ domRemoveNsRefs(xmlNodePtr tree, xmlNsPtr ns);
 
 void
 domAttrSerializeContent(xmlBufferPtr buffer, xmlAttrPtr attr);
+
+void
+domClearPSVI(xmlNodePtr tree);
 
 #endif

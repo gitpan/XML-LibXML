@@ -6,48 +6,70 @@ XML::LibXML::Parser - Parsing XML Data with XML::LibXML
 
 
 
-  use XML::LibXML;
-  my $parser = XML::LibXML->new();
+  use XML::LibXML 1.70;
 
-  my $doc = $parser->parse_string(<<'EOT');
-  <some-xml/>
-  EOT
-  my $fdoc = $parser->parse_file( $xmlfile );
-
-  my $fhdoc = $parser->parse_fh( $xmlstream );
-
-  my $fragment = $parser->parse_xml_chunk( $xml_wb_chunk );
-
+  # Parser constructor
+  
   $parser = XML::LibXML->new();
+  $parser = XML::LibXML->new(option=>value, ...);
+  $parser = XML::LibXML->new({option=>value, ...});
+  
+  # Parsing XML
+  
+  $dom = XML::LibXML->load_xml(
+      location => $file_or_url
+      # parser options ...
+    );
+  $dom = XML::LibXML->load_xml(
+      string => $xml_string
+      # parser options ...
+    );
+  $dom = XML::LibXML->load_xml({
+      IO => $perl_file_handle
+      # parser options ...
+    );
+  $dom = $parser->load_xml(...);
+  			  
+  # Parsing HTML
+  
+  $dom = XML::LibXML->load_html(...);
+  $dom = $parser->load_html(...);
+  			  
+  # Parsing well-balanced XML chunks
+  			       
+  $fragment = $parser->parse_balanced_chunk( $wbxmlstring, $encoding );
+  
+  # Processing XInclude
+  
+  $parser->process_xincludes( $doc );
+  $parser->processXIncludes( $doc );
+  
+  # Old-style parser interfaces
+  			       
   $doc = $parser->parse_file( $xmlfilename );
   $doc = $parser->parse_fh( $io_fh );
   $doc = $parser->parse_string( $xmlstring);
   $doc = $parser->parse_html_file( $htmlfile, \%opts );
   $doc = $parser->parse_html_fh( $io_fh, \%opts );
   $doc = $parser->parse_html_string( $htmlstring, \%opts );
-  $fragment = $parser->parse_balanced_chunk( $wbxmlstring );
-  $fragment = $parser->parse_xml_chunk( $wbxmlstring );
-  $parser->process_xincludes( $doc );
-  $parser->processXIncludes( $doc );
+  
+  # Push parser
+  			    
   $parser->parse_chunk($string, $terminate);
-  $parser->start_push();
+  $parser->init_push();
   $parser->push(@data);
   $doc = $parser->finish_push( $recover );
-  $parser->validation(1);
-  $parser->recover(1);
-  $parser->recover_silently(1);
-  $parser->expand_entities(0);
-  $parser->keep_blanks(0);
-  $parser->pedantic_parser(1);
-  $parser->line_numbers(1);
-  $parser->load_ext_dtd(1);
-  $parser->complete_attributes(1);
-  $parser->expand_xinclude(1);
+  
+  # Set/query parser options
+                      
+  $parser->option_exists($name);
+  $parser->get_option($name);
+  $parser->set_option($name,$value);
+  $parser->set_options({$name=>$value,...});
+  
+  # XML catalogs
+                      
   $parser->load_catalog( $catalog_file );
-  $parser->base_uri( $your_base_uri );
-  $parser->gdome_dom(1);
-  $parser->clean_namespaces( 1 );
-  $parser->no_network(1);
 
 =head1 PARSING
 
@@ -94,14 +116,15 @@ have to create a parser instance before you can parse any XML data.
 
 =item new
 
+  
   $parser = XML::LibXML->new();
+  $parser = XML::LibXML->new(option=>value, ...);
+  $parser = XML::LibXML->new({option=>value, ...});
 
-There is nothing much to say about the constructor. It simply creates a new
-parser instance.
-
-Although libxml2 uses mainly global flags to alter the behaviour of the parser,
-each XML::LibXML parser instance has its own flags or callbacks and does not
-interfere with other instances.
+Create a new XML and HTML parser instance. Each parser instance holds default
+values for various parser options. Optionally, one can pass a hash reference or
+a list of option => value pairs to set a different default set of options.
+Unless specified otherwise, the options C<<<<<< load_ext_dtd >>>>>>, C<<<<<< expand_entities >>>>>>, and C<<<<<< huge >>>>>> are set to 1. See L<<<<<< Parser Options >>>>>> for a list of libxml2 parser's options. 
 
 
 
@@ -123,6 +146,112 @@ invalid. To prevent this causing your program exiting, wrap the call in an
 eval{} block
 
 =over 4
+
+=item load_xml
+
+  
+  $dom = XML::LibXML->load_xml(
+      location => $file_or_url
+      # parser options ...
+    );
+  $dom = XML::LibXML->load_xml(
+      string => $xml_string
+      # parser options ...
+    );
+  $dom = XML::LibXML->load_xml({
+      IO => $perl_file_handle
+      # parser options ...
+    );
+  $dom = $parser->load_xml(...);
+  			  
+
+This function is available since XML::LibXML 1.70. It provides easy to use
+interface to the XML parser that parses given file (or URL), string, or input
+stream to a DOM tree. The arguments can be passed in a HASH reference or as
+name => value pairs. The function can be called as a class method or an object
+method. In both cases it internally creates a new parser instance passing the
+specified parser options; if called as an object method, it clones the original
+parser (preserving its settings) and additionally applies the specified options
+to the new parser. See the constructor C<<<<<< new >>>>>> and L<<<<<< Parser Options >>>>>> for more information. 
+
+
+=item load_xml
+
+  
+  $dom = XML::LibXML->load_html(...);
+  $dom = $parser->load_html(...);
+  			  
+
+This function is available since XML::LibXML 1.70. It has the same usage as C<<<<<< load_xml >>>>>>, providing interface to the HTML parser. See C<<<<<< load_xml >>>>>> for more information. 
+
+
+Parsing HTML may cause problems, especially if the ampersand ('&') is used.
+This is a common problem if HTML code is parsed that contains links to
+CGI-scripts. Such links cause the parser to throw errors. In such cases libxml2
+still parses the entire document as there was no error, but the error causes
+XML::LibXML to stop the parsing process. However, the document is not lost.
+Such HTML documents should be parsed using the I<<<<<< recover >>>>>> flag. By default recovering is deactivated.
+
+The functions described above are implemented to parse well formed documents.
+In some cases a program gets well balanced XML instead of well formed documents
+(e.g. a XML fragment from a Database). With XML::LibXML it is not required to
+wrap such fragments in the code, because XML::LibXML is capable even to parse
+well balanced XML fragments.
+
+=over 4
+
+=item parse_balanced_chunk
+
+  $fragment = $parser->parse_balanced_chunk( $wbxmlstring, $encoding );
+
+This function parses a well balanced XML string into a L<<<<<< XML::LibXML::DocumentFragment >>>>>>. The first arguments contains the input string, the optional second argument
+can be used to specify character encoding of the input (UTF-8 is assumed by
+default).
+
+
+=item parse_xml_chunk
+
+This is the old name of parse_balanced_chunk(). Because it may causes confusion
+with the push parser interface, this function should not be used anymore.
+
+
+
+=back
+
+By default XML::LibXML does not process XInclude tags within a XML Document
+(see options section below). XML::LibXML allows to post process a document to
+expand XInclude tags.
+
+=over 4
+
+=item process_xincludes
+
+  $parser->process_xincludes( $doc );
+
+After a document is parsed into a DOM structure, you may want to expand the
+documents XInclude tags. This function processes the given document structure
+and expands all XInclude tags (or throws an error) by using the flags and
+callbacks of the given parser instance.
+
+Note that the resulting Tree contains some extra nodes (of type
+XML_XINCLUDE_START and XML_XINCLUDE_END) after successfully processing the
+document. These nodes indicate where data was included into the original tree.
+if the document is serialized, these extra nodes will not show up.
+
+Remember: A Document with processed XIncludes differs from the original
+document after serialization, because the original XInclude tags will not get
+restored!
+
+If the parser flag "expand_xincludes" is set to 1, you need not to post process
+the parsed document.
+
+
+=item processXIncludes
+
+  $parser->processXIncludes( $doc );
+
+This is an alias to process_xincludes, but through a JAVA like function name.
+
 
 =item parse_file
 
@@ -169,9 +298,7 @@ Similar to parse_file() but parses HTML (strict) documents; $htmlfile can be
 filename or URL. 
 
 An optional second argument can be used to pass some options to the HTML parser
-as a HASH reference. Possible options are: Possible options are: encoding and
-URI, and with libxml2 > 2.6.27 additionally: recover, suppress_errors,
-suppress_warnings, pedantic_parser, no_blanks, and no_network. 
+as a HASH reference. See options labeled with HTML in L<<<<<< Parser Options >>>>>>. 
 
 
 =item parse_html_fh
@@ -181,11 +308,10 @@ suppress_warnings, pedantic_parser, no_blanks, and no_network.
 Similar to parse_fh() but parses HTML (strict) streams.
 
 An optional second argument can be used to pass some options to the HTML parser
-as a HASH reference. Possible options are: encoding and URI, and with libxml2 >
-2.6.27 additionally: recover, suppress_errors, suppress_warnings,
-pedantic_parser, no_blanks, and no_network. Note: encoding option may not work
-correctly with this function in libxml2 < 2.6.27 if the HTML file declares
-charset using a META tag. 
+as a HASH reference. See options labeled with HTML in L<<<<<< Parser Options >>>>>>. 
+
+Note: encoding option may not work correctly with this function in libxml2 <
+2.6.27 if the HTML file declares charset using a META tag. 
 
 
 =item parse_html_string
@@ -195,81 +321,11 @@ charset using a META tag.
 Similar to parse_string() but parses HTML (strict) strings.
 
 An optional second argument can be used to pass some options to the HTML parser
-as a HASH reference. Possible options are: encoding and URI, and with libxml2 >
-2.6.27 additionally: recover, suppress_errors, suppress_warnings,
-pedantic_parser, no_blanks, and no_network. 
+as a HASH reference. See options labeled with HTML in L<<<<<< Parser Options >>>>>>. 
 
 
 
 =back
-
-Parsing HTML may cause problems, especially if the ampersand ('&') is used.
-This is a common problem if HTML code is parsed that contains links to
-CGI-scripts. Such links cause the parser to throw errors. In such cases libxml2
-still parses the entire document as there was no error, but the error causes
-XML::LibXML to stop the parsing process. However, the document is not lost.
-Such HTML documents should be parsed using the I<<<<<< recover >>>>>> flag. By default recovering is deactivated.
-
-The functions described above are implemented to parse well formed documents.
-In some cases a program gets well balanced XML instead of well formed documents
-(e.g. a XML fragment from a Database). With XML::LibXML it is not required to
-wrap such fragments in the code, because XML::LibXML is capable even to parse
-well balanced XML fragments.
-
-=over 4
-
-=item parse_balanced_chunk
-
-  $fragment = $parser->parse_balanced_chunk( $wbxmlstring );
-
-This function parses a well balanced XML string into a L<<<<<< XML::LibXML::DocumentFragment >>>>>>.
-
-
-=item parse_xml_chunk
-
-  $fragment = $parser->parse_xml_chunk( $wbxmlstring );
-
-This is the old name of parse_balanced_chunk(). Because it may causes confusion
-with the push parser interface, this function should not be used anymore.
-
-
-
-=back
-
-By default XML::LibXML does not process XInclude tags within a XML Document
-(see options section below). XML::LibXML allows to post process a document to
-expand XInclude tags.
-
-=over 4
-
-=item process_xincludes
-
-  $parser->process_xincludes( $doc );
-
-After a document is parsed into a DOM structure, you may want to expand the
-documents XInclude tags. This function processes the given document structure
-and expands all XInclude tags (or throws an error) by using the flags and
-callbacks of the given parser instance.
-
-Note that the resulting Tree contains some extra nodes (of type
-XML_XINCLUDE_START and XML_XINCLUDE_END) after successfully processing the
-document. These nodes indicate where data was included into the original tree.
-if the document is serialized, these extra nodes will not show up.
-
-Remember: A Document with processed XIncludes differs from the original
-document after serialization, because the original XInclude tags will not get
-restored!
-
-If the parser flag "expand_xincludes" is set to 1, you need not to post process
-the parsed document.
-
-
-=item processXIncludes
-
-  $parser->processXIncludes( $doc );
-
-This is an alias to process_xincludes, but through a JAVA like function name.
-
 
 
 =back
@@ -325,9 +381,9 @@ process:
 
 =over 4
 
-=item start_push
+=item init_push
 
-  $parser->start_push();
+  $parser->init_push();
 
 Initializes the push parser.
 
@@ -337,7 +393,7 @@ Initializes the push parser.
   $parser->push(@data);
 
 This function pushes the data stored inside the array to libxml2's parser. Each
-entry in @data must be a normal scalar!
+entry in @data must be a normal scalar! This method can be called repeatedly.
 
 
 =item finish_push
@@ -380,11 +436,23 @@ parser before.
 =back
 
 
+=head2 Pull Parser (Reader)
+
+XML::LibXML also provides a pull-parser interface similar to the XmlReader
+interface in .NET. This interface is almost streaming, and is usually faster
+and simpler to use than SAX. See L<<<<<< XML::LibXML::Reader >>>>>>.
+
+
+=head2 Direct SAX Parser
+
+XML::LibXML provides a direct SAX parser in the L<<<<<< XML::LibXML::SAX >>>>>> module.
+
+
 =head2 DOM based SAX Parser
 
-XML::LibXML provides a DOM based SAX parser. The SAX parser is defined in the
-module XML::LibXML::SAX::Parser. As it is not a stream based parser, it parses
-documents into a DOM and traverses the DOM tree instead.
+XML::LibXML also provides a DOM based SAX parser. The SAX parser is defined in
+the module XML::LibXML::SAX::Parser. As it is not a stream based parser, it
+parses documents into a DOM and traverses the DOM tree instead.
 
 The API of this parser is exactly the same as any other Perl SAX2 parser. See
 XML::SAX::Intro for details.
@@ -405,9 +473,8 @@ I<<<<<< WARNING >>>>>>
 
 This is NOT a streaming SAX parser. As I said above, this parser reads the
 entire document into a DOM and serialises it. Some people couldn't read that in
-the paragraph above so I've added this warning.
-
-If you want a streaming SAX parser look at the L<<<<<< XML::LibXML::SAX >>>>>> man page
+the paragraph above so I've added this warning. If you want a streaming SAX
+parser look at the L<<<<<< XML::LibXML::SAX >>>>>> man page
 
 
 =head1 SERIALIZATION
@@ -463,184 +530,395 @@ and closing tags rather than the shortcut. For example the empty tag I<<<<<< foo
 
 =head1 PARSER OPTIONS
 
-LibXML options are global (unfortunately this is a limitation of the underlying
-implementation, not this interface). They can either be set using
-$parser->option(...), or XML::LibXML->option(...), both are treated in the same
-manner. Note that even two parser processes will share some of the same
-options, so be careful out there!
-
-Every option returns the previous value, and can be called without parameters
-to get the current value.
+Handling of libxml2 parser options has been unified and improved in XML::LibXML
+1.70. You can now set default options for a particular parser instance by
+passing them to the constructor as C<<<<<< XML::LibXML->new({name=>value, ...}) >>>>>> or C<<<<<< XML::LibXML->new(name=>value,...) >>>>>>. The options can be queried and changed using the following methods (pre-1.70
+interfaces such as C<<<<<< $parser->load_ext_dtd(0) >>>>>> also exist, see below): 
 
 =over 4
 
-=item validation
+=item option_exists
 
-  $parser->validation(1);
+  $parser->option_exists($name);
 
-Turn validation on (or off). Defaults to off.
-
-
-=item recover
-
-  $parser->recover(1);
-
-Turn the parsers recover mode on (or off). Defaults to off.
-
-This allows one to parse broken XML data into memory. This switch will only
-work with XML data rather than HTML data. Also the validation will be switched
-off automatically.
-
-The recover mode helps to recover documents that are almost well-formed very
-efficiently. That is for example a document that forgets to close the document
-tag (or any other tag inside the document). The recover mode of XML::LibXML has
-problems restoring documents that are more like well balanced chunks.
-
-XML::LibXML will only parse until the first fatal error occurs, reporting
-recoverable parsing errors as warnings. To suppress these warnings use
-$parser->recover_silently(1); or, equivalently, $parser->recover(2).
+Returns 1 if the current XML::LibXML version supports the option C<<<<<< $name >>>>>>, otherwise returns 0 (note that this does not necessarily mean that the option
+is supported by the underlying libxml2 library).
 
 
-=item recover_silently
+=item get_option
 
-  $parser->recover_silently(1);
+  $parser->get_option($name);
 
-Turns the parser warnings off (or on). Defaults to on.
-
-This allows to switch off warnings printed to STDERR when parsing documents
-with recover(1).
-
-Please note that calling recover_silently(0) also turns the parser recover mode
-off and calling recover_silently(1) automatically activates the parser recover
-mode.
+Returns the current value of the parser option C<<<<<< $name >>>>>>.
 
 
-=item expand_entities
+=item set_option
 
-  $parser->expand_entities(0);
+  $parser->set_option($name,$value);
 
-Turn entity expansion on or off, enabled by default. If entity expansion is
-off, any external parsed entities in the document are left as entities.
-Probably not very useful for most purposes.
+Sets option C<<<<<< $name >>>>>> to value C<<<<<< $value >>>>>>.
 
 
-=item keep_blanks
+=item set_options
 
-  $parser->keep_blanks(0);
+  $parser->set_options({$name=>$value,...});
 
-Allows you to turn off XML::LibXML's default behaviour of maintaining
-white-space in the document.
+Sets multiple parsing options at once.
 
 
-=item pedantic_parser
 
-  $parser->pedantic_parser(1);
+=back
 
-You can make XML::LibXML more pedantic if you want to.
+IMPORTANT NOTE: This documentation reflects the parser flags available in
+libxml2 2.7.3. Some options have no effect if an older version of libxml2 is
+used. 
+
+Each of the flags listed below is labeled labeled
+
+=over 4
+
+=item /parser/
+
+if it can be used with a C<<<<<< XML::LibXML >>>>>> parser object (i.e. passed to C<<<<<< XML::LibXML->new >>>>>>, C<<<<<< XML::LibXML->set_option >>>>>>, etc.) 
+
+
+=item /html/
+
+if it can be used passed to the C<<<<<< parse_html_* >>>>>> methods
+
+
+=item /reader/
+
+if it can be used with the C<<<<<< XML::LibXML::Reader >>>>>>.
+
+
+
+=back
+
+Unless specified otherwise, the default for boolean valued options is 0
+(false). 
+
+The available options are:
+
+=over 4
+
+=item URI
+
+/parser, html, reader/
+
+In case of parsing strings or file handles, XML::LibXML doesn't know about the
+base uri of the document. To make relative references such as XIncludes work,
+one has to set a base URI, that is then used for the parsed document.
 
 
 =item line_numbers
 
-  $parser->line_numbers(1);
+/parser, html, reader/
 
-If this option is activated XML::LibXML will store the line number of a node.
-This gives more information where a validation error occurred. It could be also
-used to find out about the position of a node after parsing (see also
-XML::LibXML::Node::line_number()). 
+If this option is activated, libxml2 will store the line number of each element
+node in the parsed document. The line number can be obtained using the C<<<<<< line_number() >>>>>> method of the C<<<<<< XML::LibXML::Node >>>>>> class (for non-element nodes this may report the line number of the containing
+element). The line numbers are also used for reporting positions of validation
+errors. 
 
 IMPORTANT: Due to limitations in the libxml2 library line numbers greater than
-65535 will be returned as 65535. Please see L<<<<<< http://bugzilla.gnome.org/show_bug.cgi?id=325533 >>>>>> for more details. 
+65535 will be returned as 65535. Unfortunatelly, this is a long and sad story,
+please see L<<<<<< http://bugzilla.gnome.org/show_bug.cgi?id=325533 >>>>>> for more details. 
 
-By default line numbering is switched off (0).
+
+=item encoding
+
+/html/
+
+character encoding of the input
+
+
+=item recover
+
+/parser, html, reader/
+
+recover from errors; possible values are 0, 1, and 2
+
+A true value turns on recovery mode which allows one to parse broken XML or
+HTML data. The recovery mode allows the parser to return the successfully
+parsed portion of the input document. This is useful for almost well-formed
+documents, where for example a closing tag is missing somewhere. Still,
+XML::LibXML will only parse until the first fatal (non-recoverable) error
+occurs, reporting recoverable parsing errors as warnings. To suppress even
+these warnings, use recover=>2.
+
+Note that validation is switched off automatically in recovery mode.
+
+
+=item expand_entities
+
+/parser, reader/
+
+substitute entities; possible values are 0 and 1; default is 1
+
+Note that although this flag disables entity substitution, it does not prevent
+the parser from loading external entities; when substitution of an external
+entity is disabled, the entity will be represented in the document tree by a
+XML_ENTITY_REF_NODE node whose subtree will be the content obtained by parsing
+the external resource; Although this is level of nesting is visible from the
+DOM it is transparent to XPath data model, so it is possible to match nodes in
+an unexpanded entity by the same XPath expression as if the entity was
+expanded. See also ext_ent_handler. 
+
+
+=item ext_ent_handler
+
+/parser/
+
+Provide a custom external entity handler to be used when expand_entities is set
+to 1. Possible value is a subroutine reference. 
+
+This feature does not work properly in libxml2 < 2.6.27!
+
+The subroutine provided is called whenever the parser needs to retrieve the
+content of an external entity. It is called with two arguments: the system ID
+(URI) and the public ID. The value returned by the subroutine is parsed as the
+content of the entity. 
+
+This method can be used to completely disable entity loading, e.g. to prevent
+exploits of the type described at  (L<<<<<< http://searchsecuritychannel.techtarget.com/generic/0,295582,sid97_gci1304703,00.html >>>>>>), where a service is tricked to expose its private data by letting it parse a
+remote file (RSS feed) that contains an entity reference to a local file (e.g. C<<<<<< /etc/fstab >>>>>>). 
+
+A more granular solution to this problem, however, is provided by custom URL
+resolvers, as in 
+
+  my $c = XML::LibXML::InputCallback->new();
+  sub match {   # accept file:/ URIs except for XML catalogs in /etc/xml/
+    my ($uri) = @_;
+    return ($uri=~m{^file:/}
+            and $uri !~ m{^file:///etc/xml/}) 
+           ? 1 : 0;
+  }
+  $c->register_callbacks([ \&match, sub{}, sub{}, sub{} ]);
+  $parser->input_callbacks($c);
+
+
 
 
 =item load_ext_dtd
 
-  $parser->load_ext_dtd(1);
+/parser, reader/
 
-Load external DTD subsets while parsing.
+load the external DTD subset while parsing; possible values are 0 and 1. Unless
+specified, XML::LibXML sets this option to 1.
 
 This flag is also required for DTD Validation, to provide complete attribute,
 and to expand entities, regardless if the document has an internal subset. Thus
 switching off external DTD loading, will disable entity expansion, validation,
 and complete attributes on internal subsets as well.
 
-If you leave this parser flag untouched, everything will work, because the
-default is 1 (activated)
-
 
 =item complete_attributes
 
-  $parser->complete_attributes(1);
+/parser, reader/
 
-Complete the elements attributes lists with the ones defaulted from the DTDs.
-By default, this option is enabled.
+create default DTD attributes; possible values are 0 and 1
 
 
-=item expand_xinclude
+=item validation
 
-  $parser->expand_xinclude(1);
+/parser, reader/
 
-Expands XIinclude tags immediately while parsing the document. This flag
-assures that the parser callbacks are used while parsing the included document.
+validate with the DTD; possible values are 0 and 1
 
+
+=item suppress_errors
+
+/parser, html, reader/
+
+suppress error reports; possible values are 0 and 1
+
+
+=item suppress_warnings
+
+/parser, html, reader/
+
+suppress warning reports; possible values are 0 and 1
+
+
+=item pedantic_parser
+
+/parser, html, reader/
+
+pedantic error reporting; possible values are 0 and 1
+
+
+=item no_blanks
+
+/parser, html, reader/
+
+remove blank nodes; possible values are 0 and 1
+
+
+=item expand_xinclude or xinclude
+
+/parser, reader/
+
+Implement XInclude substitution; possible values are 0 and 1
+
+Expands XIinclude tags immediately while parsing the document. Note that the
+parser will use the URI resolvers installed via C<<<<<< XML::LibXML::InputCallback >>>>>> to parse the included document (if any).
+
+
+=item no_xinclude_nodes
+
+/parser, reader/
+
+do not generate XINCLUDE START/END nodes; possible values are 0 and 1
+
+
+=item no_network
+
+/parser, html, reader/
+
+Forbid network access; possible values are 0 and 1
+
+If set to true, all attempts to fetch non-local resources (such as DTD or
+external entities) will fail (unless custom callbacks are defined).
+
+It may be necessary to use the flag C<<<<<< recover >>>>>> for processing documents requiring such resources while networking is off. 
+
+
+=item clean_namespaces
+
+/parser, reader/
+
+remove redundant namespaces declarations during parsing; possible values are 0
+and 1. 
+
+
+=item no_cdata
+
+/parser, html, reader/
+
+merge CDATA as text nodes; possible values are 0 and 1
+
+
+=item no_basefix
+
+/parser, reader/
+
+not fixup XINCLUDE xml#base URIS; possible values are 0 and 1
+
+
+=item huge
+
+/parser, html, reader/
+
+relax any hardcoded limit from the parser; possible values are 0 and 1. Unless
+specified, XML::LibXML sets this option to 1.
+
+
+=item gdome
+
+/parser/
+
+THIS OPTION IS EXPERIMENTAL!
+
+Although quite powerful, XML:LibXML's DOM implementation is incomplete with
+respect to the DOM level 2 or level 3 specifications. XML::GDOME is based on
+libxml2 as well and and provides a rather complete DOM implementation by
+wrapping libgdome. This flag allows you to make use of XML::LibXML's full
+parser options and XML::GDOME's DOM implementation at the same time.
+
+To make use of this function, one has to install libgdome and configure
+XML::LibXML to use this library. For this you need to rebuild XML::LibXML!
+
+Note: this feature was not seriously tested in recent XML::LibXML releases.
+
+
+
+=back
+
+For compatibility with XML::LibXML versions prior to 1.70, the following
+methods are also supported for querying and setting the corresponding parser
+options (if called without arguments, the methods return the current value of
+the corresponding parser options; with an argument sets the option to a given
+value): 
+
+
+
+  $parser->validation();
+  $parser->recover();
+  $parser->pedantic_parser();
+  $parser->line_numbers();
+  $parser->load_ext_dtd();
+  $parser->complete_attributes();
+  $parser->expand_xinclude();
+  $parser->gdome_dom();
+  $parser->clean_namespaces();
+  $parser->no_network();
+
+The following obsolete methods trigger parser options in some special way:
+
+=over 4
+
+=item recover_silently
+
+
+
+  $parser->recover_silently(1);;
+
+If called without an argument, returns true if the current value of the C<<<<<< recover >>>>>> parser option is 2 and returns false otherwise. With a true argument sets the C<<<<<< recover >>>>>> parser option to 2; with a false argument sets the C<<<<<< recover >>>>>> parser option to 0. 
+
+
+=item expand_entities
+
+
+
+  $parser->expand_entities(0);
+
+Get/set the C<<<<<< expand_entities >>>>>> option. If called with a true argument, also turns the C<<<<<< load_ext_dtd >>>>>> option to 1. 
+
+
+=item keep_blanks
+
+
+
+  $parser->keep_blanks(0);
+
+This is actually an oposite of the C<<<<<< no_blanks >>>>>> parser option. If used without an argument retrieves negated value of C<<<<<< no_blanks >>>>>>. If used with an argument sets C<<<<<< no_blanks >>>>>> to the oposite value. 
+
+
+=item base_uri
+
+
+
+  $parser->base_uri( $your_base_uri );
+
+Get/set the C<<<<<< URI >>>>>> option.
+
+
+
+=back
+
+
+=head1 XML CATALOGS
+
+C<<<<<< libxml2 >>>>>> supports XML catalogs. Catalogs are used to map remote resources to their local
+copies. Using catalogs can speed up parsing processes if many external
+resources from remote addresses are loaded into the parsed documents (such as
+DTDs or XIncludes). 
+
+Note that libxml2 has a global pool of loaded catalogs, so if you apply the
+method C<<<<<< load_catalog >>>>>> to one parser instance, all parser instances will start using the catalog (in
+addition to other previously loaded catalogs). 
+
+Note also that catalogs are not used when a custom external entity handler is
+specified. At the current state it is not possible to make use of both types of
+resolving systems at the same time.
+
+=over 4
 
 =item load_catalog
 
   $parser->load_catalog( $catalog_file );
 
-Will use $catalog_file as a catalog during all parsing processes. Using a
-catalog will significantly speed up parsing processes if many external
-resources are loaded into the parsed documents (such as DTDs or XIncludes).
-
-Note that catalogs will not be available if an external entity handler was
-specified. At the current state it is not possible to make use of both types of
-resolving systems at the same time.
-
-
-=item base_uri
-
-  $parser->base_uri( $your_base_uri );
-
-In case of parsing strings or file handles, XML::LibXML doesn't know about the
-base uri of the document. To make relative references such as XIncludes work,
-one has to set a separate base URI, that is then used for the parsed documents.
-
-
-=item gdome_dom
-
-  $parser->gdome_dom(1);
-
-THIS FLAG IS EXPERIMENTAL!
-
-Although quite powerful XML:LibXML's DOM implementation is limited if one needs
-or wants full DOM level 2 or level 3 support. XML::GDOME is based on libxml2 as
-well but provides a rather complete DOM implementation by wrapping libgdome.
-This allows you to make use of XML::LibXML's full parser options and
-XML::GDOME's DOM implementation at the same time.
-
-To make use of this function, one has to install libgdome and configure
-XML::LibXML to use this library. For this you need to rebuild XML::LibXML!
-
-
-=item clean_namespaces
-
-  $parser->clean_namespaces( 1 );
-
-libxml2 2.6.0 and later allows to strip redundant namespace declarations from
-the DOM tree. To do this, one has to set clean_namespaces() to 1 (TRUE). By
-default no namespace cleanup is done.
-
-
-=item no_network
-
-  $parser->no_network(1);
-
-Turn networking support on or off, enabled by default. If networking is off,
-all attempts to fetch non-local resources (such as DTD or external entities)
-will fail (unless custom callbacks are defined). It may be necessary to use
-$parser->recover(1) for processing documents requiring such resources while
-networking is off. 
+Loads the XML catalog file $catalog_file.
 
 
 
@@ -650,19 +928,18 @@ networking is off.
 =head1 ERROR REPORTING
 
 XML::LibXML throws exceptions during parsing, validation or XPath processing
-(and some other occasions). These errors can be caught by using I<<<<<< eval >>>>>> blocks. The error then will be stored in I<<<<<< $@ >>>>>>. There are two implementations: the old one throws $@ which is a flat string,
-in the new one $@ is an object from the class XML::LibXML::Error; this class
-overrides the operator "" so that when printed, the object flattens to the
-usual error message. 
+(and some other occasions). These errors can be caught by using I<<<<<< eval >>>>>> blocks. The error is stored in I<<<<<< $@ >>>>>>. There are two implementations: the old one throws $@ which is just a message
+string, in the new one $@ is an object from the class XML::LibXML::Error; this
+class overrides the operator "" so that when printed, the object flattens to
+the usual error message. 
 
-XML::LibXML throws errors as they occurs and does not wait if a user test for
-them. This is a very common misunderstanding in the use of XML::LibXML. If the
-eval is omitted, XML::LibXML will always halt your script by "croaking" (see
-Carp man page for details).
+XML::LibXML throws errors as they occur. This is a very common misunderstanding
+in the use of XML::LibXML. If the eval is omitted, XML::LibXML will always halt
+your script by "croaking" (see Carp man page for details).
 
 Also note that an increasing number of functions throw errors if bad data is
-passed. If you cannot assure valid data passed to XML::LibXML you should eval
-these functions.
+passed as arguments. If you cannot assure valid data passed to XML::LibXML you
+should eval these functions.
 
 Note: since version 1.59, get_last_error() is no longer available in
 XML::LibXML for thread-safety reasons.
@@ -676,10 +953,14 @@ Petr Pajas
 
 =head1 VERSION
 
-1.66
+1.70
 
 =head1 COPYRIGHT
 
-2001-2007, AxKit.com Ltd; 2002-2006 Christian Glahn; 2006-2008 Petr Pajas.
+2001-2007, AxKit.com Ltd.
+
+2002-2006, Christian Glahn.
+
+2006-2009, Petr Pajas.
 
 =cut

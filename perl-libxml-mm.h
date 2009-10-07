@@ -1,6 +1,6 @@
 /**
  * perl-libxml-mm.h
- * $Id: perl-libxml-mm.h 765 2008-11-26 09:24:43Z pajas $
+ * $Id: perl-libxml-mm.h 816 2009-10-05 20:17:36Z pajas $
  *
  * Basic concept:
  * perl varies in the implementation of UTF8 handling. this header (together
@@ -62,14 +62,79 @@ struct _ProxyNode {
     xmlNodePtr node;
     xmlNodePtr owner;
     int count;
-    int encoding;
 };
 
+struct _DocProxyNode {
+    xmlNodePtr node;
+    xmlNodePtr owner;
+    int count;
+    int encoding; /* only used for proxies of xmlDocPtr */
+    int psvi_status; /* see below ... */
+};
+
+/* the psvi_status flag requires some explanation:
+
+   each time libxml2 validates a document (using DTD, Schema or
+   RelaxNG) it stores a pointer to a last successfully applied grammer
+   rule in node->psvi. Upon next validation, if libxml2 wants to check
+   that node matches some grammar rule, it first compares the rule
+   pointer and node->psvi. If these are equal, the validation of the
+   node's subtree is skipped and the node is assumed to match the
+   rule.
+   
+   This causes problems when the tree is modified and then
+   re-validated or when the schema is freed and the document is
+   revalidated using a different schema and by bad chance a rule
+   tested against some node got allocated to the exact same location
+   as the rule from the schema used for the prior validation, already
+   freed, but still pointed to by node->psvi).
+
+   Thus, the node->psvi values can't be trusted at all and we want to
+   make sure all psvi slots are NULL before each validation. To aviod
+   traversing the tree in the most common case, when each document is
+   validated just once, we maintain the psvi_status flag.
+
+   Validating a document triggers this flag (sets it to 1).  The
+   document with psvi_status==1 is traversed and psvi slots are nulled
+   prior to any validation.  When the flag is triggered, it remains
+   triggered for the rest of the document's life, there is no way to
+   null it (even nulling up the psvi's does not null the flag, because
+   there may be unlinked parts of the document floating around which
+   we don't know about and thus cannot null their psvi pointers; these
+   unlinked document parts would cause inconsistency when re-attached
+   to the document tree).
+
+   Also, importing a node from a document with psvi_status==1 to a
+   document with psvi_status==0 automatically triggers psvi_status on
+   the target document.
+
+   NOTE: We could alternatively just null psvis from any imported
+   subtrees, but that would add an O(n) cleanup operation (n the size
+   of the imported subtree) on every importNode (possibly needlessly
+   since the target document may not ever be revalidated) whereas
+   triggering the flag is O(1) and possibly adds one O(N) cleanup
+   operation (N the size of the document) to the first validation of
+   the target document (any subsequent re-validation of the document
+   would have to perform the operation anyway). The sum of all n's may
+   be less then N, but OTH, there is a great chance that the O(N)
+   cleanup will never be performed.  (BTW, validation is at least
+   O(N), probably O(Nlog N) anyway, so the cleanup has little impact;
+   similarly, importNode does xmlSetTreeDoc which is also O(n). So in
+   fact, neither solution should have significant performance impact
+   overall....).
+
+*/
+
+#define Pmm_NO_PSVI 0
+#define Pmm_PSVI_TAINTED 1
+
 /* helper type for the proxy structure */
+typedef struct _DocProxyNode DocProxyNode;
 typedef struct _ProxyNode ProxyNode;
 
 /* pointer to the proxy structure */
 typedef ProxyNode* ProxyNodePtr;
+typedef DocProxyNode* DocProxyNodePtr;
 
 /* this my go only into the header used by the xs */
 #define SvPROXYNODE(x) (INT2PTR(ProxyNodePtr,SvIV(SvRV(x))))
@@ -81,9 +146,19 @@ typedef ProxyNode* ProxyNodePtr;
 #define PmmNODE(xnode)       xnode->node
 #define PmmOWNER(node)       node->owner
 #define PmmOWNERPO(node)     ((node && PmmOWNER(node)) ? (ProxyNodePtr)PmmOWNER(node)->_private : node)
-#define PmmENCODING(node)    node->encoding
-#define PmmNodeEncoding(node) ((ProxyNodePtr)(node->_private))->encoding
-#define PmmDocEncoding(node) (node->charset)
+
+#define PmmENCODING(node)    ((DocProxyNodePtr)(node))->encoding
+#define PmmNodeEncoding(node) ((DocProxyNodePtr)(node->_private))->encoding
+
+#define SetPmmENCODING(node,code) PmmENCODING(node)=(code)
+#define SetPmmNodeEncoding(node,code) PmmNodeEncoding(node)=(code)
+
+#define PmmInvalidatePSVI(doc) if (doc && doc->_private) ((DocProxyNodePtr)(doc->_private))->psvi_status = Pmm_PSVI_TAINTED;
+#define PmmIsPSVITainted(doc) (doc && doc->_private && (((DocProxyNodePtr)(doc->_private))->psvi_status == Pmm_PSVI_TAINTED))
+
+#define PmmClearPSVI(node) if (node && node->doc && node->doc->_private && \
+                               ((DocProxyNodePtr)(node->doc->_private))->psvi_status == Pmm_PSVI_TAINTED) \
+   domClearPSVI((xmlNodePtr) node)
 
 #ifndef NO_XML_LIBXML_THREADS
 #ifdef USE_ITHREADS

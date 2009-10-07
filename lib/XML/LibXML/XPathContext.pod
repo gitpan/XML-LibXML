@@ -359,10 +359,14 @@ Petr Pajas
 
 =head1 VERSION
 
-1.66
+1.70
 
 =head1 COPYRIGHT
 
-2001-2007, AxKit.com Ltd; 2002-2006 Christian Glahn; 2006-2008 Petr Pajas.
+2001-2007, AxKit.com Ltd.
+
+2002-2006, Christian Glahn.
+
+2006-2009, Petr Pajas.
 
 =cut

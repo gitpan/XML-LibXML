@@ -1,4 +1,5 @@
-# $Id: 04node.t 632 2006-11-16 21:10:49Z pajas $
+# -*- cperl -*-
+# $Id: 04node.t 809 2009-10-04 21:17:41Z pajas $
 
 ##
 # this test checks the DOM Node interface of XML::LibXML
@@ -11,10 +12,11 @@
 
 use Test;
 
-BEGIN { plan tests => 136 };
+BEGIN { plan tests => 166 };
 use XML::LibXML;
 use XML::LibXML::Common qw(:libxml);
-
+use strict;
+use warnings;
 my $xmlstring = q{<foo>bar<foobar/><bar foo="foobar"/><!--foo--><![CDATA[&foo bar]]></foo>};
 
 my $parser = XML::LibXML->new();
@@ -443,9 +445,95 @@ print "# 7. importing and adopting\n";
   ok( $r );
 }
 
-{ 
-  for my $obj (qw(Document DocumentFragment Comment CDATASection PI Text)) { 
-    
-  } 
+{
+   my $doc = XML::LibXML::Document->new('1.0', 'UTF-8');
+   my $schema = $doc->createElement('sphinx:schema');
+   eval { $schema->appendChild( $schema ) };
+   ok($@, qr/HIERARCHY_REQUEST_ERR/);   	
+}
+
+{
+   my $doc = XML::LibXML::Document->new('1.0', 'UTF-8');
+   my $attr = $doc->createAttribute('test','bar');
+   my $ent = $doc->createEntityReference('foo');
+   my $text = $doc->createTextNode('baz');
+   $attr->appendChild($ent);
+   $attr->appendChild($text);
+   ok($attr->toString() eq ' test="bar&foo;baz"');
+}
+
+{
+  my $doc = XML::LibXML->load_xml(string=><<'EOF');
+<r>
+  <a/>
+	  <b/>
+  <![CDATA[
+
+  ]]>
+  <!-- foo -->
+  <![CDATA[
+    x
+  ]]>
+  <?foo bar?>
+  <c/>
+  text
+</r>
+EOF
+  my $r = $doc->getDocumentElement;
+  ok($r);
+  my @nonblank = $r->nonBlankChildNodes;
+  ok(join(',',map $_->nodeName,@nonblank), 'a,b,#comment,#cdata-section,foo,c,#text' );
+  ok($r->firstChild->nodeName, '#text');
+
+  my @all = $r->childNodes;
+  ok(join(',',map $_->nodeName,@all), '#text,a,#text,b,#text,#cdata-section,#text,#comment,#text,#cdata-section,#text,foo,#text,c,#text' );
+
+  my $f = $r->firstNonBlankChild;
+  my $p;
+  ok($f->nodeName, 'a');
+  ok($f->nextSibling->nodeName, '#text');
+  ok($f->previousSibling->nodeName, '#text');
+  ok( !$f->previousNonBlankSibling );
+
+  $p = $f;
+  $f=$f->nextNonBlankSibling;
+  ok($f->nodeName, 'b');
+  ok($f->nextSibling->nodeName, '#text');
+  ok( $f->previousNonBlankSibling->isSameNode($p) );
+
+  $p = $f;
+  $f=$f->nextNonBlankSibling;
+  ok($f->isa('XML::LibXML::Comment'));
+  ok($f->nextSibling->nodeName, '#text');
+  ok( $f->previousNonBlankSibling->isSameNode($p) );
+
+  $p = $f;
+  $f=$f->nextNonBlankSibling;
+  ok($f->isa('XML::LibXML::CDATASection'));
+  ok($f->nextSibling->nodeName, '#text');
+  ok( $f->previousNonBlankSibling->isSameNode($p) );
+
+  $p = $f;
+  $f=$f->nextNonBlankSibling;
+  ok($f->isa('XML::LibXML::PI'));
+  ok($f->nextSibling->nodeName, '#text');
+  ok( $f->previousNonBlankSibling->isSameNode($p) );
+
+  $p = $f;
+  $f=$f->nextNonBlankSibling;
+  ok($f->nodeName, 'c');
+  ok($f->nextSibling->nodeName, '#text');
+  ok( $f->previousNonBlankSibling->isSameNode($p) );
+
+  $p = $f;
+  $f=$f->nextNonBlankSibling;
+  ok($f->nodeName, '#text');
+  ok($f->nodeValue, "\n  text\n");
+  ok(!$f->nextSibling);
+  ok( $f->previousNonBlankSibling->isSameNode($p) );
+
+  $f=$f->nextNonBlankSibling;
+  ok(!defined $f);
+
 }
 

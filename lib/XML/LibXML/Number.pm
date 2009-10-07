@@ -1,4 +1,4 @@
-# $Id: Number.pm 776 2009-02-06 11:12:56Z pajas $
+# $Id: Number.pm 785 2009-07-16 14:17:46Z pajas $
 #
 # This is free software, you may use it and distribute it under the same terms as
 # Perl itself.
@@ -13,7 +13,7 @@ use XML::LibXML::Literal;
 use strict;
 
 use vars qw ($VERSION);
-$VERSION = "1.69_2"; # VERSION TEMPLATE: DO NOT CHANGE
+$VERSION = "1.70"; # VERSION TEMPLATE: DO NOT CHANGE
 
 use overload
         '""' => \&value,

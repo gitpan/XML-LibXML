@@ -80,8 +80,7 @@ Depending on the XML source, the Reader object can be created with either of:
     my $reader = XML::LibXML::Reader->new( FD => fileno(STDIN), ... );
     my $reader = XML::LibXML::Reader->new( DOM => $dom, ... );
 
-where ... are (optional) reader options described below in Parser options. The
-constructor recognizes the following XML sources:
+where ... are (optional) reader options described below in L<<<<<< Reader options >>>>>> or various parser options described in L<<<<<< XML::LibXML::Parser >>>>>>. The constructor recognizes the following XML sources:
 
 
 =head2 Source specification
@@ -118,102 +117,30 @@ Use reader API to walk through a pre-parsed L<<<<<< XML::LibXML::Document >>>>>>
 =back
 
 
-=head2 Parsing options
+=head2 Reader options
 
 =over 4
 
-=item URI
-
-can be used to provide baseURI when parsing strings or filehandles. This URI is
-used when resolving relative URIs to external DTD subset, external entities, or
-XInclude elements. This URI is returned by the C<<<<<< URI >>>>>> method of the C<<<<<< XML::LibXML::Document >>>>>> object. 
-
-
-=item encoding
+=item encoding => $encoding
 
 override document encoding.
 
 
-=item RelaxNG
+=item RelaxNG => $rng_schema
 
 can be used to pass either a L<<<<<< XML::LibXML::RelaxNG >>>>>> object or a filename or URL of a RelaxNG schema to the constructor. The schema
 is then used to validate the document as it is processed.
 
 
-=item Schema
+=item Schema => $xsd_schema
 
 can be used to pass either a L<<<<<< XML::LibXML::Schema >>>>>> object or a filename or URL of a W3C XSD schema to the constructor. The schema
 is then used to validate the document as it is processed.
 
 
-=item recover
+=item ...
 
-recover on errors (0 or 1)
-
-
-=item expand_entities
-
-substitute entities (0 or 1)
-
-
-=item load_ext_dtd
-
-load the external subset (0 or 1)
-
-
-=item complete_attributes
-
-default DTD attributes (0 or 1)
-
-
-=item validation
-
-validate with the DTD (0 or 1)
-
-
-=item suppress_errors
-
-suppress error reports (0 or 1)
-
-
-=item suppress_warnings
-
-suppress warning reports (0 or 1)
-
-
-=item pedantic_parser
-
-pedantic error reporting (0 or 1)
-
-
-=item no_blanks
-
-remove blank nodes (0 or 1)
-
-
-=item expand_xinclude
-
-Implement XInclude substitution (0 or 1)
-
-
-=item no_network
-
-Forbid network access (0 or 1)
-
-
-=item clean_namespaces
-
-remove redundant namespaces declarations (0 or 1)
-
-
-=item no_cdata
-
-merge CDATA as text nodes (0 or 1)
-
-
-=item no_xinclude_nodes
-
-do not generate XINCLUDE START/END nodes (0 or 1)
+the reader further supports various parser options described in L<<<<<< XML::LibXML::Parser >>>>>> (specificly those labeled by /reader/). 
 
 
 
@@ -672,23 +599,23 @@ constant symbols are exported by default or if tag C<<<<<< :types >>>>>> is used
 
 
   XML_READER_TYPE_NONE                    => 0
-    XML_READER_TYPE_ELEMENT                 => 1
-    XML_READER_TYPE_ATTRIBUTE               => 2
-    XML_READER_TYPE_TEXT                    => 3
-    XML_READER_TYPE_CDATA                   => 4
-    XML_READER_TYPE_ENTITY_REFERENCE        => 5
-    XML_READER_TYPE_ENTITY                  => 6
-    XML_READER_TYPE_PROCESSING_INSTRUCTION  => 7
-    XML_READER_TYPE_COMMENT                 => 8
-    XML_READER_TYPE_DOCUMENT                => 9
-    XML_READER_TYPE_DOCUMENT_TYPE           => 10
-    XML_READER_TYPE_DOCUMENT_FRAGMENT       => 11
-    XML_READER_TYPE_NOTATION                => 12
-    XML_READER_TYPE_WHITESPACE              => 13
-    XML_READER_TYPE_SIGNIFICANT_WHITESPACE  => 14
-    XML_READER_TYPE_END_ELEMENT             => 15
-    XML_READER_TYPE_END_ENTITY              => 16
-    XML_READER_TYPE_XML_DECLARATION         => 17
+  XML_READER_TYPE_ELEMENT                 => 1
+  XML_READER_TYPE_ATTRIBUTE               => 2
+  XML_READER_TYPE_TEXT                    => 3
+  XML_READER_TYPE_CDATA                   => 4
+  XML_READER_TYPE_ENTITY_REFERENCE        => 5
+  XML_READER_TYPE_ENTITY                  => 6
+  XML_READER_TYPE_PROCESSING_INSTRUCTION  => 7
+  XML_READER_TYPE_COMMENT                 => 8
+  XML_READER_TYPE_DOCUMENT                => 9
+  XML_READER_TYPE_DOCUMENT_TYPE           => 10
+  XML_READER_TYPE_DOCUMENT_FRAGMENT       => 11
+  XML_READER_TYPE_NOTATION                => 12
+  XML_READER_TYPE_WHITESPACE              => 13
+  XML_READER_TYPE_SIGNIFICANT_WHITESPACE  => 14
+  XML_READER_TYPE_END_ELEMENT             => 15
+  XML_READER_TYPE_END_ENTITY              => 16
+  XML_READER_TYPE_XML_DECLARATION         => 17
 
 
 =head1 STATES
@@ -698,23 +625,13 @@ The following constants represent the values returned by C<<<<<< readState() >>>
 
 
   XML_READER_NONE      => -1
-    XML_READER_START     =>  0
-    XML_READER_ELEMENT   =>  1
-    XML_READER_END       =>  2
-    XML_READER_EMPTY     =>  3
-    XML_READER_BACKTRACK =>  4
-    XML_READER_DONE      =>  5
-    XML_READER_ERROR     =>  6
-
-
-=head1 VERSION
-
-0.02
-
-
-=head1 AUTHORS
-
-Heiko Klein, <H.Klein@gmx.net<gt> and Petr Pajas, <pajas@matfyz.cz<gt>
+  XML_READER_START     =>  0
+  XML_READER_ELEMENT   =>  1
+  XML_READER_END       =>  2
+  XML_READER_EMPTY     =>  3
+  XML_READER_BACKTRACK =>  4
+  XML_READER_DONE      =>  5
+  XML_READER_ERROR     =>  6
 
 
 =head1 SEE ALSO
@@ -725,6 +642,11 @@ http://xmlsoft.org/html/libxml-xmlreader.html
 
 http://dotgnu.org/pnetlib-doc/System/Xml/XmlTextReader.html
 
+
+=head1 ORIGINAL IMPLEMENTATION
+
+Heiko Klein, <H.Klein@gmx.net<gt> and Petr Pajas
+
 =head1 AUTHORS
 
 Matt Sergeant, 
@@ -734,10 +656,14 @@ Petr Pajas
 
 =head1 VERSION
 
-1.66
+1.70
 
 =head1 COPYRIGHT
 
-2001-2007, AxKit.com Ltd; 2002-2006 Christian Glahn; 2006-2008 Petr Pajas.
+2001-2007, AxKit.com Ltd.
+
+2002-2006, Christian Glahn.
+
+2006-2009, Petr Pajas.
 
 =cut

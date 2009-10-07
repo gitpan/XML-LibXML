@@ -1,6 +1,6 @@
 /**
  * perl-libxml-sax.c
- * $Id: perl-libxml-sax.c 776 2009-02-06 11:12:56Z pajas $
+ * $Id: perl-libxml-sax.c 792 2009-09-24 08:36:11Z pajas $
  *
  * This is free software, you may use it and distribute it under the same terms as
  * Perl itself.
@@ -26,6 +26,8 @@ extern "C" {
 #include <libxml/tree.h>
 #include <libxml/entities.h>
 #include <libxml/xmlerror.h>
+
+#include "perl-libxml-sax.h"
 
 #ifdef __cplusplus
 }
@@ -246,8 +248,7 @@ PSaxStartPrefix( PmmSAXVectorPtr sax, const xmlChar * prefix,
     call_method( "start_prefix_mapping", G_SCALAR | G_EVAL | G_DISCARD );
     sv_2mortal(rv);
     if (SvTRUE(ERRSV)) {
-        STRLEN n_a;
-        croak(SvPV(ERRSV, n_a));
+        croak_obj;
     }
     FREETMPS ;
     LEAVE ;
@@ -291,8 +292,7 @@ PSaxEndPrefix( PmmSAXVectorPtr sax, const xmlChar * prefix,
     call_method( "end_prefix_mapping", G_SCALAR | G_EVAL | G_DISCARD );
     sv_2mortal(rv);
     if (SvTRUE(ERRSV)) {
-        STRLEN n_a;
-        croak(SvPV(ERRSV, n_a));
+        croak_obj;
     }
     
     FREETMPS ;
@@ -666,8 +666,7 @@ PSaxStartDocument(void * ctx)
         
         call_method( "start_document", G_SCALAR | G_EVAL | G_DISCARD );
         if (SvTRUE(ERRSV)) {
-            STRLEN n_a;
-            croak(SvPV(ERRSV, n_a));
+            croak_obj;
         }
         
         SPAGAIN;
@@ -701,8 +700,7 @@ PSaxStartDocument(void * ctx)
 	CLEAR_SERROR_HANDLER
         sv_2mortal(rv);
         if (SvTRUE(ERRSV)) {
-            STRLEN n_a;
-            croak(SvPV(ERRSV, n_a));
+            croak_obj;
         }
         
         FREETMPS ;
@@ -730,8 +728,7 @@ PSaxEndDocument(void * ctx)
 
     call_pv( "XML::LibXML::_SAXParser::end_document", G_SCALAR | G_EVAL | G_DISCARD );
     if (SvTRUE(ERRSV)) {
-        STRLEN n_a;
-        croak(SvPV(ERRSV, n_a));
+        croak_obj;
     }
     
     FREETMPS ;
@@ -780,8 +777,7 @@ PSaxStartElement(void *ctx, const xmlChar * name, const xmlChar** attr)
     sv_2mortal(rv) ;
 
     if (SvTRUE(ERRSV)) {
-        STRLEN n_a;
-        croak(SvPV(ERRSV, n_a));
+        croak_obj;
     }
     
     FREETMPS ;
@@ -817,8 +813,7 @@ PSaxEndElement(void *ctx, const xmlChar * name) {
     sv_2mortal(rv);
     
     if (SvTRUE(ERRSV)) {
-        STRLEN n_a;
-        croak(SvPV(ERRSV, n_a));
+        croak_obj;
     }
     
     FREETMPS ;
@@ -866,8 +861,7 @@ PSaxCharacters(void *ctx, const xmlChar * ch, int len) {
         call_method( "characters", G_SCALAR | G_EVAL | G_DISCARD );
 
         if (SvTRUE(ERRSV)) {
-	  STRLEN n_a;
-	  croak(SvPV(ERRSV, n_a));
+            croak_obj;
 	}
         
         FREETMPS ;
@@ -908,8 +902,7 @@ PSaxComment(void *ctx, const xmlChar * ch) {
         sv_2mortal(rv);
 
         if (SvTRUE(ERRSV)) {
-            STRLEN n_a;
-            croak(SvPV(ERRSV, n_a));
+            croak_obj;
         }
         
         FREETMPS ;
@@ -942,8 +935,7 @@ PSaxCDATABlock(void *ctx, const xmlChar * ch, int len) {
         PUTBACK;
         call_method( "start_cdata", G_SCALAR | G_EVAL | G_DISCARD );
         if (SvTRUE(ERRSV)) {
-            STRLEN n_a;
-            croak(SvPV(ERRSV, n_a));
+            croak_obj;
         }
         
         SPAGAIN;        
@@ -958,8 +950,7 @@ PSaxCDATABlock(void *ctx, const xmlChar * ch, int len) {
 
         call_method( "characters", G_SCALAR | G_EVAL | G_DISCARD);
         if (SvTRUE(ERRSV)) {
-            STRLEN n_a;
-            croak(SvPV(ERRSV, n_a));
+            croak_obj;
         }
         
         SPAGAIN;        
@@ -972,8 +963,7 @@ PSaxCDATABlock(void *ctx, const xmlChar * ch, int len) {
         sv_2mortal(rv);
         
         if (SvTRUE(ERRSV)) {
-            STRLEN n_a;
-            croak(SvPV(ERRSV, n_a));
+            croak_obj;
         }
         
         FREETMPS ;
@@ -1015,8 +1005,7 @@ PSaxProcessingInstruction( void * ctx, const xmlChar * target, const xmlChar * d
         sv_2mortal(rv);
 
         if (SvTRUE(ERRSV)) {
-            STRLEN n_a;
-            croak(SvPV(ERRSV, n_a));
+            croak_obj;
         }
         
         FREETMPS ;
@@ -1060,8 +1049,7 @@ void PSaxExternalSubset (void * ctx,
         sv_2mortal(rv);
 
         if (SvTRUE(ERRSV)) {
-            STRLEN n_a;
-            croak(SvPV(ERRSV, n_a));
+            croak_obj;
         }
 
         PUSHMARK(SP) ;
@@ -1177,8 +1165,7 @@ PmmSaxWarning(void * ctx, const char * msg, ...)
     call_pv( "XML::LibXML::_SAXParser::warning", G_SCALAR | G_EVAL | G_DISCARD );
 
     if (SvTRUE(ERRSV)) {
-        STRLEN n_a;
-        croak(SvPV(ERRSV, n_a));
+        croak_obj;
     }
     
     FREETMPS ;
@@ -1240,8 +1227,7 @@ PmmSaxError(void * ctx, const char * msg, ...)
     call_pv( "XML::LibXML::_SAXParser::fatal_error", G_SCALAR | G_EVAL | G_DISCARD );
 #endif
     if (SvTRUE(ERRSV)) {
-        STRLEN n_a;
-        croak(SvPV(ERRSV, n_a));
+        croak_obj;
     }
     
     FREETMPS ;
@@ -1288,8 +1274,7 @@ PmmSaxFatalError(void * ctx, const char * msg, ...)
     PUTBACK;
     call_pv( "XML::LibXML::_SAXParser::fatal_error", G_SCALAR | G_EVAL | G_DISCARD );
     if (SvTRUE(ERRSV)) {
-        STRLEN n_a;
-        croak(SvPV(ERRSV, n_a));
+        croak_obj;
     }
     
     FREETMPS ;
