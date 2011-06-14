@@ -1,6 +1,6 @@
 /**
  * perl-libxml-sax.h
- * $Id: perl-libxml-sax.h 792 2009-09-24 08:36:11Z pajas $
+ * $Id$
  */
 
 #ifndef __PERL_LIBXML_SAX_H__

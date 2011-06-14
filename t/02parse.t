@@ -1,4 +1,4 @@
-# $Id: 02parse.t 737 2008-11-02 20:29:59Z pajas $
+# $Id$
 
 ##
 # this test checks the parsing capabilities of XML::LibXML

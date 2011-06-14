@@ -1,5 +1,5 @@
 # -------------------------------------------------------------------------- #
-# $Id: Makefile.PL 818 2009-10-07 12:26:07Z pajas $
+# $Id$
 # -------------------------------------------------------------------------- #
 # Makefile.PL for XML::LibXML.
 # This file is required to generate a localized Makefile
@@ -40,6 +40,7 @@ my %INFOS = (
     'PREREQ_PM' => {
 		    'XML::SAX' => '0.11',
 		    'XML::NamespaceSupport' => '1.07',
+                    'ExtUtils::MakeMaker' => '6.56'
                    },
     'OBJECT'    => '$(O_FILES)', # add the DOM extensions to libxml2
             );

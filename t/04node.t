@@ -1,5 +1,5 @@
 # -*- cperl -*-
-# $Id: 04node.t 809 2009-10-04 21:17:41Z pajas $
+# $Id$
 
 ##
 # this test checks the DOM Node interface of XML::LibXML

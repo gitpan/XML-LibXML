@@ -1,6 +1,6 @@
 /**
  * perl-libxml-sax.c
- * $Id: perl-libxml-sax.c 792 2009-09-24 08:36:11Z pajas $
+ * $Id$
  *
  * This is free software, you may use it and distribute it under the same terms as
  * Perl itself.

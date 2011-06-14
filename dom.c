@@ -1,4 +1,4 @@
-/* $Id: dom.c 816 2009-10-05 20:17:36Z pajas $
+/* $Id$
  *
  * This is free software, you may use it and distribute it under the same terms as
  * Perl itself.

@@ -1,4 +1,4 @@
-# $Id: 03doc.t 802 2009-09-30 13:26:35Z pajas $
+# $Id$
 
 ##
 # this test checks the DOM Document interface of XML::LibXML

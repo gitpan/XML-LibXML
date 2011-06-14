@@ -1,4 +1,4 @@
-# $Id: NodeList.pm 785 2009-07-16 14:17:46Z pajas $
+# $Id$
 #
 # This is free software, you may use it and distribute it under the same terms as
 # Perl itself.
@@ -14,7 +14,7 @@ use XML::LibXML::Literal;
 use XML::LibXML::Number;
 
 use vars qw ($VERSION);
-$VERSION = "1.70"; # VERSION TEMPLATE: DO NOT CHANGE
+$VERSION = "1.71"; # VERSION TEMPLATE: DO NOT CHANGE
 
 use overload 
 		'""' => \&to_literal,
@@ -188,11 +188,5 @@ Equivalent to perl's unshift function.
 
 Given a nodelist, prepends the list of nodes in $nodelist to the front of
 the current list.
-
-=head2 iterator()
-
-Will return a new nodelist iterator for the current nodelist. A
-nodelist iterator is usefull if more complex nodelist processing is
-needed.
 
 =cut

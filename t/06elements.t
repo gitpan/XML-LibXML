@@ -1,4 +1,4 @@
-# $Id: 06elements.t 755 2008-11-05 12:04:34Z pajas $
+# $Id$
 
 ##
 # this test checks the DOM element and attribute interface of XML::LibXML

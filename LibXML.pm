@@ -1,4 +1,4 @@
-# $Id: LibXML.pm 809 2009-10-04 21:17:41Z pajas $
+# $Id$
 #
 #
 # This is free software, you may use it and distribute it under the same terms as
@@ -14,6 +14,7 @@ use strict;
 use vars qw($VERSION $ABI_VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS
             $skipDTD $skipXMLDeclaration $setTagCompression
             $MatchCB $ReadCB $OpenCB $CloseCB %PARSER_FLAGS
+	    $XML_LIBXML_PARSE_DEFAULTS
             );
 use Carp;
 
@@ -26,7 +27,7 @@ use XML::LibXML::XPathContext;
 use IO::Handle; # for FH reads called as methods
 
 BEGIN {
-$VERSION = "1.70"; # VERSION TEMPLATE: DO NOT CHANGE
+$VERSION = "1.71"; # VERSION TEMPLATE: DO NOT CHANGE
 $ABI_VERSION = 2;
 require Exporter;
 require DynaLoader;
@@ -256,7 +257,7 @@ use constant {
   XML_PARSE_OLDSAX	  => 1048576,  # parse using SAX2 interface from before 2.7.0
 };
 
-use constant XML_LIBXML_PARSE_DEFAULTS => ( XML_PARSE_NODICT | XML_PARSE_HUGE | XML_PARSE_DTDLOAD | XML_PARSE_NOENT );
+$XML_LIBXML_PARSE_DEFAULTS = ( XML_PARSE_NODICT | XML_PARSE_HUGE | XML_PARSE_DTDLOAD | XML_PARSE_NOENT );
 
 # this hash is made global so that applications can add names for new
 # libxml2 parser flags as temporary workaround
@@ -302,7 +303,7 @@ sub _parser_options {
   if (ref($self)) {
     $flags = ($self->{XML_LIBXML_PARSER_OPTIONS}||0);
   } else {
-    $flags = XML_LIBXML_PARSE_DEFAULTS;		# safety precaution
+    $flags = $XML_LIBXML_PARSE_DEFAULTS;		# safety precaution
   }
 
   my ($key, $value);
@@ -374,7 +375,7 @@ sub new {
 	$self->{$_}=$opts{$_} unless exists $PARSER_FLAGS{$_};
       }
     } else {
-      $self->{XML_LIBXML_PARSER_OPTIONS} = XML_LIBXML_PARSE_DEFAULTS;
+      $self->{XML_LIBXML_PARSER_OPTIONS} = $XML_LIBXML_PARSE_DEFAULTS;
     }
     if ( defined $self->{Handler} ) {
       $self->set_handler( $self->{Handler} );
@@ -1666,25 +1667,17 @@ use vars qw(@ISA);
 sub attributes { return undef; }
 
 sub deleteDataString {
-    my $node = shift;
-    my $string = shift;
-    my $all    = shift;
-    my $data = $node->nodeValue();
-    $string =~ s/([\\\*\+\^\{\}\&\?\[\]\(\)\$\%\@])/\\$1/g;
-    if ( $all ) {
-        $data =~ s/$string//g;
-    }
-    else {
-        $data =~ s/$string//;
-    }
-    $node->setData( $data );
+    my ($node, $string, $all) = @_;
+
+    return $node->replaceDataString($string, '', $all);
 }
 
 sub replaceDataString {
-    my ( $node, $left, $right,$all ) = @_;
+    my ( $node, $left_proto, $right,$all ) = @_;
 
-    #ashure we exchange the strings and not expressions!
-    $left  =~ s/([\\\*\+\^\{\}\&\?\[\]\(\)\$\%\@])/\\$1/g;
+    # Assure we exchange the strings and not expressions!
+    my $left = quotemeta($left_proto);
+
     my $datastr = $node->nodeValue();
     if ( $all ) {
         $datastr =~ s/$left/$right/g;

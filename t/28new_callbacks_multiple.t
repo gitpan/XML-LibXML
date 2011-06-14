@@ -1,4 +1,4 @@
-# $Id: 28new_callbacks_multiple.t 540 2004-11-06 21:34:58Z phish $
+# $Id$
 use Test;
 BEGIN { plan tests => 50 }
 END { ok(0) unless $loaded }

@@ -1,5 +1,5 @@
 /* dom.h
- * $Id: dom.h 792 2009-09-24 08:36:11Z pajas $
+ * $Id$
  * Author: Christian Glahn (2001)
  * 
  * This header file provides some definitions for wrapper functions.

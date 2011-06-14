@@ -1,4 +1,4 @@
-/* $Id: LibXML.xs 817 2009-10-06 21:59:32Z pajas $
+/* $Id$
  *
  * This is free software, you may use it and distribute it under the same terms as
  * Perl itself.

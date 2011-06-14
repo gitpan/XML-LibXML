@@ -1,5 +1,40 @@
 Revision history for Perl extension XML::LibXML
 
+1.71            Tue Jun 14 19:43:50 IDT 2011
+   - turn XML_LIBXML_PARSE_DEFAULTS constant to $XML::LibXML::XML_LIBXML_PARSE_DEFAULTS
+   - Apply 0001-XML-LibXML-Error-no-need-to-AUTOLOAD-domain.patch from
+     https://rt.cpan.org/Public/Bug/Display.html?id=68575 - no need to
+     AUTOLOAD 'domain' because a method like that exists.
+        -- Applied by SHLOMIF.
+        -- Thanks to Aaron Crane.
+    - Apply 0002-XML-LibXML-Error-avoid-AUTOLOAD.patch from
+      https://rt.cpan.org/Public/Bug/Display.html?id=68575 - get rid of
+      AUTOLOAD completely.
+        -- Applied by SHLOMIF.
+        -- Thanks to Aaron Crane.
+    - Apply 0003-XML-LibXML-Error-make-domain-work-for-unknown-domain.patch
+      from https://rt.cpan.org/Public/Bug/Display.html?id=68575 - handle
+      unknown domains.
+        -- Applied by SHLOMIF.
+        -- Thanks to Aaron Crane.
+    - Apply 0004-XML-LibXML-Error-add-domains-from-newer-libxml2.patch
+      from https://rt.cpan.org/Public/Bug/Display.html?id=68575 - add more
+      errors.
+        -- Applied by SHLOMIF.
+        -- Thanks to Aaron Crane.
+    - Apply 0005-XML-LibXML-Error-avoid-malformed-UTF-8-warnings.patch
+      from https://rt.cpan.org/Public/Bug/Display.html?id=68575
+        -- Applied by SHLOMIF.
+        -- Thanks to Aaron Crane.
+    - In replaceDataString - use 
+    http://perldoc.perl.org/functions/quotemeta.html instead of a long (and
+    incomplete) list of characters to escape.
+        -- With test.
+        -- also fix deleteDataString by making it use replaceDataString
+        for help.
+        -- Fixing https://rt.cpan.org/Ticket/Display.html?id=68564
+        -- Thanks to Daniel Perrett .
+
 1.70
    - various fixes and improvements in the documentation
    - added (convenient yet non-standard) methods nonBlankChildNodes,

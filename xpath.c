@@ -1,4 +1,4 @@
-/* $Id: xpath.c 785 2009-07-16 14:17:46Z pajas $
+/* $Id$
  *
  * This is free software, you may use it and distribute it under the same terms as
  * Perl itself.

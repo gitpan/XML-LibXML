@@ -1,4 +1,4 @@
-# $Id: 07dtd.t 587 2006-08-28 18:14:24Z pajas $
+# $Id$
 
 use Test;
 

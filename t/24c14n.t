@@ -1,5 +1,5 @@
 # -*- cperl -*-
-# $Id: 24c14n.t 807 2009-10-04 20:12:40Z pajas $
+# $Id$
 
 ##
 # these testcases are for xml canonization interfaces.

@@ -1,4 +1,4 @@
-# $Id: 25relaxng.t 785 2009-07-16 14:17:46Z pajas $
+# $Id$
 
 ##
 # Testcases for the RelaxNG interface

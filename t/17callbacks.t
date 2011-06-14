@@ -1,4 +1,4 @@
-# $Id: 17callbacks.t 527 2004-04-25 18:08:17Z phish $
+# $Id$
 use Test;
 BEGIN { plan tests => 43 }
 END { ok(0) unless $loaded }

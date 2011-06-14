@@ -1,6 +1,6 @@
 #! /usr/bin/perl -w
 
-# $Id: xpath.pl 246 2002-05-08 00:39:56Z phish $
+# $Id$
 
 use XML::LibXML;
 
