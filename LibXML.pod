@@ -183,7 +183,7 @@ which must be able to enforce the encoding specified by the C<<<<<< <?xml versio
   # save
   open my $out, '>', 'out.xml';
   binmode $out; # as above
-  $doc->toFh($out);
+  $doc->toFH($out);
   # or
   print {$out} $doc->toString();
 
@@ -216,7 +216,7 @@ declaration if applied to a L<<<<<< XML::LibXML::Document >>>>>>.
 
 DOM methods also accept binary strings in the original encoding of the document
 to which the node belongs (UTF-8 is assumed if the node is not attached to any
-document). Exploiting this feature is NOT RECOMMENDED since it is considered a
+document). Exploiting this feature is NOT RECOMMENDED since it is considered
 bad practice. 
 
 
@@ -269,12 +269,12 @@ between the main thread and any thread spawn from there. For example, in
 the variable C<<<<<< $doc >>>>>> refers to the exact same XML::LibXML::Document in the spawned thread as in the
 main thread. 
 
-Without using mutex locks, oaralel threads may read the same document (i.e. any
-node that belongs to the document), parse files, and modify different
+Without using mutex locks, parallel threads may read the same document (i.e.
+any node that belongs to the document), parse files, and modify different
 documents. 
 
 However, if there is a chance that some of the threads will attempt to modify a
-document ( or even create new nodes based on that document, e.g. with C<<<<<< $doc->createElement >>>>>>) that other threads may be reading at the same time, the user is responsible
+document (or even create new nodes based on that document, e.g. with C<<<<<< $doc->createElement >>>>>>) that other threads may be reading at the same time, the user is responsible
 for creating a mutex lock and using it in I<<<<<< both >>>>>> in the thread that modifies and the thread that reads: 
 
 
@@ -505,7 +505,7 @@ Petr Pajas
 
 =head1 VERSION
 
-1.71
+1.73
 
 =head1 COPYRIGHT
 

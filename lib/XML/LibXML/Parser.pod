@@ -185,6 +185,9 @@ to the new parser. See the constructor C<<<<<< new >>>>>> and L<<<<<< Parser Opt
 This function is available since XML::LibXML 1.70. It has the same usage as C<<<<<< load_xml >>>>>>, providing interface to the HTML parser. See C<<<<<< load_xml >>>>>> for more information. 
 
 
+
+=back
+
 Parsing HTML may cause problems, especially if the ampersand ('&') is used.
 This is a common problem if HTML code is parsed that contains links to
 CGI-scripts. Such links cause the parser to throw errors. In such cases libxml2
@@ -323,9 +326,6 @@ Similar to parse_string() but parses HTML (strict) strings.
 An optional second argument can be used to pass some options to the HTML parser
 as a HASH reference. See options labeled with HTML in L<<<<<< Parser Options >>>>>>. 
 
-
-
-=back
 
 
 =back
@@ -573,7 +573,7 @@ IMPORTANT NOTE: This documentation reflects the parser flags available in
 libxml2 2.7.3. Some options have no effect if an older version of libxml2 is
 used. 
 
-Each of the flags listed below is labeled labeled
+Each of the flags listed below is labeled
 
 =over 4
 
@@ -659,10 +659,10 @@ Note that although this flag disables entity substitution, it does not prevent
 the parser from loading external entities; when substitution of an external
 entity is disabled, the entity will be represented in the document tree by a
 XML_ENTITY_REF_NODE node whose subtree will be the content obtained by parsing
-the external resource; Although this is level of nesting is visible from the
-DOM it is transparent to XPath data model, so it is possible to match nodes in
-an unexpanded entity by the same XPath expression as if the entity was
-expanded. See also ext_ent_handler. 
+the external resource; Although this nesting is visible from the DOM it is
+transparent to XPath data model, so it is possible to match nodes in an
+unexpanded entity by the same XPath expression as if the entity were expanded.
+See also ext_ent_handler. 
 
 
 =item ext_ent_handler
@@ -819,7 +819,7 @@ specified, XML::LibXML sets this option to 1.
 
 THIS OPTION IS EXPERIMENTAL!
 
-Although quite powerful, XML:LibXML's DOM implementation is incomplete with
+Although quite powerful, XML::LibXML's DOM implementation is incomplete with
 respect to the DOM level 2 or level 3 specifications. XML::GDOME is based on
 libxml2 as well and and provides a rather complete DOM implementation by
 wrapping libgdome. This flag allows you to make use of XML::LibXML's full
@@ -953,7 +953,7 @@ Petr Pajas
 
 =head1 VERSION
 
-1.71
+1.73
 
 =head1 COPYRIGHT
 

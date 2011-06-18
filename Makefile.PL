@@ -12,6 +12,10 @@
 # Copyright 2001-2003 AxKit.com Ltd., 2002-2006 Christian Glahn, 2006-2009 Petr Pajas
 #
 
+use strict;
+use warnings;
+
+use vars qw/$DEVNULL $is_Win32 $extralibdir $skipsaxinstall/;
 
 BEGIN {
   if ($] < 5.006_001) {
@@ -33,16 +37,46 @@ my %config;
 # common information go to the top, so they are easier to find
 # -------------------------------------------------------------------------- #
 my %INFOS = (
-    'NAME'	=> 'XML::LibXML',
+    'NAME'  => 'XML::LibXML',
     'VERSION_FROM' => 'LibXML.pm', # finds $VERSION
     'AUTHOR'    => 'Petr Pajas',
     'ABSTRACT'  => 'Interface to Gnome libxml2 xml parsing and DOM library',
     'PREREQ_PM' => {
-		    'XML::SAX' => '0.11',
-		    'XML::NamespaceSupport' => '1.07',
-                    'ExtUtils::MakeMaker' => '6.56'
-                   },
+        'ExtUtils::MakeMaker' => '6.56',
+        'strict' => 0,
+        'Test::More' => 0,
+        'vars' => 0,
+        'warnings' => 0,
+        'XML::NamespaceSupport' => '1.07',
+        'XML::SAX' => '0.11',
+    },
     'OBJECT'    => '$(O_FILES)', # add the DOM extensions to libxml2
+    META_MERGE =>
+    {
+        resources =>
+        {
+            repository => 'https://bitbucket.org/shlomif/perl-xml-libxml',
+            homepage => 'https://bitbucket.org/shlomif/perl-xml-libxml',
+        },
+        keywords =>
+        [
+            "dom",
+            "html",
+            "libxml",
+            "object oriented",
+            "oop",
+            "parse",
+            "parser",
+            "parsing",
+            "pullparser",
+            "sax",
+            "sgml",
+            "xml",
+            "xpath",
+            "XPath",
+            "xs",
+        ],
+    },
             );
 # -------------------------------------------------------------------------- #
 # -------------------------------------------------------------------------- #
@@ -114,7 +148,7 @@ delete $config{SKIP_SAX_INSTALL};
 
 unless ( $is_Win32 ) { # cannot get config in W32
     my @blacklist = (
-		     # format X,Y,Z,is_ok, X,Y,Z is version,
+                     # format X,Y,Z,is_ok, X,Y,Z is version,
                      # is_ok applies also to *preceding* versions
                      [2,4,22,0],
                      [2,4,25,0], # broken XPath
@@ -128,7 +162,7 @@ unless ( $is_Win32 ) { # cannot get config in W32
                      [2,6,0,0], # unsupported
                      [2,6,4,0], # schema error
                      [2,6,5,0], # broken xincludes
-		     [2,6,15,0],
+                     [2,6,15,0],
                    # [2,6,16,1], # first version to pass all tests
                      [2,6,18,1], # up to 2.6.18 all ok
                      [2,6,19,0], # broken c14n
@@ -165,10 +199,10 @@ unless ( $is_Win32 ) { # cannot get config in W32
                     "  - don't send patches!\n\n".
                     "Check the README file for more information on versions\n".
                     "that are tested with XML::LibXML\n\n"; 
-		exit 0 unless $FORCE; # 0 recommended by http://cpantest.grango.org (Notes for CPAN Authors)
+            exit 0 unless $FORCE; # 0 recommended by http://cpantest.grango.org (Notes for CPAN Authors)
             }
             if ( $@ =~ /^UNTESTED (\S*)/ ) {
-	      warn "Note: libxml2 $1 was not tested with this XML::LibXML version.\n"
+                warn "Note: libxml2 $1 was not tested with this XML::LibXML version.\n"
 #                 warn <<UNTESTED;
 # WARNING!
 # The installed version of libxml2 was not tested with this version of XML::LibXML.
@@ -261,7 +295,7 @@ if ($config{LIBS} !~ /\-l(?:lib)?xml2\b/) {
   }
 }
 
-if ($config{LIBS} !~ /\-lz\b/ and !($is_win32 && $config{LIBS} !~ /\-lzlib\b/)) {
+if ($config{LIBS} !~ /\-lz\b/ and !($is_Win32 && $config{LIBS} !~ /\-lzlib\b/)) {
     # note if libxml2 has not -lz within its cflags, we should not use
     # it! We should trust libxml2 and assume libz is not available on the
     # current system (this is ofcourse not true with win32 systems.
@@ -391,7 +425,7 @@ sub MY::test {
    return $script;
 }
 
-#	echo perl -pi~ -e '$$_=q($(version))."\n" if /#\ VERSION TEMPLATE/ ' $(TO_INST_PM)
+# echo perl -pi~ -e '$$_=q($(version))."\n" if /#\ VERSION TEMPLATE/ ' $(TO_INST_PM)
 sub MY::postamble {
   return <<'MAKE_FRAG';
 
@@ -417,7 +451,6 @@ use Cwd;
 use Symbol;
 use File::Spec;
 
-use vars qw/$DEVNULL $is_Win32/;
 
 BEGIN {
     $is_Win32 = ($^O =~ /Win32/);
@@ -513,7 +546,6 @@ sub backtick {
 
 sub try_link0 {
     my ($src, $opt) = @_;
-    my $cfile = gensym();
     # local $config{LIBS};
     # $config{LIBS} .= $opt;
     unless (mkdir(".testlink", 0777)) {
@@ -521,8 +553,10 @@ sub try_link0 {
         mkdir(".testlink", 0777) || die "Cannot create .testlink dir: $!";
     }
     chdir(".testlink");
-    open($cfile, ">Conftest.xs") || die "Cannot write to file Conftest.xs: $!";
-print $cfile <<EOT;
+    {
+        open(my $cfile, '>', 'Conftest.xs') 
+            or die "Cannot write to file Conftest.xs: $!";
+        print {$cfile} <<EOT;
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -534,17 +568,20 @@ extern "C" {
 #endif
 
 EOT
-    print $cfile $src;
-    print $cfile <<EOT;
+        print {$cfile} $src;
+        print {$cfile} <<EOT;
 
 MODULE = Conftest          PACKAGE = Conftest
 
 PROTOTYPES: DISABLE
 
 EOT
-    close($cfile);
-    open($cfile, ">Conftest.pm") || die "Cannot write to file Conftest.pm: $!";
-    print $cfile <<'EOT';
+        close($cfile);
+    }
+    {
+        open(my $cfile, '>', 'Conftest.pm') 
+            or die "Cannot write to file Conftest.pm: $!";
+        print {$cfile} <<'EOT';
 package Conftest;
 $VERSION = 1.0;
 require DynaLoader;
@@ -552,9 +589,12 @@ require DynaLoader;
 bootstrap Conftest $VERSION;
 1;
 EOT
-    close($cfile);
-    open($cfile, ">Makefile.PL") || die "Cannot write to file Makefile.PL: $!";
-    print $cfile <<'EOT';
+        close($cfile);
+    }
+    {
+        open (my $cfile, '>', 'Makefile.PL') 
+            or die "Cannot write to file Makefile.PL: $!";
+        print {$cfile} <<'EOT';
 use ExtUtils::MakeMaker;
 my %config;
 while($_ = shift @ARGV) {
@@ -564,21 +604,28 @@ while($_ = shift @ARGV) {
 }
 WriteMakefile(NAME => "Conftest", VERSION_FROM => "Conftest.pm", %config);
 EOT
-    close($cfile);
-    open($cfile, ">test.pl") || die "Cannot write to file test.pl: $!";
-    print $cfile <<EOT;
+        close($cfile);
+    }
+    {
+        open(my $cfile, ">test.pl") 
+            or die "Cannot write to file test.pl: $!";
+        print {$cfile} <<EOT;
 use Test; BEGIN { plan tests => 1; } END { ok(\$loaded) }
 use Conftest; \$loaded++;
 EOT
-    close($cfile);
+        close($cfile);
+    }
     my $quote = $is_Win32 ? '"' : "'";
-    xsystem("$^X Makefile.PL " . join(' ', map { "${quote}$_=$config{$_}${quote}" } keys %config));
+    xsystem("$^X Makefile.PL "
+        . join(' ', map { "${quote}$_=$config{$_}${quote}" } keys %config)
+    );
 
+    my $def_opt = defined($opt) ? $opt : '';
     # I am not shure if OTHERLDFLAGS is really required - at least the
     # libraries to include do not belong here!
     # I would assume a user to set OTHERLDFLAGS in the %config if they are
     # really required. if done so, we don't have to pass them here ...
-    xsystem("$Config{make} test ${quote}OTHERLDFLAGS=${opt}${quote}");
+    xsystem("$Config{make} test ${quote}OTHERLDFLAGS=${def_opt}${quote}");
 } # end try_link0
 
 sub try_link {
@@ -669,11 +716,12 @@ sub try_libconfig {
 
         if ( defined $state and $state == 0 ) {
             print "failed\n";
-	    if ($FORCE) {
-	      die "FORCED $ver\n";
-	    } else {
-	      die "VERSION $ver\n";
-	    }
+            if ($FORCE) {
+                die "FORCED $ver\n";
+            }
+            else {
+              die "VERSION $ver\n";
+            }
         }
 
         unless ( defined $state ) {
