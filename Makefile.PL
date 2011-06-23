@@ -328,7 +328,7 @@ if ($config{LIBS} !~ /\-lz\b/ and !($is_Win32 && $config{LIBS} !~ /\-lzlib\b/)) 
 # test if the libraries are really installed!
 unless (have_library("xml2") or have_library("libxml2")) {
     print STDERR <<DEATH;
-libxml2 not found
+libxml2, zlib, and/or the Math library (-lm) have not been found.
 Try setting LIBS and INC values on the command line
 Or get libxml2 from 
   http://xmlsoft.org/
@@ -340,22 +340,6 @@ to see the exact reason why the detection of libxml2 installation
 failed or why Makefile.PL was not able to compile a test program.
 DEATH
 exit 0; # 0 recommended by http://cpantest.grango.org (Notes for CPAN Authors)
-}
-# -------------------------------------------------------------------------- #
-
-# -------------------------------------------------------------------------- #
-# NOTE This should be removed for a release, we should test here, if we are
-# building from a SVN version
-if ( -d './svn' ) {
-    print <<EOT;
-If you are building XML::LibXML from SVN, you may wish to run
-
-  \$ make docs
-
-before doing anything else. This will re-build the documentation
-from the XML file in examples/libxml.xml. This is *not* necessary
-if you are building from a CPAN distribution.
-EOT
 }
 # -------------------------------------------------------------------------- #
 

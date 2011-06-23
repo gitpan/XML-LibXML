@@ -1,5 +1,26 @@
 Revision history for Perl extension XML::LibXML
 
+1.74            Thu Jun 23 16:20:42 IDT 2011
+    - More work on the t/*.t test scripts.
+    - Add scripts/Test.pm-to-Test-More.pl to semi-automatically 
+    convert a test script from Test.pm to Test::More.
+    - Change NodeSet to NodeList in the documentation of
+    lib/XML/LibXML/NodeList.pm .
+        - Resolved https://rt.cpan.org/Ticket/Display.html?id=60998
+    - Makefile.PL: now saying we are trying to link against -lm, -lz 
+    and -lxml2 . Not only -lxml2:
+        - https://rt.cpan.org/Ticket/Display.html?id=51439
+    - https://rt.cpan.org/Ticket/Display.html?id=61756
+        - << $node = XML::LibXML::Comment( $content ); >> is wrong.
+    - Documentation: moved away from Indirect-object-notation and added
+    some missing "my"s:
+        - http://www.modernperlbooks.com/mt/2009/08/the-problems-with-indirect-object-notation.html
+    - Fix failing t/01basic.t when compiling against libxml2 that comes from
+    git.
+        - https://rt.cpan.org/Public/Bug/Display.html?id=54951
+        - Thanks to Evan Carroll ( http://www.evancarroll.com/ ) for the 
+        report.
+
 1.73            Sat Jun 18 10:53:44 IDT 2011
     - Calculating $err->column() properly, so it won't be maxed out at
     80:
@@ -18,7 +39,7 @@ Revision history for Perl extension XML::LibXML
         - << when calling normalize on a node, processing of children nodes 
         will stop when an empty element node is encountered. >>
         - Thanks to Daniel Frett for the patch.
-    - Apply the patch from Daniel Fetter's InputCallbackFix branch.
+    - Apply the patch from Daniel Frett's InputCallbackFix branch.
         - a partial fix to https://rt.cpan.org/Public/Bug/Display.html?id=4263 .
         - Call two $parser->parse_string() in succession.
     - Apply the NestedParsing patch.
@@ -33,7 +54,7 @@ Revision history for Perl extension XML::LibXML
         This change could break code for users that have subclassed
         XML::LibXML::InputCallback and overridden the init_callbacks method
         [/QUOTE]
-    - Documentation fixes patch from Daniel Fetter on:
+    - Documentation fixes patch from Daniel Frett on:
         - From https://github.com/frett/perl-libxml .
 
 
