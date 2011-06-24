@@ -1,11 +1,11 @@
 # $Id$
 
-use Test;
+# Should be 38.
+use Test::More tests => 38;
 
 use strict;
 use warnings;
 
-BEGIN { plan tests => 38 };
 use XML::LibXML;
 use XML::LibXML::Common qw(:libxml);
 
@@ -19,11 +19,15 @@ my $htmlSystem = "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd";
                                           $htmlSystem
                                         );
 
-    ok( $dtd->isSameNode(  $doc->externalSubset ) );
-    ok( $dtd->publicId, $htmlPublic );
-    ok( $dtd->systemId, $htmlSystem );
-    ok( $dtd->getName, 'html' );
-    
+    # TEST
+    ok( $dtd->isSameNode(  $doc->externalSubset ), ' TODO : Add test name' );
+    # TEST
+    is( $dtd->publicId, $htmlPublic, ' TODO : Add test name' );
+    # TEST
+    is( $dtd->systemId, $htmlSystem, ' TODO : Add test name' );
+    # TEST
+    is( $dtd->getName, 'html', ' TODO : Add test name' );
+
 }
 
 {
@@ -32,18 +36,26 @@ my $htmlSystem = "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd";
                                           $htmlPublic,
                                           $htmlSystem
                                         );
-    ok( $dtd->isSameNode( $doc->internalSubset ) );
+    # TEST
+    ok( $dtd->isSameNode( $doc->internalSubset ), ' TODO : Add test name' );
 
     $doc->setExternalSubset( $dtd );
-    ok(not defined $doc->internalSubset );
-    ok( $dtd->isSameNode( $doc->externalSubset ) );
+    # TEST
+    ok(!defined ($doc->internalSubset), ' TODO : Add test name' );
+    # TEST
+    ok( $dtd->isSameNode( $doc->externalSubset ), ' TODO : Add test name' );
 
-    ok( $dtd->getPublicId, $htmlPublic );
-    ok( $dtd->getSystemId, $htmlSystem );
+    # TEST
+
+    is( $dtd->getPublicId, $htmlPublic, ' TODO : Add test name' );
+    # TEST
+    is( $dtd->getSystemId, $htmlSystem, ' TODO : Add test name' );
 
     $doc->setInternalSubset( $dtd );
-    ok(not defined  $doc->externalSubset );
-    ok( $dtd->isSameNode( $doc->internalSubset ) );
+    # TEST
+    ok(!defined ($doc->externalSubset), ' TODO : Add test name' );
+    # TEST
+    ok( $dtd->isSameNode( $doc->internalSubset ), ' TODO : Add test name' );
 
     my $dtd2 = $doc->createDTD( "huhu",
                                 "-//W3C//DTD XHTML 1.0 Transitional//EN",
@@ -51,43 +63,61 @@ my $htmlSystem = "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd";
                               );
 
     $doc->setInternalSubset( $dtd2 );
-    ok(not defined $dtd->parentNode );
-    ok( $dtd2->isSameNode( $doc->internalSubset ) );    
+    # TEST
+    ok( !defined($dtd->parentNode), ' TODO : Add test name' );
+    # TEST
+    ok( $dtd2->isSameNode( $doc->internalSubset ), ' TODO : Add test name' );
 
- 
+
     my $dtd3 = $doc->removeInternalSubset;
-    ok( $dtd3->isSameNode($dtd2) );
-    ok(not defined $doc->internalSubset );
+    # TEST
+    ok( $dtd3->isSameNode($dtd2), ' TODO : Add test name' );
+    # TEST
+    ok( !defined($doc->internalSubset), ' TODO : Add test name' );
 
     $doc->setExternalSubset( $dtd2 );
 
     $dtd3 = $doc->removeExternalSubset;
-    ok( $dtd3->isSameNode($dtd2) );
-    ok(not defined $doc->externalSubset );
+    # TEST
+    ok( $dtd3->isSameNode($dtd2), ' TODO : Add test name' );
+    # TEST
+    ok( !defined($doc->externalSubset), ' TODO : Add test name' );
 }
 
 {
     my $parser = XML::LibXML->new();
 
     my $doc = $parser->parse_file( "example/dtd.xml" );
-    
-    ok($doc);
-    
+
+    # TEST
+
+    ok($doc, ' TODO : Add test name');
+
     my $dtd = $doc->internalSubset;
-    ok( $dtd->getName, 'doc' );
-    ok( $dtd->publicId, undef );
-    ok( $dtd->systemId, undef );
+    # TEST
+    is( $dtd->getName, 'doc', ' TODO : Add test name' );
+    # TEST
+    is( $dtd->publicId, undef, ' TODO : Add test name' );
+    # TEST
+    is( $dtd->systemId, undef, ' TODO : Add test name' );
 
     my $entity = $doc->createEntityReference( "foo" );
-    ok($entity);
-    ok($entity->nodeType, XML_ENTITY_REF_NODE );
- 
-    ok( $entity->hasChildNodes );
-    ok( $entity->firstChild->nodeType, XML_ENTITY_DECL );
-    ok( $entity->firstChild->nodeValue, " test " );
+    # TEST
+    ok($entity, ' TODO : Add test name');
+    # TEST
+    is($entity->nodeType, XML_ENTITY_REF_NODE, ' TODO : Add test name' );
+
+    # TEST
+
+    ok( $entity->hasChildNodes, ' TODO : Add test name' );
+    # TEST
+    is( $entity->firstChild->nodeType, XML_ENTITY_DECL, ' TODO : Add test name' );
+    # TEST
+    is( $entity->firstChild->nodeValue, " test ", ' TODO : Add test name' );
 
     my $edcl = $entity->firstChild;
-    ok( $edcl->previousSibling->nodeType, XML_ELEMENT_DECL );
+    # TEST
+    is( $edcl->previousSibling->nodeType, XML_ELEMENT_DECL, ' TODO : Add test name' );
 
     {
         my $doc2  = XML::LibXML::Document->new;
@@ -95,7 +125,8 @@ my $htmlSystem = "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd";
         $doc2->setDocumentElement( $e );
 
         my $dtd2 = $doc->internalSubset->cloneNode(1);
-        ok($dtd2);
+        # TEST
+        ok($dtd2, ' TODO : Add test name');
 
 #        $doc2->setInternalSubset( $dtd2 );
 #        warn $doc2->toString;
@@ -118,61 +149,74 @@ my $htmlSystem = "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd";
 <test>
 </test>
 EOF
-ok($doc->validate());
-ok($doc->is_valid());
+
+    # TEST
+    ok($doc->validate(), ' TODO : Add test name');
+
+    # TEST
+    ok($doc->is_valid(), ' TODO : Add test name');
 
 }
+
 {
+    my $parser = XML::LibXML->new();
+    $parser->validation(0);
+    $parser->load_ext_dtd(0); # This should make libxml not try to get the DTD
 
-my $parser = XML::LibXML->new();
-$parser->validation(0);
-$parser->load_ext_dtd(0); # This should make libxml not try to get the DTD
+    my $xml = '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://localhost/does_not_exist.dtd">
+    <html xmlns="http://www.w3.org/1999/xhtml"><head><title>foo</title></head><body><p>bar</p></body></html>';
+    my $doc = eval {
+        $parser->parse_string($xml);
+    };
 
-my $xml = '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://localhost/does_not_exist.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml"><head><title>foo</title></head><body><p>bar</p></body></html>';
-my $doc = eval {
-    $parser->parse_string($xml);
-};
+    # TEST
+    ok(!$@, ' TODO : Add test name');
+    if ($@) {
+        warn "Parsing error: $@\n";
+    }
 
-ok(!$@);
-if ($@) {
-    warn "Parsing error: $@\n";
+    # TEST
+    ok($doc, ' TODO : Add test name');
 }
-ok($doc);
 
-}
 {
-  my $bad = 'example/bad.dtd';
-  ok( -f $bad );
-  eval { XML::LibXML::Dtd->new("-//Foo//Test DTD 1.0//EN", 'example/bad.dtd') };
-  ok ($@);
+    my $bad = 'example/bad.dtd';
+    # TEST
+    ok( -f $bad, ' TODO : Add test name' );
+    eval { XML::LibXML::Dtd->new("-//Foo//Test DTD 1.0//EN", 'example/bad.dtd') };
+    # TEST
+    ok ($@, ' TODO : Add test name');
 
-  undef $@;
-  my $dtd;
-  {
-    local $/;
-    open my $f, '<', $bad; 
-    $dtd = <$f>;
-  }
-  ok( length($dtd) > 5 );
-  eval { XML::LibXML::Dtd->parse_string($dtd) };
-  ok ($@);
-
-  my $xml = "<!DOCTYPE test SYSTEM \"example/bad.dtd\">\n<test/>";
-
-  {	    
-    my $parser = XML::LibXML->new;
-    $parser->load_ext_dtd(0);
-    $parser->validation(0);
-    my $doc = $parser->parse_string($xml);
-    ok( $doc );
-  }
-  {
-    my $parser = XML::LibXML->new;
-    $parser->load_ext_dtd(1);
-    $parser->validation(0);
     undef $@;
-    eval { $parser->parse_string($xml) };
-    ok( $@ );
-  }
+    my $dtd;
+    {
+        local $/;
+        open my $f, '<', $bad;
+        $dtd = <$f>;
+    }
+    # TEST
+    ok( length($dtd) > 5, ' TODO : Add test name' );
+    eval { XML::LibXML::Dtd->parse_string($dtd) };
+    # TEST
+    ok ($@, ' TODO : Add test name');
+
+    my $xml = "<!DOCTYPE test SYSTEM \"example/bad.dtd\">\n<test/>";
+
+    {
+        my $parser = XML::LibXML->new;
+        $parser->load_ext_dtd(0);
+        $parser->validation(0);
+        my $doc = $parser->parse_string($xml);
+        # TEST
+        ok( $doc, ' TODO : Add test name' );
+    }
+    {
+        my $parser = XML::LibXML->new;
+        $parser->load_ext_dtd(1);
+        $parser->validation(0);
+        undef $@;
+        eval { $parser->parse_string($xml) };
+        # TEST
+        ok( $@, ' TODO : Add test name' );
+    }
 }

@@ -10,7 +10,7 @@ XML::LibXML::Reader - XML::LibXML::Reader - interface to libxml2 pull parser
 
 
 
-  my $reader = XML::LibXML::Reader->(location => "file.xml")
+  my $reader = XML::LibXML::Reader->new(location => "file.xml")
          or die "cannot read file.xml\n";
   while ($reader->read) {
     processNode($reader);
@@ -30,7 +30,7 @@ or
 
 
 
-  my $reader = XML::LibXML::Reader->(location => "file.xml")
+  my $reader = XML::LibXML::Reader->new(location => "file.xml")
          or die "cannot read file.xml\n";
     $reader->preservePattern('//table/tr');
     $reader->finish;
@@ -656,7 +656,7 @@ Petr Pajas
 
 =head1 VERSION
 
-1.74
+1.75
 
 =head1 COPYRIGHT
 

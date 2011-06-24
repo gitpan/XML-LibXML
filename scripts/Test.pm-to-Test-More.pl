@@ -1,11 +1,47 @@
 #!/usr/bin/perl
 
+=head1 NAME
+
+Test.pm-to-Test-More.pl - semi-automatically and partially convert Test.pm
+scripts to Test::More.
+
+=head1 USAGE
+
+    perl Test.pm-to-Test-More.pl -o new.t t/old.t
+
+=head1 VERSION
+
+0.2.0
+
+=cut
+
 use strict;
 use warnings;
 
+use Getopt::Long;
 use PPI;
 
+my $out_filename;
+my $inplace = '';
+if (!GetOptions(
+    'o|output=s' => \$out_filename,
+    'inplace!' => \$inplace,
+))
+{
+    die "Cannot process arguments.";
+}
+
+if ($inplace && defined($out_filename))
+{
+    die 'Inplace is mutually exclusive with specifying an output file!';
+}
+
 my $filename = shift(@ARGV);
+
+if ($inplace)
+{
+    $out_filename = $filename;
+}
 
 my $doc = PPI::Document->new($filename);
 
@@ -83,4 +119,57 @@ foreach my $stmt (@{$statements})
     }
 }
 
-print "$doc";
+$doc->save($out_filename);
+
+=begin removed
+
+{
+    my $out_fh;
+    if (defined($out_filename))
+    {
+        open $out_fh, ">", $out_filename
+            or die qq{Cannot open "$out_filename" for writing!};
+    }
+    else
+    {
+        open $out_fh, ">&STDOUT";
+    }
+
+    print {$out_fh} "$doc";
+
+    close ($out_fh)
+}
+
+=end removed
+
+=cut
+
+=head1 COPYRIGHT & LICENSE
+
+Copyright 2011 by Shlomi Fish
+
+This program is distributed under the MIT (X11) License:
+L<http://www.opensource.org/licenses/mit-license.php>
+
+Permission is hereby granted, free of charge, to any person
+obtaining a copy of this software and associated documentation
+files (the "Software"), to deal in the Software without
+restriction, including without limitation the rights to use,
+copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the
+Software is furnished to do so, subject to the following
+conditions:
+
+The above copyright notice and this permission notice shall be
+included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+OTHER DEALINGS IN THE SOFTWARE.
+
+=cut

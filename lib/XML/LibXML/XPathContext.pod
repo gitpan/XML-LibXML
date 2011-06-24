@@ -212,7 +212,7 @@ Same as C<<<<<< unregisterFunctionNS >>>>>> but without a namespace.
   $nodelist = $xpc->findnodes($xpath, $context_node )
 
 Performs the xpath statement on the current node and returns the result as an
-array. In scalar context returns a L<<<<<< XML::LibXML::NodeList >>>>>> object. Optionally, a node may be passed as a second argument to set the
+array. In scalar context, returns a L<<<<<< XML::LibXML::NodeList >>>>>> object. Optionally, a node may be passed as a second argument to set the
 context node for the query.
 
 The xpath expression can be passed either as a string or or as a L<<<<<< XML::LibXML::XPathExpression >>>>>> object. 
@@ -359,7 +359,7 @@ Petr Pajas
 
 =head1 VERSION
 
-1.74
+1.75
 
 =head1 COPYRIGHT
 

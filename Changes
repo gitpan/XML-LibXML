@@ -1,5 +1,33 @@
 Revision history for Perl extension XML::LibXML
 
+1.75            Fri Jun 24 19:00:40 IDT 2011
+    - Correct some typos reported in 
+        - https://rt.cpan.org/Ticket/Display.html?id=54390
+    - Fix the handling of XML::LibXML::InputCallbacks at load_xml().
+        - https://rt.cpan.org/Ticket/Display.html?id=58190
+        - The problem was that the input callbacks were not cloned in
+        _clone().
+    - Apply the patches from https://rt.cpan.org/Ticket/Display.html?id=56334
+        - Convert t/02parse.t to Test::More .
+        - Thanks to TODDR .
+        - Removed the diag() messages which were annoying.
+    - Add 'make runtest' and 'make distruntest' targets to run the tests using 
+    Test::Run ( http://beta.metacpan.org/module/Test::Run ).
+        - Adds colours and stuff like that.
+    - Add << LICENSE => 'perl' >> to the Makefile.PL for a license
+    meta-data in the META.YML.
+    - Feature implementation: joining congruent character data together in
+    SAX driver .
+        - Apply a somewhat modified patch from:
+            - https://rt.cpan.org/Ticket/Display.html?id=52368
+    - Add t/pod.t .
+    - Fix https://rt.cpan.org/Ticket/Display.html?id=55000 :
+        - Apply modified patch in the bug report.
+        - << If an element contains both a default namespace declaration and a 
+        second namespace declaration, adding an attribute using the default 
+        namespace declaration will cause that attribute to have the other 
+        prefix. >>
+
 1.74            Thu Jun 23 16:20:42 IDT 2011
     - More work on the t/*.t test scripts.
     - Add scripts/Test.pm-to-Test-More.pl to semi-automatically 

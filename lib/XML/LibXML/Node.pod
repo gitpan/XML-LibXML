@@ -20,7 +20,7 @@ XML::LibXML::Node - Abstract Base Class of XML::LibXML Nodes
   $oldnode = $node->replaceChild( $newNode, $oldNode );
   $node->replaceNode($newNode);
   $childnode = $node->appendChild( $childnode );
-  $childnode = $node->addChild( $chilnode );
+  $childnode = $node->addChild( $childnode );
   $node = $parent->addNewChild( $nsURI, $name );
   $node->addSibling($newNode);
   $newnode =$node->cloneNode( $deep );
@@ -150,8 +150,8 @@ section in the L<<<<<< XML::LibXML >>>>>> manual page).
   $node->unbindNode();
 
 Unbinds the Node from its siblings and Parent, but not from the Document it
-belongs to. If the node is not inserted into the DOM afterwards it will be lost
-after the program terminated. From a low level view, the unbound node is
+belongs to. If the node is not inserted into the DOM afterwards, it will be
+lost after the program terminates. From a low level view, the unbound node is
 stripped from the context it is and inserted into a (hidden) document-fragment.
 
 
@@ -191,7 +191,7 @@ node is not part of the document, the node will be imported first.
 
 =item addChild
 
-  $childnode = $node->addChild( $chilnode );
+  $childnode = $node->addChild( $childnode );
 
 As an alternative to appendChild() one can use the addChild() function. This
 function is a bit faster, because it avoids all DOM conformity checks.
@@ -388,7 +388,7 @@ Note, that $refNode has to be passed explicitly even if it is undef.
   @nodes = $node->findnodes( $xpath_expression );
 
 I<<<<<< findnodes >>>>>> evaluates the xpath expression (XPath 1.0) on the current node and returns the
-resulting node set as an array. In scalar context returns a L<<<<<< XML::LibXML::NodeList >>>>>> object.
+resulting node set as an array. In scalar context, returns a L<<<<<< XML::LibXML::NodeList >>>>>> object.
 
 The xpath expression can be passed either as a string or or as a L<<<<<< XML::LibXML::XPathExpression >>>>>> object. 
 
@@ -624,7 +624,7 @@ the same way, it is required to test what kind of node is handled while
 accessing the functions result.
 
 If this function is called in array context the attribute nodes are returned as
-an array. In scalar context the function will return a L<<<<<< XML::LibXML::NamedNodeMap >>>>>> object.
+an array. In scalar context, the function will return a L<<<<<< XML::LibXML::NamedNodeMap >>>>>> object.
 
 
 =item lookupNamespaceURI
@@ -739,7 +739,7 @@ Petr Pajas
 
 =head1 VERSION
 
-1.74
+1.75
 
 =head1 COPYRIGHT
 

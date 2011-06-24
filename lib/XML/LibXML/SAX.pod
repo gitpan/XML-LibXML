@@ -21,6 +21,23 @@ Additionally to the generic functions, which are only able to process entire
 documents, XML::LibXML::SAX provides I<<<<<< parse_chunk() >>>>>>. This method generates SAX events from well balanced data such as is often
 provided by databases.
 
+
+=head1 FEATURES
+
+I<<<<<< NOTE: >>>>>> This feature is experimental. 
+
+You can enable character data joining which may yield a significant speed boost
+in your XML processing in lower markup ratio situations by enabling the
+http://xmlns.perl.org/sax/join-character-data feature of this parser. This is
+done via the set_feature method like this: 
+
+
+
+  $p->set_feature('http://xmlns.perl.org/sax/join-character-data', 1);
+
+You can also specify a 0 to disable. The default is to have this feature
+disabled. 
+
 =head1 AUTHORS
 
 Matt Sergeant, 
@@ -30,7 +47,7 @@ Petr Pajas
 
 =head1 VERSION
 
-1.74
+1.75
 
 =head1 COPYRIGHT
 

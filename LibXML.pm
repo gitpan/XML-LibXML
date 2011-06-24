@@ -27,7 +27,7 @@ use XML::LibXML::XPathContext;
 use IO::Handle; # for FH reads called as methods
 
 BEGIN {
-$VERSION = "1.74"; # VERSION TEMPLATE: DO NOT CHANGE
+$VERSION = "1.75"; # VERSION TEMPLATE: DO NOT CHANGE
 $ABI_VERSION = 2;
 require Exporter;
 require DynaLoader;
@@ -394,6 +394,7 @@ sub _clone {
       gdome => $self->{XML_LIBXML_GDOME},
       set_parser_flags => $self->{XML_LIBXML_PARSER_OPTIONS},
     });
+  $new->input_callbacks($self->input_callbacks());
   return $new;
 }
 
@@ -1548,7 +1549,7 @@ sub setAttributeNS {
   }
   if (defined($nsURI) and $nsURI eq XML_XMLNS_NS) {
     if ($qname !~ /^xmlns(?::|$)/) {
-      croak("NAMESPACE ERROR: Namespace declartions must have the prefix 'xmlns'");
+      croak("NAMESPACE ERROR: Namespace declarations must have the prefix 'xmlns'");
     }
     $self->setAttribute($qname,$value); # see implementation above
     return;
