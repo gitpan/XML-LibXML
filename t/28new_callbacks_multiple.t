@@ -3,13 +3,446 @@
 use strict;
 use warnings;
 
-# Should be 76
-use Test::More tests => 73;
+use lib './t/lib';
 
-# TEST:$num_parsings=4;
+package Collector;
+
+sub new
+{
+    my $class = shift;
+
+    my $self = bless {}, $class;
+
+    $self->_init(@_);
+
+    return $self;
+}
+
+sub _init
+{
+    my $self = shift;
+    my $args = shift;
+
+    $self->_reset;
+
+    $self->_callback( $args->{gen_cb}->($self->_calc_op_callback()) );
+
+    $self->_init_returned_cb;
+
+    return;
+}
+
+sub _callback
+{
+    my $self = shift;
+
+    if (@_)
+    {
+        $self->{_callback} = shift;
+    }
+
+    return $self->{_callback};
+}
+
+sub _returned_cb
+{
+    my $self = shift;
+
+    if (@_)
+    {
+        $self->{_returned_cb} = shift;
+    }
+
+    return $self->{_returned_cb};
+}
+
+sub _init_returned_cb
+{
+    my $self = shift;
+
+    $self->_returned_cb(
+        sub {
+            return $self->_callback()->(@_);
+        }
+    );
+
+    return;
+}
+
+sub cb
+{
+    return shift->_returned_cb();
+}
+
+package Counter;
+
+our @ISA = qw(Collector);
+
+sub _counter
+{
+    my $self = shift;
+
+    if (@_)
+    {
+        $self->{_counter} = shift;
+    }
+
+    return $self->{_counter};
+}
+
+
+sub _increment
+{
+    my $self = shift;
+
+    $self->_counter($self->_counter + 1);
+
+    return;
+}
+
+sub _reset
+{
+    my $self = shift;
+
+    $self->_counter(0);
+
+    return;
+}
+
+sub _calc_op_callback {
+    my $self = shift;
+
+    return sub {
+        return $self->_increment();
+    };
+}
+
+sub test
+{
+    my ($self, $value, $blurb) = @_;
+
+    local $Test::Builder::Level = $Test::Builder::Level + 1;
+
+    Test::More::is ($self->_counter(), $value, $blurb);
+
+    $self->_reset;
+
+    return;
+}
+
+1;
+
+package Stacker;
+
+use TestHelpers;
+
+our @ISA = qw(Collector);
+
+sub _stack
+{
+    my $self = shift;
+
+    if (@_)
+    {
+        $self->{_stack} = shift;
+    }
+
+    return $self->{_stack};
+}
+
+sub _push
+{
+    my $self = shift;
+    my $item = shift;
+
+    push @{$self->_stack()}, $item;
+
+    return;
+}
+
+sub _reset
+{
+    my $self = shift;
+
+    $self->_stack([]);
+
+    return;
+}
+
+sub _calc_op_callback {
+    my $self = shift;
+
+    return sub {
+        my $item = shift;
+
+        return $self->_push($item);
+    };
+}
+
+sub test
+{
+    my ($self, $value, $blurb) = @_;
+
+    local $Test::Builder::Level = $Test::Builder::Level + 1;
+
+    eq_or_diff ($self->_stack(), $value, $blurb);
+
+    $self->_reset;
+
+    return;
+}
+1;
+
+package main;
+
+# Should be 56
+use Test::More tests => 56;
 
 use XML::LibXML;
 use IO::File;
+
+my $read_hash_counter = Counter->new(
+    {
+        gen_cb => sub {
+            my $inc_cb = shift;
+            return sub {
+                my $h   = shift;
+                my $buflen = shift;
+
+                my $id = $h->{line};
+                $h->{line} += 1;
+                my $rv= $h->{lines}->[$id];
+
+                $rv = "" unless defined $rv;
+
+                $inc_cb->();
+                return $rv;
+
+            };
+        }
+    }
+);
+my $read_file_counter = Counter->new(
+    {
+        gen_cb => sub {
+            my $inc_cb = shift;
+            return sub {
+                my $h   = shift;
+                my $buflen = shift;
+                my $rv   = undef;
+
+                $inc_cb->();
+
+                my $n = $h->read( $rv , $buflen );
+
+                return $rv;
+            };
+        }
+    }
+);
+
+my $close_file_counter = Counter->new(
+    {
+        gen_cb => sub {
+            my $inc_cb = shift;
+            return sub {
+                my $h   = shift;
+
+                $inc_cb->();
+                $h->close();
+
+                return 1;
+            };
+        }
+    }
+);
+
+my $close_xml_counter = Counter->new(
+    {
+        gen_cb => sub {
+            my $inc_cb = shift;
+            return sub {
+                my $dom   = shift;
+                undef $dom;
+
+                $inc_cb->();
+
+                return 1;
+            };
+        }
+    }
+);
+
+my $open_xml_counter = Counter->new(
+    {
+        gen_cb => sub {
+            my $inc_cb = shift;
+
+            return sub {
+                my $uri = shift;
+                my $dom = XML::LibXML->new->parse_string(q{<?xml version="1.0"?><foo><tmp/>barbar</foo>});
+
+                if ($dom)
+                {
+                    $inc_cb->();
+                }
+
+                return $dom;
+            };
+        },
+    }
+);
+
+my $close_hash_counter = Counter->new(
+    {
+        gen_cb => sub {
+            my $inc_cb = shift;
+            return sub {
+                my $h   = shift;
+                undef $h;
+
+                $inc_cb->();
+
+                return 1;
+            };
+        }
+    }
+);
+
+my $open_hash_counter = Counter->new(
+    {
+        gen_cb => sub {
+            my $inc_cb = shift;
+            return sub {
+                my $uri = shift;
+                my $hash = { line => 0,
+                    lines => [ "<foo>", "bar", "<xsl/>", "..", "</foo>" ],
+                };
+
+                $inc_cb->();
+
+                return $hash;
+            };
+        }
+    }
+);
+
+my $open_file_stacker = Stacker->new(
+    {
+        gen_cb => sub {
+            my $push_cb = shift;
+            return sub {
+                my $uri = shift;
+
+                if (! open (my $file, '<', ".$uri"))
+                {
+                    die "Could not open file '.$uri'!";
+                }
+                else
+                {
+
+                    $push_cb->($uri);
+
+                    return $file;
+                }
+            };
+        },
+    }
+);
+
+my $match_hash_stacker = Stacker->new(
+    {
+        gen_cb => sub {
+            my $push_cb = shift;
+            return sub {
+                my $uri = shift;
+
+                if ( $uri =~ /^\/libxml\// ){
+                    $push_cb->({ verdict => 1, uri => $uri, });
+                    return 1;
+                }
+                else {
+                    return;
+                }
+            };
+        },
+    }
+);
+
+my $match_file_stacker = Stacker->new(
+    {
+        gen_cb => sub {
+            my $push_cb = shift;
+            return sub {
+                my $uri = shift;
+
+                my $verdict = (( $uri =~ /^\/example\// ) ? 1 : 0);
+                if ($verdict)
+                {
+                    $push_cb->({ verdict => $verdict, uri => $uri, });
+                }
+
+                return $verdict;
+            };
+        },
+    }
+);
+
+my $match_hash2_stacker = Stacker->new(
+    {
+        gen_cb => sub {
+            my $push_cb = shift;
+            return sub {        
+                my $uri = shift;
+                if ( $uri =~ /^\/example\// ){
+                    $push_cb->({ verdict => 1, uri => $uri, });
+                    return 1;
+                }
+                else {
+                    return 0;
+                }
+            };
+        },
+    }
+);
+
+my $match_xml_stacker = Stacker->new(
+    {
+        gen_cb => sub {
+            my $push_cb = shift;
+            return sub {        
+                my $uri = shift;
+                if ( $uri =~ /^\/xmldom\// ){
+                    $push_cb->({ verdict => 1, uri => $uri, });
+                    return 1;
+                }
+                else {
+                    return 0;
+                }
+            };
+        },
+    }
+);
+
+my $read_xml_stacker = Stacker->new(
+    {
+        gen_cb => sub {
+            my $push_cb = shift;
+            return sub {        
+                my $dom   = shift;
+                my $buflen = shift;
+
+                my $tmp = $dom->documentElement->findnodes('tmp')->shift;
+                my $rv = $tmp ? $dom->toString : "";
+                $tmp->unbindNode if($tmp);
+
+                $push_cb->($rv);
+
+                return $rv;
+            };
+        },
+    }
+);
 
 # --------------------------------------------------------------------- #
 # multiple tests
@@ -28,20 +461,93 @@ EOF
         # TEST
         ok($icb, 'XML::LibXML::InputCallback was initialized');
 
-        $icb->register_callbacks( [ \&match_file, \&open_file, 
-                                    \&read_file, \&close_file ] );
+        $icb->register_callbacks( [ $match_file_stacker->cb, $open_file_stacker->cb(),
+                                    $read_file_counter->cb(), $close_file_counter->cb(), ] );
 
-        $icb->register_callbacks( [ \&match_hash, \&open_hash, 
-                                    \&read_hash, \&close_hash ] );
+        $icb->register_callbacks( [ $match_hash_stacker->cb, $open_hash_counter->cb,
+                                    $read_hash_counter->cb(), $close_hash_counter->cb ] );
 
-        $icb->register_callbacks( [ \&match_xml, \&open_xml,
-                                    \&read_xml, \&close_xml ] );
+        $icb->register_callbacks( [ $match_xml_stacker->cb, $open_xml_counter->cb,
+                                    $read_xml_stacker->cb, $close_xml_counter->cb] );
 
 
         my $parser = XML::LibXML->new();
         $parser->expand_xinclude(1);
         $parser->input_callbacks($icb);
-        my $doc = $parser->parse_string($string);
+        my $doc = $parser->parse_string($string); # read_hash - 1,1,1,1,1
+
+        # TEST:$c=0;
+        my $test_counters = sub {
+            # TEST:$c++;
+            $read_hash_counter->test(6, "read_hash() count for multiple tests");
+
+            # TEST:$c++;
+            $read_file_counter->test(2, 'read_file() called twice.');
+
+            # TEST:$c++;
+            $close_file_counter->test(1, 'close_file() called once.');
+
+            # TEST:$c++;
+            $open_file_stacker->test(
+                [
+                    '/example/test2.xml',
+                ],
+                'open_file() for URLs.',
+            );
+
+            # TEST:$c++;
+            $match_hash_stacker->test(
+                [
+                    { verdict => 1, uri => '/libxml/test2.xml',},
+                ],
+                'match_hash() for URLs.',
+            );
+
+            # TEST:$c++;
+            $read_xml_stacker->test(
+                [
+                    qq{<?xml version="1.0"?>\n<foo><tmp/>barbar</foo>\n},
+                    '',
+                ],
+                'read_xml() for multiple callbacks',
+            );
+            # TEST:$c++;
+            $match_xml_stacker->test(
+                [
+                    { verdict => 1, uri => '/xmldom/test2.xml', },
+                ],
+                'match_xml() one.',
+            );
+
+            # TEST:$c++;
+            $match_file_stacker->test(
+                [
+                    { verdict => 1, uri => '/example/test2.xml',},
+                ],
+                'match_file() for multiple_tests',
+            );
+
+            # TEST:$c++;
+            $open_hash_counter->test(1, 'open_hash() : called 1 times');
+            # TEST:$c++;
+            $open_xml_counter->test(1, 'open_xml() : parse_string() successful.',); 
+            # TEST:$c++;
+            $close_xml_counter->test(1, "close_xml() called once.");
+            # TEST:$c++;
+            $close_hash_counter->test(1, "close_hash() called once.");
+        };
+
+        # TEST:$test_counters=$c;
+
+        # TEST*$test_counters
+        $test_counters->();
+
+        # This is a regression test for:
+        # https://rt.cpan.org/Ticket/Display.html?id=51086
+        my $doc2 = $parser->parse_string($string);
+
+        # TEST*$test_counters
+        $test_counters->();
 
         # TEST
         ok ($doc, 'parse_string() returns a doc.');
@@ -49,6 +555,14 @@ EOF
         is ($doc->string_value(), 
             "\ntest\n..\nbar..\nbarbar\n",
             '->string_value()',
+        );
+
+        # TEST
+        ok ($doc2, 'second parse_string() returns a doc.');
+        # TEST
+        is ($doc2->string_value(), 
+            "\ntest\n..\nbar..\nbarbar\n",
+            q{Second parse_string()'s ->string_value()},
         );
 }
 
@@ -63,11 +577,11 @@ EOF
 
         my $icb    = XML::LibXML::InputCallback->new();
 
-        $icb->register_callbacks( [ \&match_file, \&open_file, 
-                                    \&read_file, \&close_file ] );
+        $icb->register_callbacks( [ $match_file_stacker->cb, $open_file_stacker->cb(), 
+                                    $read_file_counter->cb(), $close_file_counter->cb(), ] );
 
-        $icb->register_callbacks( [ \&match_hash2, \&open_hash, 
-                                    \&read_hash, \&close_hash ] );
+        $icb->register_callbacks( [ $match_hash2_stacker->cb, $open_hash_counter->cb,
+                                    $read_hash_counter->cb(), $close_hash_counter->cb() ] );
 
 
         my $parser = XML::LibXML->new();
@@ -76,12 +590,77 @@ EOF
         my $doc = $parser->parse_string($string);
 
         # TEST
+        $read_hash_counter->test(12, "read_hash() count for multiple register_callbacks");
+
+        # TEST
+        $open_file_stacker->test(
+            [
+            ],
+            'open_file() for URLs.',
+        );
+
+        # TEST
+        $match_hash2_stacker->test(
+            [
+                { verdict => 1, uri => '/example/test2.xml',},
+                { verdict => 1, uri => '/example/test3.xml',},
+            ],
+            'match_hash2() input callbacks' ,
+        );
+
+        # TEST
+        $match_file_stacker->test(
+            [
+            ],
+            'match_file() input callbacks' ,
+        );
+
+        # TEST
         is ($doc->string_value(), "\ntest\nbar..\nbar..\n",
             'string_value returns fine',);
 
-        $icb->unregister_callbacks( [ \&match_hash2, \&open_hash, 
-                                      \&read_hash, \&close_hash] );
+        # TEST
+        $open_hash_counter->test(2, 'open_hash() : called 2 times');
+        # TEST
+        $close_hash_counter->test(
+            2, "close_hash() called twice on two xincludes."
+        );
+
+        $icb->unregister_callbacks( [ $match_hash2_stacker->cb, \&open_hash, 
+                                      $read_hash_counter->cb(), $close_hash_counter->cb] );
         $doc = $parser->parse_string($string);
+
+        # TEST
+        $read_file_counter->test(4, 'read_file() called 4 times.');
+
+        # TEST
+        $close_file_counter->test(2, 'close_file() called twice.');
+
+        # TEST
+        $open_file_stacker->test(
+            [
+                '/example/test2.xml',
+                '/example/test3.xml',
+            ],
+            'open_file() for URLs.',
+        );
+
+        # TEST
+        $match_hash2_stacker->test(
+            [
+            ],
+            'match_hash2() does not match after being unregistered.' ,
+        );
+
+        # TEST
+        $match_file_stacker->test(
+            [
+                { verdict => 1, uri => '/example/test2.xml',},
+                { verdict => 1, uri => '/example/test3.xml',},
+            ],
+            'match_file() input callbacks' ,
+        );
+
 
         # TEST
         is($doc->string_value(), 
@@ -122,179 +701,84 @@ EOF
                 return $dom;
         };
 
-        $icb->register_callbacks( [ \&match_xml, $open_xml2,
-                                    \&read_xml, \&close_xml ] );
+        $icb->register_callbacks( [ $match_xml_stacker->cb, $open_xml2,
+                                    $read_xml_stacker->cb, $close_xml_counter->cb ] );
 
-        $icb->register_callbacks( [ \&match_hash2, \&open_hash,
-                                    \&read_hash, \&close_hash ] );
+        $icb->register_callbacks( [ $match_hash2_stacker->cb, $open_hash_counter->cb,
+                                    $read_hash_counter->cb(), $close_hash_counter->cb ] );
 
         my $parser = XML::LibXML->new();
         $parser->expand_xinclude(1);
 
-        $parser->match_callback( \&match_file );
-        $parser->open_callback( \&open_file );
-        $parser->read_callback( \&read_file );
-        $parser->close_callback( \&close_file );
+        $parser->match_callback( $match_file_stacker->cb );
+        $parser->open_callback( $open_file_stacker->cb() );
+        $parser->read_callback( $read_file_counter->cb() );
+        $parser->close_callback( $close_file_counter->cb() );
 
         $parser->input_callbacks($icb);
 
         my $doc = $parser->parse_string($string);
 
         # TEST
+        $read_hash_counter->test(6, "read_hash() count for stuff.");
+
+        # TEST
+        $read_file_counter->test(2, 'read_file() called twice.');
+
+        # TEST
+        $close_file_counter->test(1, 'close_file() called once.');
+
+        # TEST
+        $open_file_stacker->test(
+            [
+                '/example/test2.xml',
+            ],
+            'open_file() for URLs.',
+        );
+
+        # TEST
+        $match_hash2_stacker->test(
+            [
+                { verdict => 1, uri => '/example/test2.xml',},
+            ],
+            'match_hash2() input callbacks' ,
+        );
+
+        # TEST
+        $read_xml_stacker->test(
+            [
+                qq{<?xml version="1.0"?>\n<x xmlns:xinclude="http://www.w3.org/2001/XInclude">\n<tmp/><xml>foo..<foo xml:base="/example/test2.xml">bar<xsl/>..</foo>bar</xml>\n</x>\n},
+                '',
+            ],
+            'read_xml() No. 2',
+        );
+        # TEST
+        $match_xml_stacker->test(
+            [
+                { verdict => 1, uri => '/xmldom/test2.xml', },
+            ],
+            'match_xml() No. 2.',
+        );
+
+        # TEST
+        $match_file_stacker->test(
+            [
+                { verdict => 1, uri => '/example/test2.xml',},
+            ],
+            'match_file() for inner callback.',
+        );
+
+        # TEST
+        $open_hash_counter->test(1, 'open_hash() : called 1 times');
+
+        # TEST
+        $close_xml_counter->test(1, "close_xml() called once.");
+
+        # TEST
+        $close_hash_counter->test(1, "close_hash() called once.");
+
+        # TEST
         is ($doc->string_value(), "\ntest\n..\n\nfoo..bar..bar\n\n",
             'string_value()',);
 }
 
-
-# --------------------------------------------------------------------- #
-# CALLBACKS
-# --------------------------------------------------------------------- #
-# --------------------------------------------------------------------- #
-# callback set 1 (perl file reader)
-# --------------------------------------------------------------------- #
-sub match_file {
-        my $uri = shift;
-        if ( $uri =~ /^\/example\// ){
-            # TEST*$num_parsings
-            ok(1, 'match_file()');
-            return 1;
-        }
-        return 0;        
-}
-
-sub open_file {
-        my $uri = shift;
-
-        # TEST*$num_parsings
-        ok( open (my $file, '<', ".$uri"), 'open file');
-
-        return $file;
-}
-
-sub read_file {
-        my $h   = shift;
-        my $buflen = shift;
-        my $rv   = undef;
-
-        # TEST*8
-        ok(1, 'read_file()');
-        
-        my $n = $h->read( $rv , $buflen );
-
-        return $rv;
-}
-
-
-sub close_file {
-        my $h   = shift;
-        # TEST*$num_parsings
-        ok(1, 'close_file()');
-        $h->close();
-        return 1;
-}
-
-# --------------------------------------------------------------------- #
-# callback set 2 (perl hash reader)
-# --------------------------------------------------------------------- #
-sub match_hash {
-        my $uri = shift;
-
-        if ( $uri =~ /^\/libxml\// ){
-            # TEST
-            ok(1, 'URI starts with "/libxml"');
-            return 1;
-        }
-        return;
-}
-
-sub open_hash {
-        my $uri = shift;
-        my $hash = { line => 0,
-                     lines => [ "<foo>", "bar", "<xsl/>", "..", "</foo>" ],
-                   };
-
-        # TEST*$num_parsings
-        ok (1, 'open_hash()');
-
-        return $hash;
-}
-
-sub read_hash {
-        my $h   = shift;
-        my $buflen = shift;
-
-        my $id = $h->{line};
-        $h->{line} += 1;
-        my $rv= $h->{lines}->[$id];
-
-        $rv = "" unless defined $rv;
-
-        # TEST*24
-        ok(1, 'read_hash()',);
-        return $rv;
-}
-
-sub close_hash {
-        my $h   = shift;
-        undef $h;
-
-        # TEST*$num_parsings
-        ok(1, 'close_hash()');
-}
-
-# --------------------------------------------------------------------- #
-# callback set 3 (perl hash reader)
-# --------------------------------------------------------------------- #
-sub match_hash2 {
-        my $uri = shift;
-        if ( $uri =~ /^\/example\// ){
-
-            # TEST*3
-            ok(1, 'URI starts with "/example"');
-            return 1;
-        }
-}
-
-# --------------------------------------------------------------------- #
-# callback set 4 (perl xml reader)
-# --------------------------------------------------------------------- #
-sub match_xml {
-        my $uri = shift;
-        if ( $uri =~ /^\/xmldom\// ){
-            # TEST*2
-            ok(1, 'URI starts with /xmldom in match_xml');
-            return 1;
-        }
-}
-
-sub open_xml {
-        my $uri = shift;
-        my $dom = XML::LibXML->new->parse_string(q{<?xml version="1.0"?><foo><tmp/>barbar</foo>});
-        # TEST
-        ok ($dom, 'open_xml() : parse_string() successful.', );
-
-        return $dom;
-}
-
-sub read_xml {
-        my $dom   = shift;
-        my $buflen = shift;
-
-        my $tmp = $dom->documentElement->findnodes('tmp')->shift;
-        my $rv = $tmp ? $dom->toString : "";
-        $tmp->unbindNode if($tmp);
-
-        # TEST*$num_parsings
-        ok (1, 'read_xml()',);
-        return $rv;
-}
-
-sub close_xml {
-        my $dom   = shift;
-        undef $dom;
-
-        # TEST*2
-        ok(1, 'close_xml()');
-
-        return 1;
-}

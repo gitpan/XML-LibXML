@@ -6,151 +6,188 @@
 use strict;
 use warnings;
 
-use Test;
+use Test::More tests => 36;
 
-BEGIN { plan tests => 36 };
 use XML::LibXML;
 
 my $doc = XML::LibXML::Document->new();
 
 {
-    print "# 1. creation\n";
+    # 1. creation
     my $foo = "foobar";
     my $textnode = $doc->createTextNode($foo);
-    ok( $textnode );
-    ok( $textnode->nodeName(), '#text' );
-    ok( $textnode->nodeValue(), $foo );
+    # TEST
+    ok( $textnode, 'creation 1');
+    # TEST
+    is( $textnode->nodeName(), '#text',  'creation 2');
+    # TEST
+    is( $textnode->nodeValue(), $foo,  'creation 3',);
 
-    print "# 2. substring\n";
+    # 2. substring
     my $tnstr = $textnode->substringData( 1,2 );
-    ok( $tnstr , "oo" );
-    ok( $textnode->nodeValue(), $foo );
+    # TEST
+    is( $tnstr , "oo", 'substring 1');
+    # TEST
+    is( $textnode->nodeValue(), $foo,  'substring 2' );
 
-    print "# 3. Expansion\n";
+    # 3. Expansion
     $textnode->appendData( $foo );
-    ok( $textnode->nodeValue(), $foo . $foo );
+    # TEST
+    is( $textnode->nodeValue(), $foo . $foo, 'expansion 1');
 
     $textnode->insertData( 6, "FOO" );
-    ok( $textnode->nodeValue(), $foo."FOO".$foo );
+    # TEST
+    is( $textnode->nodeValue(), $foo."FOO".$foo, 'expansion 2' );
 
     $textnode->setData( $foo );
     $textnode->insertData( 6, "FOO" );
-    ok( $textnode->nodeValue(), $foo."FOO" );
+    # TEST
+    is( $textnode->nodeValue(), $foo."FOO", 'expansion 3');
     $textnode->setData( $foo );
     $textnode->insertData( 3, "" );
-    ok( $textnode->nodeValue(), $foo );
+    # TEST
+    is( $textnode->nodeValue(), $foo, 'Empty insertion does not change value');
 
-    print "# 4. Removement\n";
+    # 4. Removal
     $textnode->deleteData( 1,2 );
-    ok( $textnode->nodeValue(), "fbar" );
+    # TEST
+    is( $textnode->nodeValue(), "fbar", 'Removal 1');
     $textnode->setData( $foo );
     $textnode->deleteData( 1,10 );
-    ok( $textnode->nodeValue(), "f" );
+    # TEST
+    is( $textnode->nodeValue(), "f", 'Removal 2');
     $textnode->setData( $foo );
     $textnode->deleteData( 10,1 );
-    ok( $textnode->nodeValue(), $foo );
+    # TEST
+    is( $textnode->nodeValue(), $foo, 'Removal 3');
     $textnode->deleteData( 1,0 );
-    ok( $textnode->nodeValue(), $foo );
+    # TEST
+    is( $textnode->nodeValue(), $foo, 'Removal 4');
     $textnode->deleteData( 0,0 );
-    ok( $textnode->nodeValue(), $foo );
+    # TEST
+    is( $textnode->nodeValue(), $foo, 'Removal 5');
     $textnode->deleteData( 0,2 );
-    ok( $textnode->nodeValue(), "obar" );
+    # TEST
+    is( $textnode->nodeValue(), "obar", 'Removal 6');
 
-    print "# 5. Replacement\n";
+    # 5. Replacement
     $textnode->setData( "test" );
     $textnode->replaceData( 1,2, "phish" );
-    ok( $textnode->nodeValue(), "tphisht" );
+    # TEST
+    is( $textnode->nodeValue(), "tphisht", 'Replacement 1');
     $textnode->setData( "test" );
     $textnode->replaceData( 1,4, "phish" );
-    ok( $textnode->nodeValue(), "tphish" );
+    # TEST
+    is( $textnode->nodeValue(), "tphish",  'Replacement 2');
     $textnode->setData( "test" );
     $textnode->replaceData( 1,0, "phish" );
-    ok( $textnode->nodeValue(), "tphishest" );
+    # TEST
+    is( $textnode->nodeValue(), "tphishest",  'Replacement 3');
 
 
-    print "# 6. XML::LibXML features\n";
+    # 6. XML::LibXML features
     $textnode->setData( "test" );
 
     $textnode->replaceDataString( "es", "new" );   
-    ok( $textnode->nodeValue(), "tnewt" );
+    # TEST
+    is( $textnode->nodeValue(), "tnewt", 'replaceDataString() 1');
 
     $textnode->replaceDataRegEx( 'n(.)w', '$1s' );
-    ok( $textnode->nodeValue(), "test" );
+    # TEST
+    is( $textnode->nodeValue(), "test", 'replaceDataRegEx() 2');
 
     $textnode->setData( "blue phish, white phish, no phish" );
     $textnode->replaceDataRegEx( 'phish', 'test' );
-    ok( $textnode->nodeValue(), "blue test, white phish, no phish" );
+    # TEST
+    is( $textnode->nodeValue(), "blue test, white phish, no phish", 
+        'replaceDataRegEx 3',);
 
     # replace them all!
     $textnode->replaceDataRegEx( 'phish', 'test', 'g' );
-    ok( $textnode->nodeValue(), "blue test, white test, no test" );
+    # TEST
+    is( $textnode->nodeValue(), "blue test, white test, no test", 
+        'replaceDataRegEx g',);
 
     # check if special chars are encoded properly 
     $textnode->setData( "te?st" );
     $textnode->replaceDataString( "e?s", 'ne\w' );   
-    ok( $textnode->nodeValue(), 'tne\wt' );
+    # TEST
+    is( $textnode->nodeValue(), 'tne\wt', ' TODO : Add test name' );
 
     # check if "." is encoded properly 
     $textnode->setData( "h.thrt");
     $textnode->replaceDataString( "h.t", 'new', 1 );   
-    ok( $textnode->nodeValue(), 'newhrt' );
+    # TEST
+    is( $textnode->nodeValue(), 'newhrt', ' TODO : Add test name' );
 
     # check if deleteDataString does not delete dots.
     $textnode->setData( 'hitpit' );
     $textnode->deleteDataString( 'h.t' );   
-    ok( $textnode->nodeValue(), 'hitpit' );
+    # TEST
+    is( $textnode->nodeValue(), 'hitpit', ' TODO : Add test name' );
 
     # check if deleteDataString works
     $textnode->setData( 'hitpithit' );
     $textnode->deleteDataString( 'hit' );   
-    ok( $textnode->nodeValue(), 'pithit' );
+    # TEST
+    is( $textnode->nodeValue(), 'pithit', ' TODO : Add test name' );
 
     # check if deleteDataString all works
     $textnode->setData( 'hitpithit' );
     $textnode->deleteDataString( 'hit', 1 );   
-    ok( $textnode->nodeValue(), 'pit' );
+    # TEST
+    is( $textnode->nodeValue(), 'pit', ' TODO : Add test name' );
 
     # check if entities don't get translated
     $textnode->setData(q(foo&amp;bar));
-    ok ( $textnode->getData eq q(foo&amp;bar) );
+    # TEST
+    is ( $textnode->getData(), q(foo&amp;bar), ' TODO : Add test name' );
 }
 
 {
-    print "# standalone test\n";
+    # standalone test
     my $node = XML::LibXML::Text->new("foo");
-    ok($node);
-    ok($node->nodeValue, "foo" );
+    # TEST
+    ok($node, ' TODO : Add test name');
+    # TEST
+    is($node->nodeValue, "foo", ' TODO : Add test name' );
 }
 
 {
-    print "# CDATA node name test\n";
+    # CDATA node name test
 
     my $node = XML::LibXML::CDATASection->new("test");
 
-    ok( $node->string_value(), "test" );
-    ok( $node->nodeName(), "#cdata-section" );
+    # TEST
+    is( $node->string_value(), "test", ' TODO : Add test name' );
+    # TEST
+    is( $node->nodeName(), "#cdata-section", ' TODO : Add test name' );
 }
 
 {
-    print "# Comment node name test\n";
+    # Comment node name test
 
     my $node = XML::LibXML::Comment->new("test");
 
-    ok( $node->string_value(), "test" );
-    ok( $node->nodeName(), "#comment" );
+    # TEST
+    is( $node->string_value(), "test", ' TODO : Add test name' );
+    # TEST
+    is( $node->nodeName(), "#comment", ' TODO : Add test name' );
 }
 
 {
-    print "# Document node name test\n";
+    # Document node name test
 
     my $node = XML::LibXML::Document->new();
 
-    ok( $node->nodeName(), "#document" );
+    # TEST
+    is( $node->nodeName(), "#document", ' TODO : Add test name' );
 }
 {
-    print "# Document fragment node name test\n";
+    # Document fragment node name test
 
     my $node = XML::LibXML::DocumentFragment->new();
 
-    ok( $node->nodeName(), "#document-fragment" );
+    # TEST
+    is( $node->nodeName(), "#document-fragment", ' TODO : Add test name' );
 }
