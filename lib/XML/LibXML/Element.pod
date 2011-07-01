@@ -189,7 +189,7 @@ This function is part of the spec. It fetches all descendants of a node with a
 given tagname, where C<<<<<< tagname >>>>>> is a qualified name, that is, in case of namespace usage it may consist of a
 prefix and local name. A special C<<<<<< tagname >>>>>> '*' can be used to match any tag name. 
 
-In SCALAR context this function returns a L<<<<<< XML::LibXML::NodeList >>>>>> object.
+In SCALAR context this function returns an L<<<<<< XML::LibXML::NodeList >>>>>> object.
 
 
 =item getElementsByTagNameNS
@@ -198,7 +198,7 @@ In SCALAR context this function returns a L<<<<<< XML::LibXML::NodeList >>>>>> o
 
 Namespace version of C<<<<<< getElementsByTagName >>>>>> as found in the DOM spec. A special C<<<<<< localname >>>>>> '*' can be used to match any local name and C<<<<<< nsURI >>>>>> '*' can be used to match any namespace URI.
 
-In SCALAR context this function returns a L<<<<<< XML::LibXML::NodeList >>>>>> object.
+In SCALAR context this function returns an L<<<<<< XML::LibXML::NodeList >>>>>> object.
 
 
 =item getElementsByLocalName
@@ -210,7 +210,7 @@ getElementsByTagName and getElementsByTagNameNS. It will fetch all tags
 matching the given local-name. This allows one to select tags with the same
 local name across namespace borders.
 
-In SCALAR context this function returns a L<<<<<< XML::LibXML::NodeList >>>>>> object.
+In SCALAR context this function returns an L<<<<<< XML::LibXML::NodeList >>>>>> object.
 
 
 =item appendWellBalancedChunk
@@ -371,7 +371,7 @@ Petr Pajas
 
 =head1 VERSION
 
-1.76
+1.77
 
 =head1 COPYRIGHT
 

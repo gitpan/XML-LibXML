@@ -1,7 +1,39 @@
 Revision history for Perl extension XML::LibXML
 
+1.77            Fri Jul  1 22:27:56 IDT 2011
+    - Change the signature of XML::LibXML::Reader::byteConsumed to be
+    "long" instead of "int", so it can return values above 2**31 in
+    64-bit platforms.
+        - should fix https://rt.cpan.org/Ticket/Display.html?id=57085
+    - Change "a XML::LibXML::*" to "an XML::LibXML::*" in the documentation.
+    - Document XML::LibXML::NamedNodeMap :
+        - https://rt.cpan.org/Ticket/Display.html?id=57652 .
+    - Add an external entity resolver (for XSLT/etc.):
+        - Fixing https://rt.cpan.org/Ticket/Display.html?id=69166 .
+        - Thanks to SAMSK for the patch.
+    - Add the missing string comparison overload in
+    lib/XML/LibXML/NodeList.pm :
+        - https://rt.cpan.org/Ticket/Display.html?id=57737
+        - Thanks to MSCHWERN .
+    - Fix https://rt.cpan.org/Ticket/Display.html?id=58024 :
+        - <<< In XML::LibXML, warnings are not suppressed when specifying the 
+        recover() or recover_silently() flags as per the following excerpt from
+        the manpage: >>>
+        - Now XML-LibXML requires perl-5.8.x (to print to a buffer trick.).
+        - Thanks to Michael Ludwig for the report.
+    - Fix https://rt.cpan.org/Ticket/Display.html?id=56671 :
+        - limit the length of the chain of the previous errors.
+        - New files:
+            - t/60error_prev_chain.t
+            - example/JBR-ALLENtrees.htm
+        - Thanks to SCOP.
+    - Fix https://rt.cpan.org/Ticket/Display.html?id=58848 :
+        - "Malformed UTF-8 character (fatal) at" exception thrown on invalid
+        UTF-8.
+        - Thanks to David E. Wheeler (DWHEELER) for the report.
+
 1.76            Thu Jun 30 20:58:46 IDT 2011
-     - Cleaned up t/28new_callbacks_multiple.t - convert to a Counter
+    - Cleaned up t/28new_callbacks_multiple.t - convert to a Counter
      and Stacker class.
         - After that, the regression test for was added:
             - https://rt.cpan.org/Ticket/Display.html?id=51086

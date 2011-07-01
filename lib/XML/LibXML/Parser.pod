@@ -690,7 +690,7 @@ resolvers, as in
   sub match {   # accept file:/ URIs except for XML catalogs in /etc/xml/
     my ($uri) = @_;
     return ($uri=~m{^file:/}
-            and $uri !~ m{^file:///etc/xml/}) 
+            and $uri !~ m{^file:///etc/xml/})
            ? 1 : 0;
   }
   $c->register_callbacks([ \&match, sub{}, sub{}, sub{} ]);
@@ -922,6 +922,13 @@ Loads the XML catalog file $catalog_file.
 
 
 
+  # Global external entity loader (similar to ext_ent_handler option
+  # but this works really globally, also in XML::LibXSLT include etc..)
+
+  XML::LibXML::externalEntityLoader(\&my_loader);
+
+
+
 =back
 
 
@@ -953,7 +960,7 @@ Petr Pajas
 
 =head1 VERSION
 
-1.76
+1.77
 
 =head1 COPYRIGHT
 

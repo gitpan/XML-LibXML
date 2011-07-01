@@ -2,34 +2,65 @@
 use strict;
 use warnings;
 
-use Test;
-BEGIN { plan tests => 11 }
+use Test::More tests => 13;
+
 use XML::LibXML;
 use IO::Handle;
-ok(1);
+
+# TEST
+ok(1, ' TODO : Add test name');
 
 my $dom = XML::LibXML->new->parse_fh(*DATA);
-ok($dom);
+
+# TEST
+ok($dom, ' TODO : Add test name');
 
 my @nodelist = $dom->findnodes('//BBB');
-ok(scalar(@nodelist), 5);
+
+# TEST
+is(scalar(@nodelist), 5, ' TODO : Add test name');
 
 my $nodelist = $dom->findnodes('//BBB');
-ok($nodelist->size, 5);
+# TEST
+is($nodelist->size, 5, ' TODO : Add test name');
 
-ok($nodelist->string_value, "OK"); # first node in set
+# TEST
+is($nodelist->string_value, "OK", ' TODO : Add test name'); # first node in set
 
-ok($nodelist->to_literal, "OKNOT OK");
+# TEST
+is($nodelist->to_literal, "OKNOT OK", ' TODO : Add test name');
 
-ok($dom->findvalue("//BBB"), "OKNOT OK");
+{
+    my $other_nodelist = $dom->findnodes('//BBB');
+    while ($other_nodelist->to_literal() !~ m/\ANOT OK/)
+    {
+        $other_nodelist->shift();
+    }
 
-ok(ref($dom->find("1 and 2")), "XML::LibXML::Boolean");
+    # This is a test for:
+    # https://rt.cpan.org/Ticket/Display.html?id=57737
 
-ok(ref($dom->find("'Hello World'")), "XML::LibXML::Literal");
+    # TEST
+    ok (scalar(($other_nodelist) lt ($nodelist)), "Comparison is OK.");
 
-ok(ref($dom->find("32 + 13")), "XML::LibXML::Number");
+    # TEST
+    ok (scalar(($nodelist) gt ($other_nodelist)), "Comparison is OK.");
+}
 
-ok(ref($dom->find("//CCC")), "XML::LibXML::NodeList");
+# TEST
+is($dom->findvalue("//BBB"), "OKNOT OK", ' TODO : Add test name');
+
+# TEST
+is(ref($dom->find("1 and 2")), "XML::LibXML::Boolean", ' TODO : Add test name');
+
+# TEST
+is(ref($dom->find("'Hello World'")), "XML::LibXML::Literal", ' TODO : Add test name');
+
+# TEST
+is(ref($dom->find("32 + 13")), "XML::LibXML::Number", ' TODO : Add test name');
+
+# TEST
+is(ref($dom->find("//CCC")), "XML::LibXML::NodeList", ' TODO : Add test name');
 
 __DATA__
 <AAA>
