@@ -1,5 +1,23 @@
 Revision history for Perl extension XML::LibXML
 
+1.80            Tue Jul 12 23:35:03 IDT 2011
+    - Fix https://rt.cpan.org/Public/Bug/Display.html?id=69082 :
+        - Compilation on strawberry perl.
+        - The problem was that stderr required a dTHX; call previously.
+    - DOM Normalisation patches and a fix for #69096
+        - Thanks to Daniel Frett.
+        - https://rt.cpan.org/Ticket/Display.html?id=69096
+        - "findvalue from XML::LibXML 1.74 is very slow (regression)"
+        - https://bitbucket.org/shlomif/perl-xml-libxml/pull-request/5/normalize-bug-fixes
+    - Fix https://rt.cpan.org/Ticket/Display.html?id=69433 :
+        - "t/19die_on_invalid_utf8_rt_58848.t assumes errors will be objects:"
+        - Thanks to TODDR.
+        - Failed on older libxml2's.
+    - Add a skip for t/60error_prev_chain.t in case $@ is true but not a ref.
+        - https://rt.cpan.org/Ticket/Display.html?id=69435
+        - Thanks to TODDR.
+        - http://www.cpantesters.org/cpan/report/4ac00aae-a73f-11e0-84bd-8881cd42d09c
+
 1.79            Fri Jul  8 20:02:32 IDT 2011
     - t/46err_column.t : add a skip for a test for CentOS/RHEL 4:
         - https://rt.cpan.org/Ticket/Display.html?id=69070
