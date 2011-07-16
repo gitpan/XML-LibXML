@@ -1,5 +1,17 @@
 Revision history for Perl extension XML::LibXML
 
+1.81            Sat Jul 16 18:30:02 IDT 2011
+    - Add scripts/fast-eumm.pl to remove the explicit objects dependency on 
+    the "Makefile" file so after running scripts/fast-eumm.pl one won't have to
+    rebuild the C-files.
+    - Add no warnings 'recursion' to lib/XML/LibXML/Error.pm to get rid of
+    a "Deep recursion" warning.
+    - Fix "IDs of elements is lost when importing nodes"
+        - https://rt.cpan.org/Public/Bug/Display.html?id=69520
+        - With t/48importing_nodes_IDs_rt_69520.t .
+    - Convert all remaining Test.pm-based test scripts except t/14sax.t to
+    Test::More .
+
 1.80            Tue Jul 12 23:35:03 IDT 2011
     - Fix https://rt.cpan.org/Public/Bug/Display.html?id=69082 :
         - Compilation on strawberry perl.

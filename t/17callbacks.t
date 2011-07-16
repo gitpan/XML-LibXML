@@ -5,36 +5,197 @@ use warnings;
 
 use lib './t/lib';
 use TestHelpers;
+use Counter;
+use Stacker;
 
-use Test;
-BEGIN { plan tests => 42 }
+# Should be 25.
+use Test::More tests => 25;
 use XML::LibXML;
-use IO::File;
 
+sub _create_counter_pair
+{
+    my ($worker_cb, $predicate_cb) = @_;
 
-my $using_globals = '';
+    my $non_global_counter = Counter->new(
+        {
+            gen_cb => sub {
+                my $inc_cb = shift;
+                return sub {
+                    return $worker_cb->(
+                        sub { 
+                            if (!$predicate_cb->())
+                            { 
+                                $inc_cb->() 
+                            }
+                            return;
+                        }
+                    )->(@_);
+                }
+            },
+        }
+    );
+
+    my $global_counter = Counter->new(
+        {
+            gen_cb => sub {
+                my $inc_cb = shift;
+                return sub {
+                    return $worker_cb->(
+                        sub { 
+                            if ($predicate_cb->())
+                            { 
+                                $inc_cb->() 
+                            }
+                            return;
+                        }
+                    )->(@_);
+                }
+            },
+        }
+    );
+
+    return ($non_global_counter, $global_counter);
+}
+
+my ($open1_non_global_counter, $open1_global_counter) =
+    _create_counter_pair(
+        sub {
+            my $cond_cb = shift;
+            return sub {
+                my $fn = shift;
+                # warn("open: $f\n");
+
+                if (open my $fh, '<', $fn)
+                {
+                    $cond_cb->();
+                    return $fh;
+                }
+                else
+                {
+                    return 0;
+                }
+            };
+        },
+        sub { return defined($XML::LibXML::open_cb); },
+    );
+
+my $open2_counter = Counter->new(
+    {
+        gen_cb => sub {
+            my $inc_cb = shift;
+            return sub {
+                my ($fn) = @_;
+                # warn("open2: $_[0]\n");
+
+                $fn =~ s/([^\d])(\.xml)$/${1}4$2/; # use a different file
+                my ($ret, $verdict);
+                if ($verdict = open (my $file, '<', $fn))
+                {
+                    $ret = $file;
+                }
+                else
+                {
+                    $ret = 0;
+                }
+
+                $inc_cb->();
+
+                return $ret;
+            };
+        },
+    }
+);
+
+my ($match1_non_global_counter, $match1_global_counter) =
+    _create_counter_pair(
+        sub {
+            my $cond_cb = shift;
+            return sub {
+                $cond_cb->();
+
+                return 1;
+            };
+        },
+        sub { return defined($XML::LibXML::match_cb); },
+    );
+
+my ($close1_non_global_counter, $close1_global_counter) =
+    _create_counter_pair(
+        sub {
+            my $cond_cb = shift;
+            return sub {
+                my ($fh) = @_;
+                # warn("open: $f\n");
+
+                $cond_cb->();
+
+                if ($fh)
+                {
+                    $fh->close();
+                }
+
+                return 1;
+            };
+        },
+        sub { return defined($XML::LibXML::close_cb); },
+    );
+
+my ($read1_non_global_counter, $read1_global_counter) =
+    _create_counter_pair(
+        sub {
+            my $cond_cb = shift;
+            return sub {
+                my ($fh) = @_;
+                # warn "read!";
+                my $rv = undef;
+                my $n = 0;
+                if ( $fh ) {
+                    $n = $fh->read( $rv , $_[1] );
+                    if ($n > 0)
+                    {
+                        $cond_cb->();
+                    }
+                }
+                return $rv;
+            };
+        },
+        sub { return defined($XML::LibXML::read_cb); },
+    );
 
 {
     # first test checks if local callbacks work
     my $parser = XML::LibXML->new();
-    ok($parser);
+    # TEST
+    ok($parser, 'Parser was initted.');
 
-    $parser->match_callback( \&match1 );
-    $parser->read_callback( \&read1 );
-    $parser->open_callback( \&open1 );
-    $parser->close_callback( \&close1 );
+    $parser->match_callback( $match1_non_global_counter->cb() );
+    $parser->read_callback( $read1_non_global_counter->cb() );
+    $parser->open_callback( $open1_non_global_counter->cb() );
+    $parser->close_callback( $close1_non_global_counter->cb() );
 
     $parser->expand_xinclude( 1 );
 
     my $dom = $parser->parse_file("example/test.xml");
 
-    ok($dom);
+    # TEST
+    $read1_non_global_counter->test(2, 'read1 for expand_include called twice.');
+    # TEST
+    $close1_non_global_counter->test(2, 'close1 for expand_include called twice.');
+    # TEST
+    $match1_non_global_counter->test(2, 'match1 for expand_include called twice.');
+
+    # TEST
+    $open1_non_global_counter->test(2, 'expand_include open1 worked.');
+
+    # TEST
+    ok($dom, 'DOM was returned.');
     # warn $dom->toString();
 
     my $root = $dom->getDocumentElement();
 
     my @nodes = $root->findnodes( 'xml/xsl' );
-    ok( scalar @nodes );
+    # TEST
+    ok( scalar(@nodes), 'Found nodes.' );
 }
 
 {
@@ -43,29 +204,43 @@ my $using_globals = '';
     my $parser = XML::LibXML->new();
     my $parser2 = XML::LibXML->new();
 
-    ok($parser);
-    ok($parser2);
+    # TEST
+    ok($parser, '$parser was init.');
+    # TEST
+    ok($parser2, '$parser2 was init.');
 
-    $parser->match_callback( \&match1 );
-    $parser->read_callback( \&read1 );
-    $parser->open_callback( \&open1 );
-    $parser->close_callback( \&close1 );
+    $parser->match_callback( $match1_non_global_counter->cb() );
+    $parser->read_callback( $read1_non_global_counter->cb() );
+    $parser->open_callback( $open1_non_global_counter->cb() );
+    $parser->close_callback( $close1_non_global_counter->cb() );
 
     $parser->expand_xinclude( 1 );
 
     $parser2->match_callback( \&match2 );
     $parser2->read_callback( \&read2 );
-    $parser2->open_callback( \&open2 );
+    $parser2->open_callback( $open2_counter->cb() );
     $parser2->close_callback( \&close2 );
 
     $parser2->expand_xinclude( 1 );
-
    
     my $dom1 = $parser->parse_file( "example/test.xml");
     my $dom2 = $parser2->parse_file("example/test.xml");
 
-    ok($dom1);
-    ok($dom2);
+    # TEST
+    $read1_non_global_counter->test(2, 'read1 for $parser out of ($parser,$parser2)');
+    # TEST
+    $close1_non_global_counter->test(2, 'close1 for $parser out of ($parser,$parser2)');
+
+    # TEST
+    $match1_non_global_counter->test(2, 'match1 for $parser out of ($parser,$parser2)');
+    # TEST
+    $open1_non_global_counter->test(2, 'expand_include for $parser out of ($parser,$parser2)');
+    # TEST
+    $open2_counter->test(2, 'expand_include for $parser2 out of ($parser,$parser2)');
+    # TEST
+    ok($dom1, '$dom1 was returned');
+    # TEST
+    ok($dom2, '$dom2 was returned');
 
     my $val1  = ( $dom1->findnodes( "/x/xml/text()") )[0]->string_value();
     my $val2  = ( $dom2->findnodes( "/x/xml/text()") )[0]->string_value();
@@ -73,8 +248,11 @@ my $using_globals = '';
     $val1 =~ s/^\s*|\s*$//g;
     $val2 =~ s/^\s*|\s*$//g;
 
-    ok( $val1, "test" );
-    ok( $val2, "test 4" );
+    # TEST
+
+    is( $val1, "test", ' TODO : Add test name' );
+    # TEST
+    is( $val2, "test 4", ' TODO : Add test name' );
 }
 
 chdir("example/complex") || die "chdir: $!";
@@ -86,67 +264,36 @@ my $str = slurp('complex.xml');
     my $parser2 = XML::LibXML->new();
     $parser2->expand_xinclude( 1 );
     my $dom = $parser2->parse_string($str);
-    ok($dom);
+    # TEST
+    ok($dom, '$dom was init.');
 }
 
 
-
-$using_globals = 1;
-$XML::LibXML::match_cb = \&match1;
-$XML::LibXML::open_cb  = \&open1;
-$XML::LibXML::read_cb  = \&read1;
-$XML::LibXML::close_cb = \&close1;
+$XML::LibXML::match_cb = $match1_global_counter->cb();
+$XML::LibXML::open_cb  = $open1_global_counter->cb();
+$XML::LibXML::read_cb  = $read1_global_counter->cb();
+$XML::LibXML::close_cb = $close1_global_counter->cb();
 
 {
     # tests if global callbacks are working
     my $parser = XML::LibXML->new();
-    ok($parser);
+    # TEST
+    ok($parser, '$parser was init');
 
-    ok($parser->parse_string($str));
+    # TEST
+    ok($parser->parse_string($str), 'parse_string returns a true value.');
 
-    # warn $dom->toString() , "\n";
-}
+    # TEST
+    $open1_global_counter->test(3, 'open1 for global counter.');
 
+    # TEST
+    $match1_global_counter->test(3, 'match1 for global callback.');
 
-sub match1 {
-    # warn "match: $_[0]\n";
-    ok($using_globals, defined($XML::LibXML::match_cb));
-    return 1;
-}
+    # TEST
+    $close1_global_counter->test(3, 'close1 for global callback.');
 
-sub close1 {
-    # warn "close $_[0]\n";
-    ok($using_globals, defined($XML::LibXML::close_cb));
-    if ( $_[0] ) {
-        $_[0]->close();
-    }
-    return 1;
-}
-
-sub open1 {
-    my $f = shift;
-    # warn("open: $f\n");
-
-    if (open my $file, '<', $f)
-    {
-        ok($using_globals, defined($XML::LibXML::open_cb));
-        return $file;
-    }
-    else
-    {
-        return 0;
-    }
-}
-
-sub read1 {
-    # warn "read!";
-    my $rv = undef;
-    my $n = 0;
-    if ( $_[0] ) {
-        $n = $_[0]->read( $rv , $_[1] );
-        ok($using_globals, defined($XML::LibXML::read_cb)) if $n > 0
-    }
-    return $rv;
+    # TEST
+    $read1_global_counter->test(3, 'read1 for global counter.');
 }
 
 sub match2 {
@@ -160,26 +307,6 @@ sub close2 {
         $_[0]->close();
     }
     return 1;
-}
-
-sub open2 {
-    my ($fn) = @_;
-    # warn("open2: $_[0]\n");
-
-    $fn =~ s/([^\d])(\.xml)$/${1}4$2/; # use a different file
-    my ($ret, $verdict);
-    if ($verdict = open (my $file, '<', $fn))
-    {
-        $ret = $file;
-    }
-    else
-    {
-        $ret = 0;
-    }
- 
-    ok ($verdict);
-
-    return $ret;
 }
 
 sub read2 {
