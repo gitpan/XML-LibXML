@@ -1,5 +1,15 @@
 Revision history for Perl extension XML::LibXML
 
+1.82            Wed Jul 20 23:43:53 IDT 2011
+    - Moved some if blocks after the dSP; (which contains declarations) to be
+    compliant with C89/C90, which don't allow declarations in the middle of
+    a C function.
+        - resolves https://rt.cpan.org/Ticket/Display.html?id=69622
+        - thanks to Vadim / VKON.
+    - Fix https://rt.cpan.org/Ticket/Display.html?id=69553 :
+        - "install_sax_driver doesn't like custom INSTALLARCHLIB"
+        - thanks to Milki from U.Cal Berkeley.
+
 1.81            Sat Jul 16 18:30:02 IDT 2011
     - Add scripts/fast-eumm.pl to remove the explicit objects dependency on 
     the "Makefile" file so after running scripts/fast-eumm.pl one won't have to
@@ -9,6 +19,7 @@ Revision history for Perl extension XML::LibXML
     - Fix "IDs of elements is lost when importing nodes"
         - https://rt.cpan.org/Public/Bug/Display.html?id=69520
         - With t/48importing_nodes_IDs_rt_69520.t .
+        - Thanks to Yuriy Ustushenko.
     - Convert all remaining Test.pm-based test scripts except t/14sax.t to
     Test::More .
 
