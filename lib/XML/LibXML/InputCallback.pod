@@ -50,7 +50,7 @@ The libxml2 input callbacks come in groups. One group contains a URI matcher (I<
 
 =head3 The Parser Process
 
-The parser process work on a XML data stream, along which, links to other
+The parser process works on an XML data stream, along which, links to other
 resources can be embedded. This can be links to external DTDs or XIncludes for
 example. Those resources are identified by URIs. The callback implementation of
 libxml2 assumes that one callback group can handle a certain amount of URIs and
@@ -280,7 +280,7 @@ Petr Pajas
 
 =head1 VERSION
 
-1.82
+1.83
 
 =head1 COPYRIGHT
 

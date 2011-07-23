@@ -1,7 +1,13 @@
 use strict;
 use warnings;
 
-use Test::More tests => 55;
+use lib './t/lib';
+
+use Counter;
+use Stacker;
+
+# should be 31.
+use Test::More tests => 31;
 
 # BEGIN { plan tests => 55 }
 
@@ -14,56 +20,215 @@ use IO::File;
 # TEST
 ok(1, 'Loaded');
 
+sub _create_simple_counter {
+    return Counter->new(
+        {
+            gen_cb => sub {
+                my $inc_cb = shift;
+
+                sub {
+                    $inc_cb->();
+                    return;    
+                }
+            }
+        }
+    );
+}
+
+my $SAXTester_start_document_counter = _create_simple_counter();
+my $SAXTester_end_document_counter = _create_simple_counter();
+
+my $SAXTester_start_element_stacker = Stacker->new(
+    {
+        gen_cb => sub {
+            my $push_cb = shift;
+            return sub {
+                my $el = shift;
+
+                $push_cb->(
+                    ($el->{LocalName} =~ m{\A(?:dromedaries|species|humps|disposition|legs)\z}) 
+                    ? 'true'
+                    : 'false'
+                );
+
+                return;
+            };
+        },
+    }
+);
+
+my $SAXNSTester_start_element_stacker = Stacker->new(
+    {
+        gen_cb => sub {
+            my $push_cb = shift;
+            return sub {
+                my $node = shift;
+
+                $push_cb->(
+                    scalar($node->{NamespaceURI} =~ /^urn:/)
+                    ? 'true'
+                    : 'false'
+                );
+
+                return;
+            };
+        },
+    }
+);
+
+my $SAXNS2Tester_start_element_stacker = Stacker->new(
+    {
+        gen_cb => sub {
+            my $push_cb = shift;
+            return sub {
+                my $elt = shift;
+
+                if ($elt->{Name} eq "b")
+                {
+                    $push_cb->(
+                        ($elt->{NamespaceURI} eq "xml://A") ? 'true' : 'false'
+                    );
+                }
+
+                return;
+            };
+        },
+    }
+);
+
+
+sub _create_urn_stacker
+{
+    return
+    Stacker->new(
+        {
+            gen_cb => sub {
+                my $push_cb = shift;
+                return sub {
+                    my $node = shift;
+
+                    $push_cb->(
+                        ($node->{NamespaceURI} =~ /\A(?:urn:camels|urn:mammals|urn:a)\z/)
+                        ? 'true'
+                        : 'false'
+                    );
+
+                    return;
+                };
+            },
+        }
+    );
+}
+
+my $SAXNSTester_start_prefix_mapping_stacker = _create_urn_stacker();
+my $SAXNSTester_end_prefix_mapping_stacker = _create_urn_stacker();
+
 # TEST
 ok(XML::SAX->add_parser(q(XML::LibXML::SAX::Parser)), 'add_parser is successful.');
 
 local $XML::SAX::ParserPackage = 'XML::LibXML::SAX::Parser';
 
-my $sax = SAXTester->new;
-# TEST
-ok($sax, ' TODO : Add test name');
+my $parser;
+{
+    my $sax = SAXTester->new;
+    # TEST
+    ok($sax, ' TODO : Add test name');
 
-my $str = join('', IO::File->new("example/dromeds.xml")->getlines);
-my $doc = XML::LibXML->new->parse_string($str);
-# TEST
-ok($doc, ' TODO : Add test name');
+    my $str = join('', IO::File->new("example/dromeds.xml")->getlines);
+    my $doc = XML::LibXML->new->parse_string($str);
+    # TEST
+    ok($doc, ' TODO : Add test name');
 
-my $generator = XML::LibXML::SAX::Parser->new(Handler => $sax);
-# TEST
-ok($generator, ' TODO : Add test name');
+    my $generator = XML::LibXML::SAX::Parser->new(Handler => $sax);
+    # TEST
+    ok($generator, ' TODO : Add test name');
 
-$generator->generate($doc); # SAXTester::start_document
+    $generator->generate($doc); # start_element*10
 
-my $builder = XML::LibXML::SAX::Builder->new();
-# TEST
-ok($builder, ' TODO : Add test name');
-my $gen2 = XML::LibXML::SAX::Parser->new(Handler => $builder);
-my $dom2 = $gen2->generate($doc);
-# TEST
-ok($dom2, ' TODO : Add test name');
+    # TEST
+    $SAXTester_start_element_stacker->test(
+        [qw(true) x 10],
+        'start_element was successful 10 times.',
+    );
+    # TEST
+    $SAXTester_start_document_counter->test(1, 'start_document called once.');
+    # TEST
+    $SAXTester_end_document_counter->test(1, 'end_document called once.');
 
-# TEST
-is($dom2->toString, $str, ' TODO : Add test name');
-# warn($dom2->toString);
+    my $builder = XML::LibXML::SAX::Builder->new();
+    # TEST
+    ok($builder, ' TODO : Add test name');
+    my $gen2 = XML::LibXML::SAX::Parser->new(Handler => $builder);
+    my $dom2 = $gen2->generate($doc);
+    # TEST
+    ok($dom2, ' TODO : Add test name');
+
+    # TEST
+    is($dom2->toString, $str, ' TODO : Add test name');
+    # warn($dom2->toString);
 
 ########### XML::SAX Tests ###########
-my $parser = XML::SAX::ParserFactory->parser(Handler => $sax);
-# TEST
-ok($parser, ' TODO : Add test name');
-$parser->parse_uri("example/dromeds.xml");
+    $parser = XML::SAX::ParserFactory->parser(Handler => $sax);
+    # TEST
+    ok($parser, ' TODO : Add test name');
+    $parser->parse_uri("example/dromeds.xml"); # start_element*10
 
-$parser->parse_string(<<EOT);
+    # TEST
+    $SAXTester_start_element_stacker->test(
+        [qw(true) x 10],
+        'parse_uri(): start_element was successful 10 times.',
+    );
+    # TEST
+    $SAXTester_start_document_counter->test(1, 'start_document called once.');
+    # TEST
+    $SAXTester_end_document_counter->test(1, 'end_document called once.');
+
+    $parser->parse_string(<<EOT); # start_element*1
 <?xml version='1.0' encoding="US-ASCII"?>
 <dromedaries one="1" />
 EOT
+    # TEST
+    $SAXTester_start_element_stacker->test(
+        [qw(true)],
+        'parse_string() : start_element was successful 1 times.',
+    );
+    # TEST
+    $SAXTester_start_document_counter->test(1, 'start_document called once.');
+    # TEST
+    $SAXTester_end_document_counter->test(1, 'end_document called once.');
+}
 
-$sax = SAXNSTester->new;
-# TEST
-ok($sax, ' TODO : Add test name');
+{
+    my $sax = SAXNSTester->new;
+    # TEST
+    ok($sax, ' TODO : Add test name');
 
-$parser->set_handler($sax);
+    $parser->set_handler($sax);
 
-$parser->parse_uri("example/ns.xml");
+    $parser->parse_uri("example/ns.xml");
+
+    # TEST
+    $SAXNSTester_start_element_stacker->test(
+        [
+            qw(true true true)
+        ],
+        'Three successful SAXNSTester elements.',
+    );
+    # TEST
+    $SAXNSTester_start_prefix_mapping_stacker->test(
+        [
+            qw(true true true)
+        ],
+        'Three successful SAXNSTester start_prefix_mapping.',
+    );
+    # TEST
+    $SAXNSTester_end_prefix_mapping_stacker->test(
+        [
+            qw(true true true)
+        ],
+        'Three successful SAXNSTester end_prefix_mapping.',
+    );
+}
 
 ########### Namespace test ( empty namespaces ) ########
 
@@ -73,10 +238,14 @@ $parser->parse_uri("example/ns.xml");
     my @tests = (
 sub {
     XML::LibXML::SAX        ->new( Handler => $h )->parse_string( $xml );
+    # TEST
+    $SAXNS2Tester_start_element_stacker->test([qw(true)], 'XML::LibXML::SAX');
 },
 
 sub {
     XML::LibXML::SAX::Parser->new( Handler => $h )->parse_string( $xml );
+    # TEST
+    $SAXNS2Tester_start_element_stacker->test([qw(true)], 'XML::LibXML::SAX::Parser');
 },
 );  
     
@@ -167,23 +336,28 @@ sub new {
 }
 
 sub start_document {
-  # TEST*3
-  ok(1, 'SAXTester::start_document');
+
+  $SAXTester_start_document_counter->cb()->();
+
+  return;
 }
 
 sub end_document {
-  # TEST*3
-  ok(1, 'SAXTester::end_document');
+    $SAXTester_end_document_counter->cb()->();
+    return;
 }
 
 sub start_element {
-  my ($self, $el) = @_;
-  # TEST*21
-  like ($el->{LocalName}, qr{^(dromedaries|species|humps|disposition|legs)$}, 'SAXTester::start_element');
-  foreach my $attr (keys %{$el->{Attributes}}) {
-    # warn("Attr: $attr = $el->{Attributes}->{$attr}\n");
-  }
-# warn("start_element: $el->{Name}\n");
+    my ($self, $el) = @_;
+
+    $SAXTester_start_element_stacker->cb()->($el);
+
+    # foreach my $attr (keys %{$el->{Attributes}}) {
+    #   warn("Attr: $attr = $el->{Attributes}->{$attr}\n");
+    # }
+    # warn("start_element: $el->{Name}\n");
+
+    return;
 }
 
 sub end_element {
@@ -207,9 +381,10 @@ sub new {
 
 sub start_element {
     my ($self, $node) = @_;
-    # TEST*3
-    ok(scalar($node->{NamespaceURI} =~ /^urn:/), 'SAXNSTester::start_element');
-    # warn("start_element:\n", Dumper($node));
+
+    $SAXNSTester_start_element_stacker->cb()->($node);
+
+    return;
 }
 
 sub end_element {
@@ -219,22 +394,18 @@ sub end_element {
 
 sub start_prefix_mapping {
     my ($self, $node) = @_;
-    # TEST*3
-    ok(scalar(
-            $node->{NamespaceURI} =~ /\A(?:urn:camels|urn:mammals|urn:a)\z/
-        ), 
-        'SAXNSTester::start_prefix_mapping'
-    );
-    # warn("start_prefix_mapping:\n", Dumper($node));
+
+    $SAXNSTester_start_prefix_mapping_stacker->cb()->($node);
+
+    return;
 }
 
 sub end_prefix_mapping {
     my ($self, $node) = @_;
-    # warn("end_prefix_mapping:\n", Dumper($node));
-    # TEST*3
-    like($node->{NamespaceURI}, qr/\A(?:urn:camels|urn:mammals|urn:a)\z/, 
-        'SAXNSTester::end_prefix_mapping'
-    );
+
+    $SAXNSTester_end_prefix_mapping_stacker->cb()->($node);
+
+    return;
 }
 
 1;
@@ -250,11 +421,10 @@ use Test::More;
 sub start_element {
     my $self = shift;
     my ( $elt ) = @_;
-    if ($elt->{Name} eq "b")
-    {
-        # TEST*2
-        is($elt->{NamespaceURI}, "xml://A", 'SAXNS2Tester::start_element');
-    }
+
+    $SAXNS2Tester_start_element_stacker->cb()->($elt);
+
+    return;
 }
 
 1;

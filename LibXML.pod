@@ -196,7 +196,7 @@ which must be able to enforce the encoding specified by the C<<<<<< <?xml versio
 All functions working with DOM accept and return character strings (UTF-8
 encoded with UTF8 flag on). E.g. 
 
-  my $doc = XML::LibXML:Document->new('1.0',$some_encoding);
+  my $doc = XML::LibXML::Document->new('1.0',$some_encoding);
   my $element = $doc->createElement($name);
   $element->appendText($text);
   $xml_fragment = $element->toString(); # returns a character string
@@ -204,7 +204,7 @@ encoded with UTF8 flag on). E.g.
 
 where C<<<<<< $some_encoding >>>>>> is the document encoding that will be used when saving the document, and C<<<<<< $name >>>>>> and C<<<<<< $text >>>>>> contain character strings (UTF-8 encoded with UTF8 flag on). Note that the
 method C<<<<<< toString >>>>>> returns XML as a character string if applied to other node than the Document
-node and a byte string containing the apropriate 
+node and a byte string containing the appropriate 
 
   <?xml version="1.0" encoding="..."?>
 
@@ -221,7 +221,7 @@ bad practice.
 
 
 
-  my $doc = XML::LibXML:Document->new('1.0','iso-8859-2');
+  my $doc = XML::LibXML::Document->new('1.0','iso-8859-2');
   my $text = $doc->createTextNode($some_latin2_encoded_byte_string);
   # WORKS, BUT NOT RECOMMENDED!
 
@@ -295,7 +295,7 @@ for creating a mutex lock and using it in I<<<<<< both >>>>>> in the thread that
   $thr->join;
 
 Note that libxml2 uses dictionaries to store short strings and these
-dicionaries are kept on a document node. Without mutex locks, it could happen
+dictionaries are kept on a document node. Without mutex locks, it could happen
 in the previous example that the thread modifies the dictionary while other
 threads attempt to read from it, which could easily lead to a crash.
 
@@ -472,14 +472,14 @@ in the XML::LibXML document will not have this information.
 
   $libxmlnode = XML::LibXML->import_GDOME( $node, $deep );
 
-This clones an XML::GDOME node to a XML::LibXML node explicitly.
+This clones an XML::GDOME node to an XML::LibXML node explicitly.
 
 
 =item export_GDOME
 
   $gdomenode = XML::LibXML->export_GDOME( $node, $deep );
 
-Allows to clone an XML::LibXML node into a XML::GDOME node.
+Allows to clone an XML::LibXML node into an XML::GDOME node.
 
 
 
@@ -505,7 +505,7 @@ Petr Pajas
 
 =head1 VERSION
 
-1.82
+1.83
 
 =head1 COPYRIGHT
 
