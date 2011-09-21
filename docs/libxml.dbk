@@ -22,7 +22,7 @@
         </authorgroup>
 
 
-        <edition>1.87</edition>
+        <edition>1.88</edition>
         <copyright>
             <year>2001-2007</year>
             <holder>AxKit.com Ltd</holder>
@@ -1774,6 +1774,14 @@ $parser->input_callbacks($c);
             <listitem>
 	      <para>/parser, html, reader/</para>
               <para>remove blank nodes; possible values are 0 and 1</para>
+            </listitem>
+          </varlistentry>
+          <varlistentry>
+            <term>no_defdtd</term>
+            <listitem>
+	      <para>/html/</para>
+              <para>do not add a default DOCTYPE; possible values are 0 and 1</para>
+              <para>the default is (0) to add a DTD when the input html lacks one</para>
             </listitem>
           </varlistentry>
           <varlistentry>

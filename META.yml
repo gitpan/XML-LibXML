@@ -1,48 +1,48 @@
---- #YAML:1.0
-name:               XML-LibXML
-version:            1.87
-abstract:           Interface to Gnome libxml2 xml parsing and DOM library
+---
+abstract: 'Interface to Gnome libxml2 xml parsing and DOM library'
 author:
-    - Petr Pajas
-license:            perl
-distribution_type:  module
-configure_requires:
-    ExtUtils::MakeMaker:  0
+  - 'Petr Pajas'
 build_requires:
-    ExtUtils::MakeMaker:  0
-requires:
-    base:                 0
-    ExtUtils::MakeMaker:  6.56
-    strict:               0
-    Test::More:           0
-    vars:                 0
-    warnings:             0
-    XML::NamespaceSupport:  1.07
-    XML::SAX:             0.11
-resources:
-    homepage:    https://bitbucket.org/shlomif/perl-xml-libxml
-    repository:  https://bitbucket.org/shlomif/perl-xml-libxml
-no_index:
-    directory:
-        - t
-        - inc
-generated_by:       ExtUtils::MakeMaker version 6.57_05
-meta-spec:
-    url:      http://module-build.sourceforge.net/META-spec-v1.4.html
-    version:  1.4
+  ExtUtils::MakeMaker: 0
+configure_requires:
+  ExtUtils::MakeMaker: 0
+dynamic_config: 1
+generated_by: 'ExtUtils::MakeMaker version 6.59, CPAN::Meta::Converter version 2.112150'
 keywords:
-    - dom
-    - html
-    - libxml
-    - object oriented
-    - oop
-    - parse
-    - parser
-    - parsing
-    - pullparser
-    - sax
-    - sgml
-    - xml
-    - xpath
-    - XPath
-    - xs
+  - dom
+  - html
+  - libxml
+  - 'object oriented'
+  - oop
+  - parse
+  - parser
+  - parsing
+  - pullparser
+  - sax
+  - sgml
+  - xml
+  - xpath
+  - XPath
+  - xs
+license: perl
+meta-spec:
+  url: http://module-build.sourceforge.net/META-spec-v1.4.html
+  version: 1.4
+name: XML-LibXML
+no_index:
+  directory:
+    - t
+    - inc
+requires:
+  ExtUtils::MakeMaker: 6.56
+  Test::More: 0
+  XML::NamespaceSupport: 1.07
+  XML::SAX: 0.11
+  base: 0
+  strict: 0
+  vars: 0
+  warnings: 0
+resources:
+  homepage: https://bitbucket.org/shlomif/perl-xml-libxml
+  repository: https://bitbucket.org/shlomif/perl-xml-libxml
+version: 1.88

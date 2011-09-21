@@ -1,5 +1,18 @@
 Revision history for Perl extension XML::LibXML
 
+1.88            Wed Sep 21 12:54:33 IDT 2011
+    - Add libxml2 2.7.8 as tested and working fine for the Makefile.PL.
+    (Thanks to H. Merijn Brand.).
+    - Apply a patch to perl-libxml-sax.c to use xmlChar * instead of char *.
+    (Thanks to H. Merijn Brand.).
+    - Correct the README so it won't read XML-LibXML-Common.
+        - see http://code.activestate.com/lists/perl-xml/8907/
+    - Add a patch to implement the no_defdtd option in recent libxml2's:
+        - https://rt.cpan.org/Ticket/Display.html?id=70878
+        - Thanks to zzgrim@gmail.com .
+    - Add scripts/bump-version-number.pl to modify the version number globally.
+        - Currently the version numbers of the modules under lib/ where 1.73.
+
 1.87            Sat Aug 27 14:05:37 IDT 2011
     - Fix t/49callbacks_returning_undef.t to not read /etc/passed which may
     not be valid XML. Instead, we're reading a local file while using 
