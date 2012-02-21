@@ -7,7 +7,7 @@ use Tie::Hash;
 our @ISA = qw/Tie::Hash/;
 
 use vars qw($VERSION);
-$VERSION = "1.91"; # VERSION TEMPLATE: DO NOT CHANGE
+$VERSION = "1.92"; # VERSION TEMPLATE: DO NOT CHANGE
 
 BEGIN
 {
@@ -40,13 +40,17 @@ sub to_clark
 sub all_keys
 {
     my ($self, @keys) = @_;
-    foreach ($self->element->attributes)
+
+    my $elem = $self->element;
+
+    foreach my $attr (defined($elem) ? $elem->attributes : ())
     {
-        if (! $_->isa('XML::LibXML::Namespace'))
+        if (! $attr->isa('XML::LibXML::Namespace'))
         {
-            push @keys, $self->to_clark($_->namespaceURI, $_->localname);
+            push @keys, $self->to_clark($attr->namespaceURI, $attr->localname);
         }
     }
+
     return sort @keys;
 }
 
