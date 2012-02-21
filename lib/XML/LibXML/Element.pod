@@ -362,6 +362,17 @@ This function is NOT part of any DOM API.
 
 =back
 
+
+=head1 OVERLOADING
+
+XML::LibXML::Element overloads hash dereferencing to provide access to the
+element's attributes. For non-namespaced attributes, the attribute name is the
+hash key, and the attribute value is the hash value. For namespaced attributes,
+the hash key is qualified with the namespace URI, using Clark notation.
+
+Perl's "tied hash" feature is used, which means that the hash gives you
+read-write access to the element's attributes. For more information, see L<<<<<< XML::LibXML::AttributeHash >>>>>>
+
 =head1 AUTHORS
 
 Matt Sergeant, 
@@ -371,7 +382,7 @@ Petr Pajas
 
 =head1 VERSION
 
-1.90
+1.91
 
 =head1 COPYRIGHT
 

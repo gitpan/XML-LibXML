@@ -17,7 +17,7 @@ use XML::LibXML::Literal;
 use XML::LibXML::Number;
 
 use vars qw($VERSION);
-$VERSION = "1.90"; # VERSION TEMPLATE: DO NOT CHANGE
+$VERSION = "1.91"; # VERSION TEMPLATE: DO NOT CHANGE
 
 use overload 
         '""' => \&to_literal,
@@ -105,7 +105,7 @@ sub string_value {
 sub to_literal {
     my $self = CORE::shift;
     return XML::LibXML::Literal->new(
-            join('', grep {defined $_} map { $_->string_value } @$self)
+            join('', CORE::grep {defined $_} CORE::map { $_->string_value } @$self)
             );
 }
 
@@ -119,6 +119,88 @@ sub to_number {
 sub iterator {
     warn "this function is obsolete!\nIt was disabled in version 1.54\n";
     return undef;
+}
+
+sub map {
+    my $self = CORE::shift;
+    my $sub  = __is_code(CORE::shift);
+    local $_;
+    my @results = CORE::map { @{[ $sub->($_) ]} } @$self;
+    return unless defined wantarray;
+    return wantarray ? @results : (ref $self)->new(@results);
+}
+
+sub grep {
+    my $self = CORE::shift;
+    my $sub  = __is_code(CORE::shift);
+    local $_;
+    my @results = CORE::grep { $sub->($_) } @$self;
+    return unless defined wantarray;
+    return wantarray ? @results : (ref $self)->new(@results);
+}
+
+sub sort {
+    my $self = CORE::shift;
+    my $sub  = __is_code(CORE::shift);
+    my @results = CORE::sort { $sub->($a,$b) } @$self;
+    return wantarray ? @results : (ref $self)->new(@results);
+}
+
+sub foreach {
+    my $self = CORE::shift;
+    my $sub  = CORE::shift;
+
+    foreach my $item (@$self)
+    {
+        local $_ = $item;
+        $sub->($item);
+    }
+
+    return wantarray ? @$self : $self;
+}
+
+sub reverse {
+    my $self    = CORE::shift;
+    my @results = CORE::reverse @$self;
+    return wantarray ? @results : (ref $self)->new(@results);
+}
+
+sub reduce {
+    my $self = CORE::shift;
+    my $sub  = __is_code(CORE::shift);
+    
+    my @list = @$self;
+    CORE::unshift @list, $_[0] if @_;
+    
+    my $a = CORE::shift(@list);
+    foreach my $b (@list)
+    {
+        $a = $sub->($a, $b);
+    }
+    return $a;
+}
+
+sub __is_code {
+    my ($code) = @_;
+    
+    if (ref $code eq 'CODE') {
+        return $code;
+    }
+    
+    # There are better ways of doing this, but here I've tried to
+    # avoid adding any additional external dependencies.
+    #
+    if (UNIVERSAL::can($code, 'can')        # is blessed (sort of)
+    and overload::Overloaded($code)         # is overloaded
+    and overload::Method($code, '&{}')) {   # overloads '&{}'
+        return $code;
+    }
+    
+    # The other possibility is that $code is a coderef, but is
+    # blessed into a class that doesn't overload '&{}'. In which
+    # case... well, I'm stumped!
+    
+    die "Not a subroutine reference\n";
 }
 
 1;
@@ -143,7 +225,7 @@ detailed by the W3C DOM documentation of Node Lists.
 
 =head1 API
 
-=head2 new()
+=head2 new(@nodes)
 
 You will almost never have to create a new NodeList object, as it is all
 done for you by XPath.
@@ -195,5 +277,38 @@ Equivalent to perl's unshift function.
 
 Given a nodelist, prepends the list of nodes in $nodelist to the front of
 the current list.
+
+=head2 map($coderef)
+
+Equivalent to perl's map function.
+
+=head2 grep($coderef)
+
+Equivalent to perl's grep function.
+
+=head2 sort($coderef)
+
+Equivalent to perl's sort function.
+
+Caveat: Perl's magic C<$a> and C<$b> variables are not available in
+C<$coderef>. Instead the two terms are passed to the coderef as arguments.
+
+=head2 reverse()
+
+Equivalent to perl's reverse function.
+
+=head2 foreach($coderef)
+
+Inspired by perl's foreach loop. Executes the coderef on each item in
+the list. Similar to C<map>, but instead of returning the list of values
+returned by $coderef, returns the original NodeList.
+
+=head2 reduce($coderef, $init)
+
+Equivalent to List::Util's reduce function. C<$init> is optional and
+provides an initial value for the reduction.
+
+Caveat: Perl's magic C<$a> and C<$b> variables are not available in
+C<$coderef>. Instead the two terms are passed to the coderef as arguments.
 
 =cut

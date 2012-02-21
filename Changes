@@ -1,5 +1,17 @@
 Revision history for Perl extension XML::LibXML
 
+1.91            Tue Feb 21 13:57:54 IST 2012
+    - Overload hash dereferencing on XML::LibXML::Elements, to provide
+    access to the element's attributes.
+        - See XML::LibXML::AttributeHash for details.
+        - Thanks to Toby Inkster.
+    - Pull some commits from Toby Inkster to add more convenient methods
+    to XML::LibXML::NodeList such as sort, map, grep, etc.
+        - https://bitbucket.org/shlomif/perl-xml-libxml/pull-request/11/xml-libxml-nodelist-improvements
+        - Thanks, Toby!
+    - Printed some warnings regardless if DEBUG is on.
+        - Thanks to http://search.cpan.org/~mstrout/ for the suggestion.
+
 1.90            Sun Jan  8 20:57:58 IST 2012
     - Pull a commit from Aaron Crange to fix compilation bugs in Devel.xs:
         - local variable declarations must be in the PREINIT section,
