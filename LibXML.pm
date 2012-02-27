@@ -27,7 +27,7 @@ use XML::LibXML::XPathContext;
 use IO::Handle; # for FH reads called as methods
 
 BEGIN {
-$VERSION = "1.92"; # VERSION TEMPLATE: DO NOT CHANGE
+$VERSION = "1.93"; # VERSION TEMPLATE: DO NOT CHANGE
 $ABI_VERSION = 2;
 require Exporter;
 require DynaLoader;
@@ -1488,10 +1488,26 @@ use XML::LibXML qw(:ns :libxml);
 use XML::LibXML::AttributeHash;
 use Carp;
 
+use Scalar::Util qw(blessed);
+
 use overload
     '%{}'  => 'getAttributeHash',
     'bool' => sub { 1 },
+    'eq' => '_isSameNodeLax', '==' => '_isSameNodeLax',
     ;
+
+sub _isSameNodeLax { 
+    my ($self, $other) = @_;
+
+    if (blessed($other) and $other->isa('XML::LibXML::Element')) 
+    { 
+        return ($self->isSameNode($other) ? 1 : ''); 
+    }
+    else
+    {
+        return '';
+    }
+}
 
 {
     # Note that we could generate a new hashref each time this

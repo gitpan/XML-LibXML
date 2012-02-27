@@ -4,7 +4,7 @@
       "Petr Pajas"
    ],
    "dynamic_config" : 1,
-   "generated_by" : "ExtUtils::MakeMaker version 6.62, CPAN::Meta::Converter version 2.113640",
+   "generated_by" : "ExtUtils::MakeMaker version 6.62, CPAN::Meta::Converter version 2.120351",
    "keywords" : [
       "dom",
       "html",
@@ -39,24 +39,24 @@
    "prereqs" : {
       "build" : {
          "requires" : {
-            "ExtUtils::MakeMaker" : 0
+            "ExtUtils::MakeMaker" : "0"
          }
       },
       "configure" : {
          "requires" : {
-            "ExtUtils::MakeMaker" : 0
+            "ExtUtils::MakeMaker" : "0"
          }
       },
       "runtime" : {
          "requires" : {
             "ExtUtils::MakeMaker" : "6.56",
-            "Test::More" : 0,
+            "Test::More" : "0",
             "XML::NamespaceSupport" : "1.07",
             "XML::SAX" : "0.11",
-            "base" : 0,
-            "strict" : 0,
-            "vars" : 0,
-            "warnings" : 0
+            "base" : "0",
+            "strict" : "0",
+            "vars" : "0",
+            "warnings" : "0"
          }
       }
    },
@@ -67,5 +67,5 @@
          "url" : "https://bitbucket.org/shlomif/perl-xml-libxml"
       }
    },
-   "version" : "1.92"
+   "version" : "1.93"
 }
