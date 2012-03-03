@@ -1,6 +1,6 @@
 use strict;
 use warnings;
-use Test::More tests => 22;
+use Test::More tests => 25;
 use XML::LibXML;
 
 my $root = XML::LibXML->load_xml( IO => \*DATA )->documentElement;
@@ -137,6 +137,12 @@ like(
     '!!! toStringEC14N',
     );
 
+# These are tests for:
+# https://rt.cpan.org/Ticket/Display.html?id=75257
+# https://rt.cpan.org/Ticket/Display.html?id=75293
+# https://rt.cpan.org/Ticket/Display.html?id=75259
+# (Three duplicate reports for the same problem.)
+
 # TEST
 is_deeply(
     [($root == $root)],
@@ -160,7 +166,28 @@ is_deeply(
 
 # TEST
 is_deeply(
+    [($root == 'not-root')],
+    [''],
+    '== negative comparison',
+);
+
+# TEST
+is_deeply(
+    [!($root != 'not-root')],
+    [''],
+    '!== negative comparison',
+);
+
+# TEST
+is_deeply(
     [($root eq 'not-root')],
+    [''],
+    'eq negative comparison',
+);
+
+# TEST
+is_deeply(
+    [!($root ne 'not-root')],
     [''],
     'eq negative comparison',
 );

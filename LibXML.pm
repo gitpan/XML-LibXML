@@ -27,7 +27,7 @@ use XML::LibXML::XPathContext;
 use IO::Handle; # for FH reads called as methods
 
 BEGIN {
-$VERSION = "1.93"; # VERSION TEMPLATE: DO NOT CHANGE
+$VERSION = "1.94"; # VERSION TEMPLATE: DO NOT CHANGE
 $ABI_VERSION = 2;
 require Exporter;
 require DynaLoader;
@@ -1494,7 +1494,14 @@ use overload
     '%{}'  => 'getAttributeHash',
     'bool' => sub { 1 },
     'eq' => '_isSameNodeLax', '==' => '_isSameNodeLax',
+    'ne' => '_isNotSameNodeLax', '!=' => '_isNotSameNodeLax',
     ;
+
+sub _isNotSameNodeLax {
+    my ($self, $other) = @_;
+
+    return ((not $self->_isSameNodeLax($other)) ? 1 : '');
+}
 
 sub _isSameNodeLax { 
     my ($self, $other) = @_;
