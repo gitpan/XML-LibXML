@@ -1,5 +1,16 @@
 Revision history for Perl extension XML::LibXML
 
+1.96            Fri Mar 16 21:01:09 IST 2012
+    - Apply a patch to add leading minus signs to the commands of 
+    install_sax_driver.
+        - This makes the make process succeed even if they fail.
+        - Fixes https://rt.cpan.org/Public/Bug/Display.html?id=75007
+        - Thanks to POPEL for the report, and to Petr Pajas for the patch.
+    - Apply a patch from Tim Brody to skip_all on 
+    t/49callbacks_returning_undef.t when URI.pm's version is below 1.35.
+        - Thanks to Tim Brody for the patch.
+        - Fixes the problem reported in http://www.city-fan.org/tips/PaulHowarth/Blog/2011-09-06.
+
 1.95            Tue Mar  6 10:35:26 IST 2012
     - Got rid of a broken test (at least with recent libxml2s) in
     t/03doc.t :
