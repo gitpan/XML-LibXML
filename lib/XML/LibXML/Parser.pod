@@ -24,6 +24,10 @@ XML::LibXML::Parser - Parsing XML Data with XML::LibXML
       string => $xml_string
       # parser options ...
     );
+  $dom = XML::LibXML->load_xml(
+      string => (\$xml_string)
+      # parser options ...
+    );
   $dom = XML::LibXML->load_xml({
       IO => $perl_file_handle
       # parser options ...
@@ -158,6 +162,10 @@ eval{} block
       string => $xml_string
       # parser options ...
     );
+  $dom = XML::LibXML->load_xml(
+      string => (\$xml_string)
+      # parser options ...
+    );
   $dom = XML::LibXML->load_xml({
       IO => $perl_file_handle
       # parser options ...
@@ -285,12 +293,14 @@ parse_fh() as follows:
   $doc = $parser->parse_string( $xmlstring);
 
 This function is similar to parse_fh(), but it parses an XML document that is
-available as a single string in memory. Again, you can pass an optional base
-URI to the function.
+available as a single string in memory, or alternatively as a reference to a
+scalar containing a string. Again, you can pass an optional base URI to the
+function.
 
 
 
   my $doc = $parser->parse_string( $xmlstring, $baseuri );
+  my $doc = $parser->parse_string(\$xmlstring, $baseuri);
 
 
 =item parse_html_file
@@ -969,7 +979,7 @@ Petr Pajas
 
 =head1 VERSION
 
-1.97
+1.98
 
 =head1 COPYRIGHT
 

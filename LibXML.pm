@@ -27,7 +27,7 @@ use XML::LibXML::XPathContext;
 use IO::Handle; # for FH reads called as methods
 
 BEGIN {
-$VERSION = "1.97"; # VERSION TEMPLATE: DO NOT CHANGE
+$VERSION = "1.98"; # VERSION TEMPLATE: DO NOT CHANGE
 $ABI_VERSION = 2;
 require Exporter;
 require DynaLoader;
@@ -752,8 +752,9 @@ sub __write {
 }
 
 sub load_xml {
-  my ($class_or_self) = shift;
+  my $class_or_self = shift;
   my %args = map { ref($_) eq 'HASH' ? (%$_) : $_ } @_;
+
   my $URI = delete($args{URI});
   $URI = "$URI"  if defined $URI; # stringify in case it is an URI object
   my $parser;
@@ -834,7 +835,7 @@ sub parse_string {
         my $err = $@;
         $self->{_State_} = 0;
         if ($err) {
-	    chomp $err unless ref $err;
+            chomp $err unless ref $err;
             $self->_cleanup_callbacks();
             croak $err;
         }
@@ -845,7 +846,7 @@ sub parse_string {
         my $err = $@;
         $self->{_State_} = 0;
         if ($err) {
-	    chomp $err unless ref $err;
+            chomp $err unless ref $err;
             $self->_cleanup_callbacks();
             croak $err;
         }
