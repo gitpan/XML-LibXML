@@ -45,7 +45,7 @@ Petr Pajas
 
 =head1 VERSION
 
-2.0003
+2.0004
 
 =head1 COPYRIGHT
 

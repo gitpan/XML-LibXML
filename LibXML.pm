@@ -27,7 +27,7 @@ use XML::LibXML::XPathContext;
 use IO::Handle; # for FH reads called as methods
 
 BEGIN {
-$VERSION = "2.0003"; # VERSION TEMPLATE: DO NOT CHANGE
+$VERSION = "2.0004"; # VERSION TEMPLATE: DO NOT CHANGE
 $ABI_VERSION = 2;
 require Exporter;
 require DynaLoader;
@@ -389,7 +389,7 @@ sub _clone {
   my ($self)=@_;
   my $new = ref($self)->new({
       recover => $self->{XML_LIBXML_RECOVER},
-      line_nubers => $self->{XML_LIBXML_LINENUMBERS},
+      line_numbers => $self->{XML_LIBXML_LINENUMBERS},
       base_uri => $self->{XML_LIBXML_BASE_URI},
       gdome => $self->{XML_LIBXML_GDOME},
       set_parser_flags => $self->{XML_LIBXML_PARSER_OPTIONS},

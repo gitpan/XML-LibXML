@@ -1,5 +1,14 @@
 Revision history for Perl extension XML::LibXML
 
+2.0004          Tue  7 Aug 23:04:55 IDT 2012
+    - Add a way to specify a different compiler to be used in the
+    "Makefile" by calling Makefile.PL with the CC environment variable
+    set to the path to the alternate compiler.
+        - This way we can use «CC=/usr/bin/clang perl Makefile.PL»
+        in order to compile faster.
+    - LibXML.pm (_clone): Fix typo in line_numbers handling.
+        - Thanks to Bernhard Reutner-Fischer for the report and fix.
+
 2.0003          Fri 27 Jul 17:11:21 IDT 2012
     - Patch to a potential NULL dereference in xpath.c.
         - Thanks to Ville Skyttä <ville.skytta@iki.fi> and cppcheck.
@@ -8,7 +17,7 @@ Revision history for Perl extension XML::LibXML
         - https://bitbucket.org/shlomif/perl-xml-libxml/pull-request/18
         - Thanks to Tim Brody
     - Add the scripts/tag-release.pl script to tag a release using
-    Mercurial
+    Mercurial.
 
 2.0002          Sun Jul  8 18:09:13 IDT 2012
     - Applied spelling fixes correction patch by
