@@ -140,7 +140,7 @@ is then used to validate the document as it is processed.
 
 =item ...
 
-the reader further supports various parser options described in L<<<<<< XML::LibXML::Parser >>>>>> (specifically those labeled by /reader/). 
+the reader further supports various parser options described in L<<<<<< XML::LibXML::Parser >>>>>> (specifically those labeled by /reader/).
 
 
 
@@ -319,7 +319,7 @@ if the current node is neither an element nor attribute.
 Returns a canonical location path to the current element from the root node to
 the current node. Namespaced elements are matched by '*', because there is no
 way to declare prefixes within XPath patterns. Unlike C<<<<<< XML::LibXML::Node::nodePath() >>>>>>, this function does not provide sibling counts (i.e. instead of e.g. '/a/b[1]'
-and '/a/b[2]' you get '/a/b' for both matches). 
+and '/a/b[2]' you get '/a/b' for both matches).
 
 
 =item matchesPattern(compiled_pattern)
@@ -649,14 +649,14 @@ Heiko Klein, <H.Klein@gmx.net<gt> and Petr Pajas
 
 =head1 AUTHORS
 
-Matt Sergeant, 
-Christian Glahn, 
+Matt Sergeant,
+Christian Glahn,
 Petr Pajas
 
 
 =head1 VERSION
 
-2.0004
+2.0005
 
 =head1 COPYRIGHT
 

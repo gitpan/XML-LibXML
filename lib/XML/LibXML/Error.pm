@@ -18,7 +18,7 @@ use Encode ();
 
 use vars qw(@error_domains $VERSION $WARNINGS);
 use Carp;
-use overload 
+use overload
   '""' => \&as_string,
   'eq' => sub {
     ("$_[0]" eq "$_[1]")
@@ -29,7 +29,7 @@ use overload
   fallback => 1;
 
 $WARNINGS = 0; # 0: suppress, 1: report via warn, 2: report via die
-$VERSION = "2.0004"; # VERSION TEMPLATE: DO NOT CHANGE
+$VERSION = "2.0005"; # VERSION TEMPLATE: DO NOT CHANGE
 
 use constant XML_ERR_NONE            => 0;
 use constant XML_ERR_WARNING         => 1; # A simple warning
@@ -69,7 +69,7 @@ use constant XML_ERR_FROM_SCHEMATRONV=> 28; # The Schematron validator module
 @error_domains = ("", "parser", "tree", "namespace", "validity",
                   "HTML parser", "memory", "output", "I/O", "ftp",
                   "http", "XInclude", "XPath", "xpointer", "regexp",
-                  "Schemas datatype", "Schemas parser", "Schemas validity", 
+                  "Schemas datatype", "Schemas parser", "Schemas validity",
                   "Relax-NG parser", "Relax-NG validity",
                   "Catalog", "C14N", "XSLT", "validity", "error-checking",
                   "xmlwriter", "dynamic loading", "i18n",
@@ -84,7 +84,7 @@ for my $field (qw<code _prev level file line nodename message column context
     *$field = $method;
 }
 
-{ 
+{
 
   sub new {
     my ($class,$xE) = @_;

@@ -17,7 +17,7 @@ use XML::LibXML::Common qw(:libxml);
 use XML::SAX::Base;
 use XML::SAX::DocumentLocator;
 
-$VERSION = "2.0004"; # VERSION TEMPLATE: DO NOT CHANGE
+$VERSION = "2.0005"; # VERSION TEMPLATE: DO NOT CHANGE
 @ISA = ('XML::SAX::Base');
 
 sub CLONE_SKIP {
@@ -173,10 +173,10 @@ sub process_element {
             unless ( defined $attr->name ) {
                 ## It's an atter like "xmlns='foo'"
                 $attribs->{"{}xmlns"} =
-                  {     
+                  {
                    Name         => "xmlns",
                    LocalName    => "xmlns",
-                   Prefix       => "",     
+                   Prefix       => "",
                    Value        => $attr->href,
                    NamespaceURI => "",
                   };

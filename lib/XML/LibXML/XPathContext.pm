@@ -16,7 +16,7 @@ use Carp;
 use XML::LibXML;
 use XML::LibXML::NodeList;
 
-$VERSION = "2.0004"; # VERSION TEMPLATE: DO NOT CHANGE
+$VERSION = "2.0005"; # VERSION TEMPLATE: DO NOT CHANGE
 
 # should LibXML XPath data types be used for simple objects
 # when passing parameters to extension functions (default: no)
@@ -74,10 +74,10 @@ sub _guarded_find_call {
     $self->_free_node_pool;
     $self->setContextNode($prev_node) if ref($node);
 
-    if ($@) { 
+    if ($@) {
       my $err = $@;
       chomp $err;
-      croak $err; 
+      croak $err;
     }
 
     return @ret;

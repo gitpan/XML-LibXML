@@ -3,18 +3,18 @@
 XML::LibXML::ErrNo - Structured Errors
 This module is based on xmlerror.h libxml2 C header file. It defines symbolic
 constants for all libxml2 error codes. Currently libxml2 uses over 480
-different error codes. See also XML::LibXML::Error. 
+different error codes. See also XML::LibXML::Error.
 
 =head1 AUTHORS
 
-Matt Sergeant, 
-Christian Glahn, 
+Matt Sergeant,
+Christian Glahn,
 Petr Pajas
 
 
 =head1 VERSION
 
-2.0004
+2.0005
 
 =head1 COPYRIGHT
 

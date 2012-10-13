@@ -10,7 +10,7 @@ XML::LibXML::Text - XML::LibXML Class for Text Nodes
   # Only methods specific to Text nodes are listed here,
   # see XML::LibXML::Node manpage for other methods
 
-  $text = XML::LibXML::Text->new( $content ); 
+  $text = XML::LibXML::Text->new( $content );
   $nodedata = $text->data;
   $text->setData( $text_content );
   $text->substringData($offset, $length);
@@ -32,15 +32,15 @@ CDATA-sections.
 
 =head1 METHODS
 
-The class inherits from L<<<<<< XML::LibXML::Node >>>>>>. The documentation for Inherited methods is not listed here. 
+The class inherits from L<<<<<< XML::LibXML::Node >>>>>>. The documentation for Inherited methods is not listed here.
 
-Many functions listed here are extensively documented in the DOM Level 3 specification (L<<<<<< http://www.w3.org/TR/DOM-Level-3-Core/ >>>>>>). Please refer to the specification for extensive documentation. 
+Many functions listed here are extensively documented in the DOM Level 3 specification (L<<<<<< http://www.w3.org/TR/DOM-Level-3-Core/ >>>>>>). Please refer to the specification for extensive documentation.
 
 =over 4
 
 =item new
 
-  $text = XML::LibXML::Text->new( $content ); 
+  $text = XML::LibXML::Text->new( $content );
 
 The constructor of the class. It creates an unbound text node.
 
@@ -163,14 +163,14 @@ complex variants it is recommended to use the code snippet above.
 
 =head1 AUTHORS
 
-Matt Sergeant, 
-Christian Glahn, 
+Matt Sergeant,
+Christian Glahn,
 Petr Pajas
 
 
 =head1 VERSION
 
-2.0004
+2.0005
 
 =head1 COPYRIGHT
 
