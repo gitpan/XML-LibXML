@@ -1,5 +1,12 @@
 Revision history for Perl extension XML::LibXML
 
+2.0012          Fri  9 Nov 06:39:32 IST 2012
+    - Fix support for references to scalars with overloaded stringification
+    magic.
+        - https://rt.cpan.org/Public/Bug/Display.html?id=77864
+        - Thanks to Christian Hansen (CHANSEN) for a report, a testcase, and
+        a patch.
+
 2.0011          Thu  8 Nov 00:25:15 IST 2012
     - Fix crash in removeChild() when not expanding entities
         - https://rt.cpan.org/Ticket/Display.html?id=80395
