@@ -337,10 +337,11 @@ my $final_source = <<'EOF';
 </html>
 EOF
 
+my @common = (validation => 0, load_ext_dtd => 0, no_network => 1);
 # TEST
 Test::XML::Ordered::is_xml_ordered(
-    [ string => $final_source, ],
-    [ string => $xml_source, ],
+    [ string => $final_source, @common,],
+    [ string => $xml_source, @common,],
     "foo",
 );
 

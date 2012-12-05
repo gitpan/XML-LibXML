@@ -45,4 +45,4 @@ requires:
 resources:
   homepage: https://bitbucket.org/shlomif/perl-xml-libxml
   repository: https://bitbucket.org/shlomif/perl-xml-libxml
-version: 2.0013
+version: 2.0014
