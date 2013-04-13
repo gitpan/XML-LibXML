@@ -128,7 +128,7 @@ have to create a parser instance before you can parse any XML data.
 Create a new XML and HTML parser instance. Each parser instance holds default
 values for various parser options. Optionally, one can pass a hash reference or
 a list of option => value pairs to set a different default set of options.
-Unless specified otherwise, the options C<<<<<< load_ext_dtd >>>>>>, C<<<<<< expand_entities >>>>>>, and C<<<<<< huge >>>>>> are set to 1. See L<<<<<< Parser Options >>>>>> for a list of libxml2 parser's options.
+Unless specified otherwise, the options C<<<<<< load_ext_dtd >>>>>>, and C<<<<<< expand_entities >>>>>> are set to 1. See L<<<<<< Parser Options >>>>>> for a list of libxml2 parser's options.
 
 
 
@@ -829,7 +829,12 @@ not fixup XINCLUDE xml#base URIS; possible values are 0 and 1
 /parser, html, reader/
 
 relax any hardcoded limit from the parser; possible values are 0 and 1. Unless
-specified, XML::LibXML sets this option to 1.
+specified, XML::LibXML sets this option to 0.
+
+Note: the default value for this option was changed to protect against denial
+of service through entity expansion attacks. Before enabling the option ensure
+you have taken alternative measures to protect your application against this
+type of attack.
 
 
 =item gdome
@@ -979,7 +984,7 @@ Petr Pajas
 
 =head1 VERSION
 
-2.0015
+2.0016
 
 =head1 COPYRIGHT
 
