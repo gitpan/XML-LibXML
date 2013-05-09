@@ -192,7 +192,7 @@ unless ( $is_Win32 ) { # cannot get config in W32
     if ( not defined $config{LIBS} and not defined $config{INC} ) {
         print "running xml2-config...";
         eval {
-            try_libconfig( $xml2cfg, \%config, @blacklist );
+            try_libconfig( $xml2cfg, \%config, \@blacklist );
         };
 
         if ( $@ ) {
@@ -736,7 +736,7 @@ sub try_link {
 sub try_libconfig {
     my $cfgscript = shift;
     my $config = shift;
-    my @bl = @_;
+    my $bl = shift;
 
     my $state = undef; # there are three possible states:
                        # 1     : works
@@ -746,13 +746,26 @@ sub try_libconfig {
     my $ver = backtick("$cfgscript --version");
     if ( defined $ver ) {
         my ( $major, $minor, $point) = $ver =~ /(\d+).(\d+)\.(\d+)/g;
-        foreach ( @bl ) {
-            $state = $_->[3];
-            last if $major <  $_->[0];
-            next if $major >  $_->[0];
-            last if $minor <  $_->[1];
-            next if $minor >  $_->[1];
-            last if $point <= $_->[2];
+
+        if (($major < 2) ||
+            (($major == 2) && ($minor < 9)))
+        {
+                print STDERR <<"EOF";
+The installed version of libxml2 is too low, as older versions proved to
+be buggy.
+You need at least version 2.9.0.
+You have version $ver .
+EOF
+            # 0 recommended by http://cpantest.grango.org (Notes for CPAN Authors)
+            exit 0 unless $FORCE;
+        }
+        foreach my $i ( @$bl ) {
+            $state = $i->[3];
+            last if $major <  $i->[0];
+            next if $major >  $i->[0];
+            last if $minor <  $i->[1];
+            next if $minor >  $i->[1];
+            last if $point <= $i->[2];
             $state = undef;
         }
 
