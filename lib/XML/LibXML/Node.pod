@@ -390,7 +390,7 @@ Note, that $refNode has to be passed explicitly even if it is undef.
 I<<<<<< findnodes >>>>>> evaluates the xpath expression (XPath 1.0) on the current node and returns the
 resulting node set as an array. In scalar context, returns an L<<<<<< XML::LibXML::NodeList >>>>>> object.
 
-The xpath expression can be passed either as a string or or as a L<<<<<< XML::LibXML::XPathExpression >>>>>> object.
+The xpath expression can be passed either as a string, or as a L<<<<<< XML::LibXML::XPathExpression >>>>>> object.
 
 I<<<<<< NOTE ON NAMESPACES AND XPATH >>>>>>:
 
@@ -448,7 +448,7 @@ expression, and returns the result depending on what type of result the XPath
 expression had. For example, the XPath "1 * 3 + 52" results in a L<<<<<< XML::LibXML::Number >>>>>> object being returned. Other expressions might return an L<<<<<< XML::LibXML::Boolean >>>>>> object, or an L<<<<<< XML::LibXML::Literal >>>>>> object (a string). Each of those objects uses Perl's overload feature to "do
 the right thing" in different contexts.
 
-The xpath expression can be passed either as a string or or as a L<<<<<< XML::LibXML::XPathExpression >>>>>> object.
+The xpath expression can be passed either as a string, or as a L<<<<<< XML::LibXML::XPathExpression >>>>>> object.
 
 See also L<<<<<< XML::LibXML::XPathContext >>>>>>->find.
 
@@ -470,7 +470,7 @@ select="some_xpath"/>.
 
 See also L<<<<<< XML::LibXML::XPathContext >>>>>>->findvalue.
 
-The xpath expression can be passed either as a string or or as a L<<<<<< XML::LibXML::XPathExpression >>>>>> object.
+The xpath expression can be passed either as a string, or as a L<<<<<< XML::LibXML::XPathExpression >>>>>> object.
 
 
 =item exists
@@ -739,7 +739,7 @@ Petr Pajas
 
 =head1 VERSION
 
-2.0018
+2.0019
 
 =head1 COPYRIGHT
 
