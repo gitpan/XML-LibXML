@@ -5010,6 +5010,15 @@ isSameNode( self, oNode )
     OUTPUT:
         RETVAL
 
+IV
+unique_key( self )
+        xmlNodePtr self
+    CODE:
+        /* Cast pointer to IV */
+        RETVAL = PTR2IV(self);
+    OUTPUT:
+        RETVAL
+
 SV *
 baseURI( self )
         xmlNodePtr self

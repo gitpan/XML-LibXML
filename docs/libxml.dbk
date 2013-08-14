@@ -22,7 +22,7 @@
         </authorgroup>
 
 
-        <edition>2.0019</edition>
+        <edition>2.0100</edition>
         <copyright>
             <year>2001-2007</year>
             <holder>AxKit.com Ltd</holder>
@@ -3135,6 +3135,22 @@ my $dtd      = $document-&gt;createInternalSubset( "foo", "-//FOO//DTD FOO 0.1//
                     <para>deprecated version of isSameNode().</para>
 
                     <para><emphasis>NOTE</emphasis> isEqual will change behaviour to follow the DOM specification</para>
+                </listitem>
+            </varlistentry>
+
+
+
+            <varlistentry>
+                <term>unique_key</term>
+
+                <listitem>
+                    <funcsynopsis>
+                        <funcsynopsisinfo>$num = $node-&gt;unique_key;</funcsynopsisinfo>
+                    </funcsynopsis>
+
+                    <para>This function is not specified for any DOM level. It returns a key guaranteed to be unique for this node, and to always be the same value for this node. In other words, two node objects return the same key if and only if isSameNode indicates that they are the same node.</para>
+
+                    <para>The returned key value is useful as a key in hashes.</para>
                 </listitem>
             </varlistentry>
 
