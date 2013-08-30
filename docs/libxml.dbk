@@ -22,7 +22,7 @@
         </authorgroup>
 
 
-        <edition>2.0103</edition>
+        <edition>2.0104</edition>
         <copyright>
             <year>2001-2007</year>
             <holder>AxKit.com Ltd</holder>
@@ -973,7 +973,7 @@ XML_XMLNS_NS  =&gt; 'http://www.w3.org/2000/xmlns/'
         <sect1>
             <title>Synopsis</title>
 
-            <programlisting>use XML::LibXML 1.70;
+            <programlisting>use XML::LibXML '1.70';
 <!--
 my $dom = XML::LibXML-&gt;load_xml(
  location => $file_or_url,
