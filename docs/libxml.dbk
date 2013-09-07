@@ -22,7 +22,7 @@
         </authorgroup>
 
 
-        <edition>2.0104</edition>
+        <edition>2.0105</edition>
         <copyright>
             <year>2001-2007</year>
             <holder>AxKit.com Ltd</holder>
@@ -3784,6 +3784,21 @@ $c14nstring = $node-&gt;toStringC14N($with_comments, $xpath_expression , $xpath_
 		      $node will be used as the context node for the evaluation, not
 		      the context node of $xpath_context!
 		    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>toStringC14N_v1_1</term>
+
+                <listitem>
+                    <funcsynopsis>
+                        <funcsynopsisinfo>$c14nstring = $node-&gt;toStringC14N_v1_1();
+$c14nstring = $node-&gt;toStringC14N_v1_1($with_comments, $xpath_expression , $xpath_context);</funcsynopsisinfo>
+                    </funcsynopsis>
+                    <para>
+                        This function behaves like toStringC14N() except that
+                        it uses the "XML_C14N_1_1" constant for
+                        canonicalising using the "C14N 1.1 spec".
+                    </para>
                 </listitem>
             </varlistentry>
             <varlistentry>

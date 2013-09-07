@@ -47,6 +47,8 @@ XML::LibXML::Node - Abstract Base Class of XML::LibXML Nodes
   $xmlstring = $node->toString($format,$docencoding);
   $c14nstring = $node->toStringC14N();
   $c14nstring = $node->toStringC14N($with_comments, $xpath_expression , $xpath_context);
+  $c14nstring = $node->toStringC14N_v1_1();
+  $c14nstring = $node->toStringC14N_v1_1($with_comments, $xpath_expression , $xpath_context);
   $ec14nstring = $node->toStringEC14N();
   $ec14nstring = $node->toStringEC14N($with_comments, $xpath_expression, $inclusive_prefix_list);
   $ec14nstring = $node->toStringEC14N($with_comments, $xpath_expression, $xpath_context, $inclusive_prefix_list);
@@ -562,6 +564,15 @@ Note, however, that $node will be used as the context node for the evaluation,
 not the context node of $xpath_context!
 
 
+=item toStringC14N_v1_1
+
+  $c14nstring = $node->toStringC14N_v1_1();
+  $c14nstring = $node->toStringC14N_v1_1($with_comments, $xpath_expression , $xpath_context);
+
+This function behaves like toStringC14N() except that it uses the
+"XML_C14N_1_1" constant for canonicalising using the "C14N 1.1 spec".
+
+
 =item toStringEC14N
 
   $ec14nstring = $node->toStringEC14N();
@@ -752,7 +763,7 @@ Petr Pajas
 
 =head1 VERSION
 
-2.0104
+2.0105
 
 =head1 COPYRIGHT
 

@@ -17,7 +17,7 @@ use XML::LibXML::Literal;
 use XML::LibXML::Number;
 
 use vars qw($VERSION);
-$VERSION = "2.0104"; # VERSION TEMPLATE: DO NOT CHANGE
+$VERSION = "2.0105"; # VERSION TEMPLATE: DO NOT CHANGE
 
 use overload
         '""' => \&to_literal,
@@ -111,6 +111,23 @@ sub to_literal {
     return XML::LibXML::Literal->new(
             join('', CORE::grep {defined $_} CORE::map { $_->string_value } @$self)
             );
+}
+
+sub to_literal_delimited {
+    my $self = CORE::shift;
+    return XML::LibXML::Literal->new(
+            join(CORE::shift, CORE::grep {defined $_} CORE::map { $_->string_value } @$self)
+            );
+}
+
+sub to_literal_list {
+    my $self = CORE::shift;
+    my @nodes = CORE::map{ XML::LibXML::Literal->new($_->string_value())->value() } @{$self};
+
+    if (wantarray) {
+        return( @nodes );
+    }
+    return( \@nodes );
 }
 
 sub to_number {
@@ -247,6 +264,16 @@ See the XPath specification for what "string-value" means.
 
 Returns the concatenation of all the string-values of all
 the nodes in the list.
+
+=head2 to_literal_delimited($separator)
+
+Returns the concatenation of all the string-values of all
+the nodes in the list, delimited by the specified separator.
+
+=head2 to_literal_list()
+
+Returns all the string-values of all the nodes in the list as
+a perl list.
 
 =head2 get_node($pos)
 
