@@ -479,7 +479,7 @@ This clones an XML::GDOME node to an XML::LibXML node explicitly.
 
   $gdomenode = XML::LibXML->export_GDOME( $node, $deep );
 
-Allows to clone an XML::LibXML node into an XML::GDOME node.
+Allows one to clone an XML::LibXML node into an XML::GDOME node.
 
 
 
@@ -505,7 +505,7 @@ Petr Pajas
 
 =head1 VERSION
 
-2.0106
+2.0107
 
 =head1 COPYRIGHT
 

@@ -230,8 +230,8 @@ with the push parser interface, this function should not be used anymore.
 =back
 
 By default XML::LibXML does not process XInclude tags within an XML Document
-(see options section below). XML::LibXML allows to post process a document to
-expand XInclude tags.
+(see options section below). XML::LibXML allows one to post-process a document
+to expand XInclude tags.
 
 =over 4
 
@@ -984,7 +984,7 @@ Petr Pajas
 
 =head1 VERSION
 
-2.0106
+2.0107
 
 =head1 COPYRIGHT
 

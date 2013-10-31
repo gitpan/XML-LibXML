@@ -136,15 +136,15 @@ The DOM style version to replace node data.
 
 The more programmer friendly version of replaceData() :)
 
-Instead of giving offsets and length one can specify the exact string (I<<<<<< $oldstring >>>>>>) to be replaced. Additionally the I<<<<<< $all >>>>>> flag allows to replace all occurrences of I<<<<<< $oldstring >>>>>>.
+Instead of giving offsets and length one can specify the exact string (I<<<<<< $oldstring >>>>>>) to be replaced. Additionally the I<<<<<< $all >>>>>> flag allows one to replace all occurrences of I<<<<<< $oldstring >>>>>>.
 
 
 =item replaceDataRegEx( $search_cond, $replace_cond, $reflags )
 
   $text->replaceDataRegEx( $search_cond, $replace_cond, $reflags );
 
-This method replaces the node's data by a C<<<<<< simple >>>>>> regular expression. Optional, this function allows to pass some flags that will
-be added as flag to the replace statement.
+This method replaces the node's data by a C<<<<<< simple >>>>>> regular expression. Optional, this function allows one to pass some flags that
+will be added as flag to the replace statement.
 
 I<<<<<< NOTE: >>>>>> This is a shortcut for
 
@@ -170,7 +170,7 @@ Petr Pajas
 
 =head1 VERSION
 
-2.0106
+2.0107
 
 =head1 COPYRIGHT
 

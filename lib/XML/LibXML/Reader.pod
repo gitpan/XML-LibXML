@@ -656,7 +656,7 @@ Petr Pajas
 
 =head1 VERSION
 
-2.0106
+2.0107
 
 =head1 COPYRIGHT
 
