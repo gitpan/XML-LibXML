@@ -18,7 +18,7 @@ sub CLONE_SKIP {
   return $XML::LibXML::__threads_shared ? 0 : 1;
 }
 
-$VERSION = "2.0107"; # VERSION TEMPLATE: DO NOT CHANGE
+$VERSION = "2.0108"; # VERSION TEMPLATE: DO NOT CHANGE
 
 sub new {
     my $class = shift;
@@ -188,7 +188,7 @@ sub start_element {
                 # ok, the generator does not set namespaces correctly!
                 my $uri = $attr->{Value};
                 $node->setNamespace($uri,
-                                    $attr->{Localname},
+                                    $attr->{LocalName},
                                     $uri eq $el->{NamespaceURI} ? 1 : 0 );
             }
             else {
