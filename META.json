@@ -55,6 +55,7 @@
             "XML::SAX" : "0.11",
             "base" : "0",
             "parent" : "0",
+            "perl" : "5.008",
             "strict" : "0",
             "vars" : "0",
             "warnings" : "0"
@@ -68,5 +69,5 @@
          "url" : "https://bitbucket.org/shlomif/perl-xml-libxml"
       }
    },
-   "version" : "2.0109"
+   "version" : "2.0110"
 }

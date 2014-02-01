@@ -505,7 +505,7 @@ Petr Pajas
 
 =head1 VERSION
 
-2.0109
+2.0110
 
 =head1 COPYRIGHT
 
@@ -516,3 +516,10 @@ Petr Pajas
 2006-2009, Petr Pajas.
 
 =cut
+
+
+=head1 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under
+the same terms as Perl itself.
+

@@ -9,6 +9,9 @@
 
 package XML::LibXML::SAX::Builder;
 
+use strict;
+use warnings;
+
 use XML::LibXML;
 use XML::NamespaceSupport;
 
@@ -18,7 +21,7 @@ sub CLONE_SKIP {
   return $XML::LibXML::__threads_shared ? 0 : 1;
 }
 
-$VERSION = "2.0109"; # VERSION TEMPLATE: DO NOT CHANGE
+$VERSION = "2.0110"; # VERSION TEMPLATE: DO NOT CHANGE
 
 sub new {
     my $class = shift;

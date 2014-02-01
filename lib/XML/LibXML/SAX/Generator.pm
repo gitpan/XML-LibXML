@@ -10,11 +10,12 @@
 package XML::LibXML::SAX::Generator;
 
 use strict;
+use warnings;
 
 use XML::LibXML;
 use vars qw ($VERSION);
 
-$VERSION = "2.0109"; # VERSION TEMPLATE: DO NOT CHANGE
+$VERSION = "2.0110"; # VERSION TEMPLATE: DO NOT CHANGE
 
 sub CLONE_SKIP {
   return $XML::LibXML::__threads_shared ? 0 : 1;
