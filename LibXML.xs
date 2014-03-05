@@ -497,6 +497,7 @@ LibXML_read_perl (SV * ioref, char * buffer, int len)
 
     int cnt;
     SV * read_results;
+    IV read_results_iv;
     STRLEN read_length;
     char * chars;
     SV * tbuff = NEWSV(0,len);
@@ -536,9 +537,20 @@ LibXML_read_perl (SV * ioref, char * buffer, int len)
         croak("read error");
     }
 
-    read_length = SvIV(read_results);
+    read_results_iv = SvIV(read_results);
 
     chars = SvPV(tbuff, read_length);
+
+    /*
+     * If the file handle uses an encoding layer, the length parameter is
+     * interpreted as character count, not as byte count. So it's possible
+     * that more than len bytes are read which would overflow the buffer.
+     * Check for this condition also by comparing the return value.
+     */
+    if (read_results_iv != read_length || read_length > len) {
+        croak("Read more bytes than requested. Do you use an encoding-related"
+              " PerlIO layer?");
+    }
     strncpy(buffer, chars, read_length);
 
     PUTBACK;
@@ -4100,8 +4112,33 @@ MODULE = XML::LibXML         PACKAGE = XML::LibXML::Node
 void
 DESTROY( node )
         SV * node
+    PREINIT:
+        int count;
+        SV *is_shared;
     CODE:
 #ifdef XML_LIBXML_THREADS
+    if ( (is_shared = get_sv("XML::LibXML::__threads_shared", 0)) == NULL ) {
+        is_shared = &PL_sv_undef;
+    }
+    if ( SvTRUE(is_shared) ) {
+        dSP;
+        ENTER;
+        SAVETMPS;
+        PUSHMARK(SP);
+        XPUSHs(node);
+        PUTBACK;
+        count = call_pv("threads::shared::is_shared", G_SCALAR);
+        SPAGAIN;
+        if (count != 1)
+            croak("Couldn't checks if the variable is shared or not\n");
+        is_shared = POPs;
+        PUTBACK;
+        FREETMPS;
+        LEAVE;
+        if (is_shared != &PL_sv_undef) {
+            XSRETURN_UNDEF;
+        }
+    }
 	if( PmmUSEREGISTRY ) {
 	  SvLOCK(PROXY_NODE_REGISTRY_MUTEX);
 	  PmmRegistryREFCNT_dec(SvPROXYNODE(node));
@@ -6510,18 +6547,11 @@ substringData( self, offset, length )
     PREINIT:
         xmlChar * data = NULL;
         xmlChar * substr = NULL;
-        int len = 0;
-        int dl = 0;
     CODE:
-        if ( offset >= 0 && length > 0 ) {
-            dl = offset + length - 1 ;
+        if ( offset >= 0 && length >= 0 ) {
             data = domGetNodeValue( self );
-            len = xmlStrlen( data );
-            if ( data != NULL && len > 0 && len > offset ) {
-                if ( dl > len )
-                    dl = offset + len;
-
-                substr = xmlStrsub( data, offset, dl );
+            if ( data != NULL ) {
+                substr = xmlUTF8Strsub( data, offset, length );
                 RETVAL = C2Sv( (const xmlChar*)substr, NULL );
                 xmlFree( substr );
             }
@@ -6585,17 +6615,17 @@ insertData( self, offset, value )
             if ( encstring != NULL && xmlStrlen( encstring ) > 0 ) {
                 data = domGetNodeValue(self);
                 if ( data != NULL && xmlStrlen( data ) > 0 ) {
-                    if ( xmlStrlen( data ) < offset ) {
+                    if ( xmlUTF8Strlen( data ) < offset ) {
                         data = xmlStrcat( data, encstring );
                         domSetNodeValue( self, data );
                     }
                     else {
-                        dl = xmlStrlen( data ) - offset;
+                        dl = xmlUTF8Strlen( data ) - offset;
 
                         if ( offset > 0 )
-                            new   = xmlStrsub(data, 0, offset );
+                            new   = xmlUTF8Strsub(data, 0, offset );
 
-                        after = xmlStrsub(data, offset, dl );
+                        after = xmlUTF8Strsub(data, offset, dl );
 
                         if ( new != NULL ) {
                             new = xmlStrcat(new, encstring );
@@ -6636,17 +6666,17 @@ deleteData( self, offset, length )
     CODE:
         if ( length > 0 && offset >= 0 ) {
             data = domGetNodeValue(self);
-            len = xmlStrlen( data );
+            len = xmlUTF8Strlen( data );
             if ( data != NULL
                  && len > 0
                  && len > offset ) {
                 dl1 = offset + length;
                 if ( offset > 0 )
-                    new = xmlStrsub( data, 0, offset );
+                    new = xmlUTF8Strsub( data, 0, offset );
 
                 if ( len > dl1 ) {
                     dl2 = len - dl1;
-                    after = xmlStrsub( data, dl1, dl2 );
+                    after = xmlUTF8Strsub( data, dl1, dl2 );
                     if ( new != NULL ) {
                         new = xmlStrcat( new, after );
                         xmlFree(after);
@@ -6682,7 +6712,7 @@ replaceData( self, offset,length, value )
 
             if ( encstring != NULL && xmlStrlen( encstring ) > 0 ) {
                 data = domGetNodeValue(self);
-                len = xmlStrlen( data );
+                len = xmlUTF8Strlen( data );
 
                 if ( data != NULL
                      && len > 0
@@ -6690,16 +6720,16 @@ replaceData( self, offset,length, value )
 
                     dl1 = offset + length;
                     if ( dl1 < len ) {
-                        dl2 = xmlStrlen( data ) - dl1;
+                        dl2 = xmlUTF8Strlen( data ) - dl1;
                         if ( offset > 0 ) {
-                            new = xmlStrsub(data, 0, offset );
+                            new = xmlUTF8Strsub(data, 0, offset );
                             new = xmlStrcat(new, encstring );
                         }
                         else {
                             new   = xmlStrdup( encstring );
                         }
 
-                        after = xmlStrsub(data, dl1, dl2 );
+                        after = xmlUTF8Strsub(data, dl1, dl2 );
                         new = xmlStrcat(new, after );
 
                         domSetNodeValue( self, new );
@@ -6710,7 +6740,7 @@ replaceData( self, offset,length, value )
                     else {
                         /* replace until end! */
                         if ( offset > 0 ) {
-                            new = xmlStrsub(data, 0, offset );
+                            new = xmlUTF8Strsub(data, 0, offset );
                             new = xmlStrcat(new, encstring );
                         }
                         else {
