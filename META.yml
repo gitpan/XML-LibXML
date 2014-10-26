@@ -7,7 +7,7 @@ build_requires:
 configure_requires:
   ExtUtils::MakeMaker: '0'
 dynamic_config: 1
-generated_by: 'ExtUtils::MakeMaker version 6.94, CPAN::Meta::Converter version 2.140640'
+generated_by: 'ExtUtils::MakeMaker version 6.98, CPAN::Meta::Converter version 2.142060'
 keywords:
   - dom
   - html
@@ -34,7 +34,6 @@ no_index:
     - t
     - inc
 requires:
-  ExtUtils::MakeMaker: '6.56'
   Test::More: '0'
   XML::NamespaceSupport: '1.07'
   XML::SAX: '0.11'
@@ -47,4 +46,4 @@ requires:
 resources:
   homepage: https://bitbucket.org/shlomif/perl-xml-libxml
   repository: https://bitbucket.org/shlomif/perl-xml-libxml
-version: '2.0116'
+version: '2.0117'
